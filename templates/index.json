@@ -1,0 +1,33 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2025-05-28",
+  "templates": [
+    {
+      "id": "ecommerce",
+      "name": "电商管理系统",
+      "icon": "🛒",
+      "category": "电商",
+      "description": "订单、商品、客户三表协同，含看板和画册视图，快速搭建完整电商数据体系",
+      "version": "1.0.0",
+      "file": "ecommerce.json"
+    },
+    {
+      "id": "project-management",
+      "name": "项目管理系统",
+      "icon": "📋",
+      "category": "项目管理",
+      "description": "任务、里程碑、成员三表联动，含甘特图和看板视图，适合中小团队",
+      "version": "1.0.0",
+      "file": "project-management.json"
+    },
+    {
+      "id": "crm",
+      "name": "销售 CRM 系统",
+      "icon": "💼",
+      "category": "CRM",
+      "description": "客户、联系人、商机三表体系，商机漏斗看板，完整销售流程管理",
+      "version": "1.0.0",
+      "file": "crm.json"
+    }
+  ]
+}

@@ -1,0 +1,119 @@
+.chat-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.session-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 7px 12px;
+  background: var(--color-surface);
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .15s ease, color .15s ease;
+}
+.session-bar:hover { background: var(--color-surface-2); color: var(--color-text); }
+.session-bar-ic { flex-shrink: 0; }
+.session-bar-title {
+  flex: 1;
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.session-bar-chev { flex-shrink: 0; opacity: .7; }
+
+/* Inline delete/write confirmation bar — sits above the input, button instead of typing */
+.del-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 10px;
+  padding: 9px 11px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid #d4380d;
+  border-radius: 8px;
+  font-size: 12.5px;
+  animation: viewIn .18s ease;
+}
+.del-confirm-icon { flex-shrink: 0; }
+.del-confirm-text {
+  flex: 1;
+  color: var(--color-text);
+  line-height: 1.35;
+  word-break: break-word;
+}
+.del-confirm-btn {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: filter .15s ease, background .15s ease;
+}
+.del-confirm-btn--danger { background: #d4380d; color: #fff; }
+.del-confirm-btn--danger:hover { filter: brightness(1.08); }
+.del-confirm-btn--ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+}
+.del-confirm-btn--ghost:hover { background: var(--color-surface); color: var(--color-text); }
+
+/* Current page selection shown above the input (precise-edit context) */
+.selected-ctx {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 10px 4px;
+  padding: 5px 9px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent, #5b7cff);
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  min-width: 0;
+}
+.selected-ctx-tag { flex-shrink: 0; font-weight: 600; color: var(--color-accent, #5b7cff); }
+.selected-ctx-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Field picker — click a field name to drop it into the input (Base grids are canvas) */
+.field-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 10px 2px;
+  scrollbar-width: thin;
+}
+.field-chips::-webkit-scrollbar { height: 4px; }
+.field-chip {
+  flex-shrink: 0;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-family: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.field-chip:hover { background: var(--color-accent, #5b7cff); color: #fff; border-color: transparent; }

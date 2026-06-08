@@ -1,0 +1,16 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-05-28",
+  "templates": [
+    {
+      "id": "hr",
+      "name": "人员管理系统",
+      "icon": "👥",
+      "category": "HR",
+      "description": "员工档案、部门架构、入职离职全流程管理，含看板视图",
+      "version": "1.0.0",
+      "file": "hr.json",
+      "cover": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MiIgaGVpZ2h0PSI5MiIgdmlld0JveD0iMCAwIDkyIDkyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjkyIiB5Mj0iOTIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBzdG9wLWNvbG9yPSIjNWI3Y2ZmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjOGI1Y2ZmIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjkyIiBoZWlnaHQ9IjkyIiByeD0iMjAiIGZpbGw9InVybCgjZykiLz48Y2lyY2xlIGN4PSIzNSIgY3k9IjM4IiByPSIxMSIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iLjk1Ii8+PGNpcmNsZSBjeD0iNjAiIGN5PSI0MiIgcj0iOCIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iLjc1Ii8+PHBhdGggZD0iTTE4IDc0YzItMTIgMTMtMTkgMjMtMTlzMjEgNyAyMyAxOXoiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii45NSIvPjwvc3ZnPgo="
+    }
+  ]
+}

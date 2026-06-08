@@ -1,0 +1,141 @@
+{
+  "id": "ai",
+  "name": "AI 待办事项管理",
+  "description": "从「AI 待办事项管理」导出的模版",
+  "icon": "📊",
+  "category": "自定义",
+  "tags": [],
+  "version": "1.0.0",
+  "author": "",
+  "source": "remote",
+  "target": "new_app",
+  "preview": {
+    "tables": 2,
+    "views": 4,
+    "records": 0,
+    "dashboards": 1
+  },
+  "inputs": [
+    {
+      "key": "app_name",
+      "label": "应用名称",
+      "type": "text",
+      "default": "AI 待办事项管理",
+      "placeholder": "AI 待办事项管理",
+      "required": true
+    }
+  ],
+  "tables": [
+    {
+      "ref": "ai",
+      "name": "任务跟进（AI 风险管理）",
+      "fields": [
+        {
+          "name": "待办事项",
+          "type": 1
+        },
+        {
+          "name": "AI 待办事项汇总",
+          "type": 1
+        },
+        {
+          "name": "AI 任务风险判断",
+          "type": 1
+        },
+        {
+          "name": "创建时间",
+          "type": 5
+        },
+        {
+          "name": "截止日期",
+          "type": 5
+        },
+        {
+          "name": "是否已完成",
+          "type": 7
+        },
+        {
+          "name": "优先级",
+          "type": 3,
+          "options": [
+            {
+              "name": "🔴P0-高优",
+              "color": 11
+            },
+            {
+              "name": "🟡P1-一般",
+              "color": 1
+            },
+            {
+              "name": "🟢P2-低优",
+              "color": 15
+            }
+          ]
+        },
+        {
+          "name": "执行人",
+          "type": 11
+        },
+        {
+          "name": "距离截止日",
+          "type": 20,
+          "formula_expression": "IF(bitable::$table[tbljU59OQRX44EWn].$field[fld76NRu00]=0,IF(TODAY()-bitable::$table[tbljU59OQRX44EWn].$field[fldl33zx7C]<=0,\"🕑还有\"&(bitable::$table[tbljU59OQRX44EWn].$field[fldl33zx7C]-TODAY())&\"天到期\",\"⁉️已延期\"),\"\")"
+        }
+      ],
+      "views": [
+        {
+          "name": "全部待办事项",
+          "type": "grid"
+        },
+        {
+          "name": "任务日历",
+          "type": "unknown"
+        },
+        {
+          "name": "Todo录入",
+          "type": "grid"
+        }
+      ],
+      "sample_records": []
+    },
+    {
+      "ref": "tbl-1c052ba",
+      "name": "🎉 快速上手多维表格",
+      "fields": [
+        {
+          "name": "文本",
+          "type": 1
+        },
+        {
+          "name": "附件",
+          "type": 17
+        },
+        {
+          "name": "描述",
+          "type": 1
+        },
+        {
+          "name": "数字",
+          "type": 2
+        },
+        {
+          "name": "超链接",
+          "type": 15
+        }
+      ],
+      "views": [
+        {
+          "name": "👏🏻 欢迎来到飞书多维表格",
+          "type": "gallery"
+        }
+      ],
+      "sample_records": []
+    }
+  ],
+  "dashboards": [
+    {
+      "name": "任务统计",
+      "blocks": []
+    }
+  ]
+}

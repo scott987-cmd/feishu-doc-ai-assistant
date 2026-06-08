@@ -1,0 +1,97 @@
+/**
+ * Floating launchers: a Feishu page can have SEVERAL saved dashboards bound to its resource.
+ * Each gets its own pill (stacked bottom-left). Click a pill → expand that dashboard (its own
+ * overlay window); click again → collapse it. Multiple dashboards can be open at once.
+ */
+import { parseFeishuContext } from '../shared/feishu/pageUrl'
+import { loadVizList } from '../shared/dataviz/store'
+import { ctxDocKey, vizMatchesCtx } from '../shared/dataviz/scope'
+import type { SavedViz } from '../shared/dataviz/types'
+import { isVizOpen, closeViz } from './viz-overlay'
+
+let bar: HTMLDivElement | null = null
+// Monotonic guard: refreshLauncher is fired from several uncoordinated, un-debounced sites (SPA
+// nav, storage.onChanged, initial load). Without this, a fast A→B table switch can let A's slower
+// storage read resolve AFTER B's and repaint A's pills while the user is on B.
+let runSeq = 0
+
+
+function ensureBar(): HTMLDivElement {
+  if (bar) return bar
+  bar = document.createElement('div')
+  // Lay the pills out as a horizontal row along the BOTTOM edge (wrapping upward only if
+  // there are many). A vertical column on the left used to climb up the page and cover the
+  // document's left-side content.
+  bar.style.cssText =
+    'position:fixed;left:20px;bottom:20px;z-index:2147483600;display:flex;flex-direction:row;' +
+    'flex-wrap:wrap;gap:8px;align-items:flex-end;max-width:calc(100vw - 40px);'
+  document.body.appendChild(bar)
+  return bar
+}
+function clearBar() { if (bar) { bar.remove(); bar = null } }
+
+const PILL_IDLE = '0.55'   // translucent at rest, so it barely obscures the document
+const PILL_HOVER = '1'     // deepens to full color on hover
+
+function pill(v: SavedViz): HTMLButtonElement {
+  const b = document.createElement('button')
+  b.style.cssText =
+    'display:flex;align-items:center;gap:6px;max-width:240px;padding:9px 14px;border:none;border-radius:999px;' +
+    'cursor:pointer;background:#4f6bff;color:#fff;box-shadow:0 6px 24px rgba(79,107,255,.4);' +
+    "font:13px/1.2 -apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;white-space:nowrap;" +
+    'overflow:hidden;text-overflow:ellipsis;opacity:' + PILL_IDLE + ';transition:opacity .18s ease, box-shadow .18s ease;'
+  b.textContent = (v.kind === 'site' ? '🌐 ' : '📊 ') + v.name
+  b.title = '点击展开/收起「' + v.name + '」'
+  // Dynamic transparency: faded while idle (doesn't block content), color deepens on hover.
+  b.onmouseenter = () => { b.style.opacity = PILL_HOVER }
+  b.onmouseleave = () => { b.style.opacity = PILL_IDLE }
+  b.onclick = () => {
+    if (isVizOpen(v.id)) closeViz(v.id) // collapse
+    else { try { chrome.runtime.sendMessage({ type: 'DATAVIZ_OPEN_SAVED', vizId: v.id }) } catch { /* */ } }
+  }
+  return b
+}
+
+type Ctx = ReturnType<typeof parseFeishuContext>
+// A Base/Sheet opened via 知识库(Wiki) has a wiki URL the content script can't resolve (no token),
+// so ctxDocKey would be null and NO saved-site pills would ever show. Resolve via the background
+// (cached per wiki token) so the launcher can match the underlying Base/Sheet.
+const wikiResolveCache = new Map<string, NonNullable<Ctx>>()
+async function resolvePage(): Promise<Ctx> {
+  const f = parseFeishuContext(location.href)
+  if (f?.kind !== 'wiki' || !f.wikiToken) return f
+  const cached = wikiResolveCache.get(f.wikiToken)
+  if (cached) return cached
+  try {
+    const r = await chrome.runtime.sendMessage({ type: 'RESOLVE_PAGE_RESOURCE', wikiToken: f.wikiToken })
+    if (r) { wikiResolveCache.set(f.wikiToken, r as NonNullable<Ctx>); return r as Ctx }
+  } catch { /* background unavailable → stay wiki, retry next refresh */ }
+  return f
+}
+
+/** Re-evaluate which launcher pills to show for the current page resource. */
+export async function refreshLauncher() {
+  const myRun = ++runSeq
+  const f = await resolvePage()
+  // Per data-table (vizMatchesCtx); ctxDocKey just gates "on a Base/Sheet page at all". A MULTI-
+  // table site spans the whole doc, so show its pill on ANY table of that Base — not just the one
+  // table it was generated from (otherwise a multi-table 建站 vanishes the moment you switch table).
+  const matches = ctxDocKey(f)
+    ? (await loadVizList()).filter((v) =>
+        v.multi && v.source.kind === 'base'
+          ? f?.kind === 'base' && f.appToken === v.source.appToken
+          : vizMatchesCtx(v.source, f))
+    : []
+  if (myRun !== runSeq) return // a newer refresh started during the await — let it win (guards clearBar too)
+  if (!matches.length) { clearBar(); return }
+  const c = ensureBar()
+  c.innerHTML = ''
+  for (const v of matches) c.appendChild(pill(v))
+}
+
+// Saving/deleting a viz updates storage → refresh pills without a page reload.
+try {
+  chrome.storage?.onChanged?.addListener((changes, area) => {
+    if (area === 'local' && changes.dataviz_v1) void refreshLauncher()
+  })
+} catch { /* no storage here */ }

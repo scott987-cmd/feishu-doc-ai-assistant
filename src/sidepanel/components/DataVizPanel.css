@@ -1,0 +1,78 @@
+.dv-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 14px 14px;
+  overflow-y: auto;
+}
+.dv-title { font-size: 15px; font-weight: 600; }
+.dv-sub { font-size: 12px; color: var(--color-text-secondary, #888); margin: -2px 0 4px; }
+.dv-input {
+  width: 100%;
+  padding: 9px 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius, 12px);
+  background: var(--color-bg, #fff);
+  color: var(--color-text);
+  resize: vertical;
+  box-sizing: border-box;
+}
+.dv-btn {
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--radius, 12px);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg, #fff);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.dv-btn:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary); }
+.dv-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.dv-btn--primary {
+  background: var(--color-primary, #4f6bff);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: var(--shadow-sm);
+}
+.dv-btn--primary:hover:not(:disabled) { filter: brightness(1.04); box-shadow: var(--shadow-md); color: #fff; }
+.dv-hint { font-size: 11px; color: var(--color-text-secondary, #888); margin: 2px 0 0; }
+.dv-hint--err { color: #d33; }
+.dv-hint--warn { color: #c47d00; }
+.dv-section { font-size: 11px; font-weight: 600; color: var(--color-text-secondary, #888); margin: 10px 2px 0; }
+.dv-list { display: flex; flex-direction: column; gap: 6px; }
+.dv-item { display: flex; align-items: center; gap: 6px; }
+.dv-item-open {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius, 12px);
+  background: var(--color-bg, #fff);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: border-color .15s ease, background .15s ease;
+}
+.dv-item-open:hover:not(:disabled) { border-color: var(--color-primary); background: var(--color-primary-soft); }
+.dv-item-open:disabled { opacity: 0.5; cursor: not-allowed; }
+.dv-item-del {
+  flex-shrink: 0;
+  padding: 6px 9px;
+  font-size: 12px;
+  color: var(--color-text-secondary, #888);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius, 12px);
+  background: transparent;
+  cursor: pointer;
+}
+.dv-item-del:hover { color: #d33; border-color: #d33; }

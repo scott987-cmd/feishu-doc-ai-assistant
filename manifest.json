@@ -1,0 +1,74 @@
+{
+  "manifest_version": 3,
+  "name": "飞书文档AI助手",
+  "version": "1.0.4",
+  "description": "用 AI 操作飞书文档 / 多维表格 / 电子表格：文档总结·体检·建站·数据报告·智能填充，一句话搞定",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlPxA3K6+nmqOFBvNb/U4Gd5pDxZegG6VtcrF6VrLxMwmCf8U0TJDeIqD0OpeBcBM0gDlpEQD7G8kLz4WTdiWxY966J70Z5D27IAc3RvqbW0A+nRK9tBoUUJzlwQvykCKjbBxmH6DhQwyVvroorkkPXvKIczbBXbg+PPITBm5QNGTfTrR4dqptGmq8PTRDo12yO436jtbu1ipKLxyDQiL3HjhkjzhZqOSNUZnhm0Rv7BiZTFDMdWSrqqaxZF6x/FO1OXSWj8K7VfbhGW0/GwVfvnzCB1qe2yBvgmGMUMXbQxTQ6lXyLlYrjTW8AnzUDI8Gsjdnnttl1p9TiC366xECQIDAQAB",
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' https:"
+  },
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "activeTab",
+    "identity",
+    "scripting",
+    "contextMenus",
+    "commands"
+  ],
+  "commands": {
+    "clip_to_base": {
+      "suggested_key": { "default": "Alt+Shift+C" },
+      "description": "剪藏当前页到飞书"
+    }
+  },
+  "host_permissions": [
+    "https://*.feishu.cn/*",
+    "https://*.larksuite.com/*",
+    "https://open.feishu.cn/*",
+    "https://open.larksuite.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.feishu.cn/*",
+        "https://*.larksuite.com/*"
+      ],
+      "js": [
+        "src/content/index.ts"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "src/sidepanel/index.html"
+  },
+  "sandbox": {
+    "pages": ["src/sandbox/index.html"]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["src/sandbox/index.html", "assets/*", "src/sandbox/*"],
+      "matches": ["https://*.feishu.cn/*", "https://*.larksuite.com/*"]
+    }
+  ],
+  "action": {
+    "default_title": "飞书文档AI助手",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

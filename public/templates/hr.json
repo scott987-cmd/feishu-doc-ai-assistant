@@ -1,0 +1,161 @@
+{
+  "id": "hr",
+  "name": "人员管理系统",
+  "description": "员工档案、部门架构、入职离职全流程管理，含看板视图",
+  "icon": "👥",
+  "category": "HR",
+  "tags": [
+    "员工",
+    "部门",
+    "HR",
+    "人事"
+  ],
+  "version": "1.0.0",
+  "source": "remote",
+  "target": "new_app",
+  "preview": {
+    "tables": 2,
+    "views": 3,
+    "records": 6
+  },
+  "inputs": [
+    {
+      "key": "app_name",
+      "label": "应用名称",
+      "type": "text",
+      "default": "人员管理系统",
+      "placeholder": "我的人员管理系统",
+      "required": true
+    }
+  ],
+  "tables": [
+    {
+      "ref": "departments",
+      "name": "部门",
+      "fields": [
+        {
+          "name": "部门名称",
+          "type": 1
+        },
+        {
+          "name": "负责人",
+          "type": 1
+        },
+        {
+          "name": "人员编制",
+          "type": 2
+        },
+        {
+          "name": "成立日期",
+          "type": 5
+        }
+      ],
+      "views": [
+        {
+          "name": "部门列表",
+          "type": "grid"
+        }
+      ],
+      "sample_records": [
+        {
+          "部门名称": "技术部",
+          "负责人": "张三",
+          "人员编制": 20
+        },
+        {
+          "部门名称": "产品部",
+          "负责人": "李四",
+          "人员编制": 10
+        },
+        {
+          "部门名称": "市场部",
+          "负责人": "王五",
+          "人员编制": 8
+        }
+      ]
+    },
+    {
+      "ref": "employees",
+      "name": "员工",
+      "fields": [
+        {
+          "name": "姓名",
+          "type": 1
+        },
+        {
+          "name": "工号",
+          "type": 1005
+        },
+        {
+          "name": "部门",
+          "type": 1
+        },
+        {
+          "name": "职位",
+          "type": 1
+        },
+        {
+          "name": "状态",
+          "type": 3,
+          "options": [
+            {
+              "name": "在职",
+              "color": 10
+            },
+            {
+              "name": "试用期",
+              "color": 1
+            },
+            {
+              "name": "离职",
+              "color": 2
+            }
+          ]
+        },
+        {
+          "name": "入职日期",
+          "type": 5
+        },
+        {
+          "name": "手机",
+          "type": 13
+        },
+        {
+          "name": "邮箱",
+          "type": 1
+        }
+      ],
+      "views": [
+        {
+          "name": "员工列表",
+          "type": "grid"
+        },
+        {
+          "name": "状态看板",
+          "type": "kanban"
+        }
+      ],
+      "sample_records": [
+        {
+          "姓名": "陈一",
+          "部门": "技术部",
+          "职位": "前端工程师",
+          "状态": "在职"
+        },
+        {
+          "姓名": "赵二",
+          "部门": "技术部",
+          "职位": "后端工程师",
+          "状态": "在职"
+        },
+        {
+          "姓名": "孙三",
+          "部门": "产品部",
+          "职位": "产品经理",
+          "状态": "试用期"
+        }
+      ]
+    }
+  ],
+  "cover": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5MiIgaGVpZ2h0PSI5MiIgdmlld0JveD0iMCAwIDkyIDkyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjkyIiB5Mj0iOTIiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIj48c3RvcCBzdG9wLWNvbG9yPSIjNWI3Y2ZmIi8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjOGI1Y2ZmIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjkyIiBoZWlnaHQ9IjkyIiByeD0iMjAiIGZpbGw9InVybCgjZykiLz48Y2lyY2xlIGN4PSIzNSIgY3k9IjM4IiByPSIxMSIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iLjk1Ii8+PGNpcmNsZSBjeD0iNjAiIGN5PSI0MiIgcj0iOCIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iLjc1Ii8+PHBhdGggZD0iTTE4IDc0YzItMTIgMTMtMTkgMjMtMTlzMjEgNyAyMyAxOXoiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii45NSIvPjwvc3ZnPgo="
+}

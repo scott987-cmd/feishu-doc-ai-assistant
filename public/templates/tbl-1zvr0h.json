@@ -1,0 +1,271 @@
+{
+  "id": "tbl-1zvr0h",
+  "name": "经营分析（仪表盘） 底表 副本",
+  "description": "从「经营分析（仪表盘） 底表 副本」导出的模版",
+  "icon": "📊",
+  "category": "自定义",
+  "tags": [],
+  "version": "1.0.0",
+  "author": "",
+  "source": "remote",
+  "target": "new_app",
+  "preview": {
+    "tables": 3,
+    "views": 8,
+    "records": 0,
+    "dashboards": 1
+  },
+  "inputs": [
+    {
+      "key": "app_name",
+      "label": "应用名称",
+      "type": "text",
+      "default": "经营分析（仪表盘） 底表 副本",
+      "placeholder": "经营分析（仪表盘） 底表 副本",
+      "required": true
+    }
+  ],
+  "tables": [
+    {
+      "ref": "tbl-jq9l49",
+      "name": "项目汇总",
+      "fields": [
+        {
+          "name": "项目名称",
+          "type": 1
+        },
+        {
+          "name": "客户名称",
+          "type": 3,
+          "options": [
+            {
+              "name": "锦银集团",
+              "color": 0
+            },
+            {
+              "name": "意昂集团",
+              "color": 1
+            },
+            {
+              "name": "中星通讯",
+              "color": 2
+            },
+            {
+              "name": "安盛科技",
+              "color": 3
+            },
+            {
+              "name": "大都人寿",
+              "color": 4
+            },
+            {
+              "name": "茂胜科技",
+              "color": 5
+            },
+            {
+              "name": "EXOR集团",
+              "color": 6
+            },
+            {
+              "name": "国信易有限公司",
+              "color": 7
+            }
+          ]
+        },
+        {
+          "name": "项目状态",
+          "type": 3,
+          "options": [
+            {
+              "name": "未开始",
+              "color": 0
+            },
+            {
+              "name": "已完成",
+              "color": 1
+            },
+            {
+              "name": "进行中",
+              "color": 2
+            }
+          ]
+        },
+        {
+          "name": "项目负责人",
+          "type": 11
+        },
+        {
+          "name": "所属区域",
+          "type": 3,
+          "options": [
+            {
+              "name": "华东区",
+              "color": 0
+            },
+            {
+              "name": "华南区",
+              "color": 1
+            },
+            {
+              "name": "华北区",
+              "color": 2
+            },
+            {
+              "name": "",
+              "color": 3
+            }
+          ]
+        },
+        {
+          "name": "项目总金额（元）",
+          "type": 2
+        },
+        {
+          "name": "预计回款时间",
+          "type": 5
+        },
+        {
+          "name": "项目总成本（元）",
+          "type": 2
+        },
+        {
+          "name": "项目已付成本（元）",
+          "type": 2
+        },
+        {
+          "name": "项目剩余应回款（元）",
+          "type": 20,
+          "formula_expression": "bitable::$table[tblkU8zkkuguKYbM].$field[fldWr4Pb9Z]-bitable::$table[tblkU8zkkuguKYbM].$field[fld5Oc6sqV]"
+        },
+        {
+          "name": "项目应付成本（元）",
+          "type": 20,
+          "formula_expression": "bitable::$table[tblkU8zkkuguKYbM].$field[fldyZuzPUJ]-bitable::$table[tblkU8zkkuguKYbM].$field[fld4JF5Sig]"
+        },
+        {
+          "name": "项目利润（元）",
+          "type": 20,
+          "formula_expression": "bitable::$table[tblkU8zkkuguKYbM].$field[fldWr4Pb9Z]-bitable::$table[tblkU8zkkuguKYbM].$field[fldyZuzPUJ]"
+        }
+      ],
+      "views": [
+        {
+          "name": "项目总表",
+          "type": "grid"
+        },
+        {
+          "name": "表格 2",
+          "type": "grid"
+        },
+        {
+          "name": "表格 2_vewq5iKSJ5",
+          "type": "grid"
+        },
+        {
+          "name": "项目总表_vewNX1BMPr",
+          "type": "grid"
+        }
+      ],
+      "sample_records": []
+    },
+    {
+      "ref": "tbl-1rb0qfu",
+      "name": "项目回款记录",
+      "fields": [
+        {
+          "name": "回款项目名称",
+          "type": 1
+        },
+        {
+          "name": "客户名称",
+          "type": 3,
+          "options": [
+            {
+              "name": "锦银集团",
+              "color": 0
+            },
+            {
+              "name": "意昂集团",
+              "color": 1
+            },
+            {
+              "name": "中星通讯",
+              "color": 2
+            },
+            {
+              "name": "安盛科技",
+              "color": 3
+            },
+            {
+              "name": "EXOR集团",
+              "color": 4
+            }
+          ]
+        },
+        {
+          "name": "回款时间",
+          "type": 5
+        },
+        {
+          "name": "回款金额（元）",
+          "type": 2
+        },
+        {
+          "name": "回款月份",
+          "type": 20,
+          "formula_expression": "CONCATENATE(YEAR(bitable::$table[tblXuW5LyghVOPuy].$field[fldYmsdctm]),\"-\",TEXT(MONTH(bitable::$table[tblXuW5LyghVOPuy].$field[fldYmsdctm]),\"00\"))"
+        }
+      ],
+      "views": [
+        {
+          "name": "项目回款总表",
+          "type": "grid"
+        },
+        {
+          "name": "回款情况收集",
+          "type": "form"
+        },
+        {
+          "name": "项目回款总表_vewkJTWJFO",
+          "type": "grid"
+        }
+      ],
+      "sample_records": []
+    },
+    {
+      "ref": "tbl-1c052ba",
+      "name": "🎉 快速上手多维表格",
+      "fields": [
+        {
+          "name": "文本",
+          "type": 1
+        },
+        {
+          "name": "附件",
+          "type": 17
+        },
+        {
+          "name": "描述",
+          "type": 1
+        },
+        {
+          "name": "数字",
+          "type": 2
+        }
+      ],
+      "views": [
+        {
+          "name": "画册",
+          "type": "gallery"
+        }
+      ],
+      "sample_records": []
+    }
+  ],
+  "dashboards": [
+    {
+      "name": "经营分析仪表盘",
+      "blocks": []
+    }
+  ]
+}

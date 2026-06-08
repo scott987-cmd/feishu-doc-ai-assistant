@@ -1,0 +1,130 @@
+import type { ScenarioTemplate } from '../types'
+
+export const ECOMMERCE_TEMPLATE: ScenarioTemplate = {
+  id: 'ecommerce',
+  name: '电商管理系统',
+  description: '订单、商品、客户三表协同，含看板和画册视图，快速搭建完整电商数据体系',
+  icon: '🛒',
+  category: '电商',
+  tags: ['订单', '商品', '客户', '电商'],
+  version: '1.0.0',
+  source: 'builtin',
+  target: 'new_app',
+  preview: { tables: 3, views: 5, records: 9 },
+
+  inputs: [
+    {
+      key: 'app_name',
+      label: '应用名称',
+      type: 'text',
+      placeholder: '我的电商系统',
+      default: '电商管理系统',
+      required: true,
+    },
+  ],
+
+  tables: [
+    {
+      ref: 'orders',
+      name: '订单',
+      fields: [
+        { name: '订单编号', type: 1 },
+        { name: '商品名称', type: 1 },
+        { name: '数量', type: 2 },
+        { name: '单价', type: 2 },
+        { name: '订单金额', type: 2 },
+        {
+          name: '订单状态', type: 3,
+          options: [
+            { name: '待付款', color: 1 },
+            { name: '已付款', color: 10 },
+            { name: '已发货', color: 20 },
+            { name: '已完成', color: 40 },
+            { name: '已取消', color: 30 },
+          ],
+        },
+        { name: '客户姓名', type: 1 },
+        { name: '收货地址', type: 1 },
+        { name: '下单时间', type: 5 },
+        { name: '备注', type: 1 },
+      ],
+      views: [
+        { name: '全部订单', type: 'grid' },
+        { name: '订单看板', type: 'kanban' },
+      ],
+      sample_records: [
+        { 订单编号: 'ORD-001', 商品名称: '无线蓝牙耳机', 数量: 2, 单价: 299, 订单金额: 598, 订单状态: '已完成', 客户姓名: '张三', 收货地址: '北京市朝阳区建国路 88 号', 下单时间: 1714492800000 },
+        { 订单编号: 'ORD-002', 商品名称: '智能手表', 数量: 1, 单价: 1299, 订单金额: 1299, 订单状态: '已付款', 客户姓名: '李四', 收货地址: '上海市浦东新区张江路 100 号', 下单时间: 1715097600000 },
+        { 订单编号: 'ORD-003', 商品名称: '运动鞋', 数量: 1, 单价: 599, 订单金额: 599, 订单状态: '待付款', 客户姓名: '王五', 收货地址: '广州市天河区珠江新城', 下单时间: 1715270400000 },
+      ],
+    },
+    {
+      ref: 'products',
+      name: '商品',
+      fields: [
+        { name: '商品名称', type: 1 },
+        {
+          name: '商品分类', type: 3,
+          options: [
+            { name: '数码配件', color: 15 },
+            { name: '服装鞋包', color: 5 },
+            { name: '食品饮料', color: 25 },
+            { name: '家居用品', color: 35 },
+          ],
+        },
+        { name: '库存', type: 2 },
+        { name: '售价', type: 2 },
+        { name: '成本价', type: 2 },
+        {
+          name: '状态', type: 3,
+          options: [
+            { name: '在售', color: 40 },
+            { name: '下架', color: 30 },
+            { name: '缺货', color: 1 },
+          ],
+        },
+        { name: '商品描述', type: 1 },
+      ],
+      views: [
+        { name: '商品列表', type: 'grid' },
+        { name: '商品画册', type: 'gallery' },
+      ],
+      sample_records: [
+        { 商品名称: '无线蓝牙耳机', 商品分类: '数码配件', 库存: 200, 售价: 299, 成本价: 140, 状态: '在售', 商品描述: '高保真音质，30 小时续航' },
+        { 商品名称: '智能手表', 商品分类: '数码配件', 库存: 50, 售价: 1299, 成本价: 600, 状态: '在售', 商品描述: '心率监测，NFC 支付' },
+        { 商品名称: '运动鞋', 商品分类: '服装鞋包', 库存: 0, 售价: 599, 成本价: 250, 状态: '缺货', 商品描述: '轻量缓震，适合跑步' },
+      ],
+    },
+    {
+      ref: 'customers',
+      name: '客户',
+      fields: [
+        { name: '客户姓名', type: 1 },
+        { name: '手机号', type: 13 },
+        { name: '邮箱', type: 1 },
+        {
+          name: '地区', type: 3,
+          options: [
+            { name: '华北', color: 5 }, { name: '华东', color: 15 },
+            { name: '华南', color: 25 }, { name: '西部', color: 35 },
+          ],
+        },
+        {
+          name: '客户等级', type: 3,
+          options: [
+            { name: '普通', color: 0 }, { name: '银牌', color: 10 },
+            { name: '金牌', color: 20 }, { name: '钻石', color: 40 },
+          ],
+        },
+        { name: '累计消费', type: 2 },
+        { name: '首次购买', type: 5 },
+      ],
+      views: [{ name: '客户列表', type: 'grid' }],
+      sample_records: [
+        { 客户姓名: '张三', 手机号: '13800000001', 邮箱: 'zhangsan@example.com', 地区: '华北', 客户等级: '金牌', 累计消费: 1897 },
+        { 客户姓名: '李四', 手机号: '13800000002', 邮箱: 'lisi@example.com', 地区: '华东', 客户等级: '银牌', 累计消费: 1299 },
+        { 客户姓名: '王五', 手机号: '13800000003', 邮箱: 'wangwu@example.com', 地区: '华南', 客户等级: '普通', 累计消费: 599 },
+      ],
+    },
+  ],
+}

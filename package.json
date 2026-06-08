@@ -1,0 +1,43 @@
+{
+  "name": "feishu-doc-ai-assistant",
+  "version": "1.0.0",
+  "description": "飞书文档 / 多维表格 / 电子表格的 AI 助手——文档总结·体检·建站·数据报告·智能填充，自然语言搞定",
+  "license": "Elastic-2.0",
+  "author": "scott987-cmd (https://github.com/scott987-cmd)",
+  "homepage": "https://github.com/scott987-cmd",
+  "type": "module",
+  "scripts": {
+    "dev:ui": "vite --config vite.ui.config.ts",
+    "dev:ext": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:ui": "node scripts/ui-smoke.mjs",
+    "screenshots": "node scripts/capture-screenshots.mjs",
+    "serve:templates": "node scripts/serve-templates.mjs",
+    "icons": "node scripts/generate-icons.js",
+    "prepare": "npm run icons"
+  },
+  "dependencies": {
+    "echarts": "^6.1.0",
+    "openai": "^4.52.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/chrome": "^0.0.268",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "@vitest/coverage-v8": "^4.1.7",
+    "jsdom": "^29.1.1",
+    "puppeteer": "^25.1.0",
+    "sharp": "^0.33.4",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.4",
+    "vite-plugin-web-extension": "^4.1.0",
+    "vitest": "^4.1.7"
+  }
+}

@@ -1,0 +1,29 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+
+# ── Secrets / credentials — NEVER commit (open-source: treat broadly) ──────────
+.env
+.env.*
+!.env.example
+*token*.txt
+*password*.txt
+unlock-password*.txt
+feishu-app-config.txt
+deepseek-*.txt
+
+# Any private key (extension signing key etc.) — pins extension ID, keep secret
+*.pem
+*.key
+extension-key*
+
+# ── Build artifacts (may inline the encrypted secret) ─────────────────────────
+*.zip
+*.crx
+feishu-ai-assistant-dist/
+feishu-ai-*/
+harness*.txt
+
+# raw screen-recording sources (commit only the compressed mp4 under docs/media/)
+*.mov

@@ -1,0 +1,24 @@
+.skel {
+  display: inline-block;
+  background: linear-gradient(
+    90deg,
+    var(--color-surface) 25%,
+    var(--color-surface-2) 37%,
+    var(--color-surface) 63%
+  );
+  background-size: 400% 100%;
+  animation: skelShimmer 1.4s ease infinite;
+}
+@keyframes skelShimmer {
+  from { background-position: 100% 0; }
+  to { background-position: 0 0; }
+}
+
+.sc-card--skeleton {
+  align-items: center;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skel { animation: none; background: var(--color-surface-2); }
+}

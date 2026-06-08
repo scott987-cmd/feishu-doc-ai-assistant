@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!--
+  Chrome self-hosted update manifest — force-install the 飞书文档AI助手 inside an
+  enterprise WITHOUT the Chrome Web Store.
+
+  1. Replace the codebase URL with where YOU host the .crx (HTTPS, reachable by managed
+     browsers — internal web/file server or object storage).
+  2. Keep `version` in sync with manifest.json. Bump it on every new .crx; browsers
+     re-download when this version is higher than the installed one.
+  3. appid is fixed by the manifest `key` — do not change it.
+-->
+<gupdate xmlns='http://www.google.com/update2/response' protocol='2.0'>
+  <app appid='jhdbgegkmhcopcilclkpioilclemkeog'>
+    <!-- codebase: 指向你内网托管的 .crx（私有化用 feishu-ai-private.crx；SaaS 用 feishu-ai-saas.crx）。version 必须与 manifest.json 一致。 -->
+    <updatecheck codebase='https://YOUR-INTERNAL-HOST/feishu-ai-private.crx' version='1.0.4' />
+  </app>
+</gupdate>

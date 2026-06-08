@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>可视化</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; width: 100%; overflow: hidden; }
+    #root { height: 100%; width: 100%; overflow: auto; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif; background: var(--bg, #fff); color: var(--text, #1a1f2e); }
+    #err { display: none; padding: 16px; color: #d33; font-size: 13px; white-space: pre-wrap; }
+    /* Print/export-PDF: drop the fixed viewport so the WHOLE scrollable page prints, not just
+       the visible slice; let charts/cards break across pages instead of clipping. */
+    @media print {
+      html, body, #root { height: auto !important; overflow: visible !important; }
+      .card, .stat, .table-wrap { break-inside: avoid; }
+    }
+  </style>
+  <!-- Design system: a pre-built, on-brand, fully-offline (system fonts, no external assets)
+       stylesheet. AI-generated "websites" use these classes, so even a vague prompt renders
+       a polished, consistent page. Dark mode flips via [data-theme="dark"] on <html>. -->
+  <style id="ds">
+    :root {
+      --r: 9f4b7e2a;
+      --p: #4f6bff; --p-strong: #3a55ee; --p-soft: #eef1ff;
+      --bg: #ffffff; --surface: #f5f6fb; --card: #ffffff;
+      --text: #1a1f2e; --muted: #6b7280; --border: #e6e8f0;
+      --radius: 14px; --radius-sm: 10px; --radius-pill: 999px;
+      --shadow-sm: 0 1px 2px rgba(20,23,40,.06); --shadow: 0 8px 28px rgba(20,23,40,.10);
+      --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
+    }
+    :root[data-theme="dark"] {
+      --p: #6f86ff; --p-strong: #8398ff; --p-soft: #1c2440;
+      --bg: #0f1320; --surface: #161b2c; --card: #171c2e;
+      --text: #e8ebf5; --muted: #9aa3b8; --border: #28304a;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.3); --shadow: 0 10px 30px rgba(0,0,0,.45);
+    }
+    .site { max-width: 1080px; margin: 0 auto; padding: var(--s5) var(--s5) var(--s6); color: var(--text); }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: var(--s3) 0 var(--s5); }
+    .nav .brand { font-weight: 700; font-size: 17px; display: flex; align-items: center; gap: var(--s2); }
+    .nav .brand .dot { width: 22px; height: 22px; border-radius: 7px; background: linear-gradient(135deg, var(--p), #8b5cff); }
+    .nav a { color: var(--muted); text-decoration: none; margin-left: var(--s4); font-size: 13px; }
+    .nav a:hover { color: var(--p); }
+    .hero { background: linear-gradient(135deg, var(--p-soft), transparent); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--s6); margin-bottom: var(--s5); }
+    .hero h1 { font-size: 30px; line-height: 1.2; letter-spacing: -.5px; }
+    .hero p { color: var(--muted); margin-top: var(--s3); font-size: 15px; max-width: 640px; }
+    .hero .actions { margin-top: var(--s4); display: flex; gap: var(--s3); flex-wrap: wrap; }
+    .section { margin: var(--s5) 0; }
+    .section-title { font-size: 18px; font-weight: 700; }
+    .section-sub { color: var(--muted); font-size: 13px; margin-top: var(--s1); }
+    .grid { display: grid; gap: var(--s4); grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); margin-top: var(--s4); }
+    .grid--2 { grid-template-columns: repeat(2, 1fr); } .grid--3 { grid-template-columns: repeat(3, 1fr); } .grid--4 { grid-template-columns: repeat(4, 1fr); }
+    @media (max-width: 620px) { .grid, .grid--2, .grid--3, .grid--4 { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--s4); box-shadow: var(--shadow-sm); }
+    .card:hover { box-shadow: var(--shadow); }
+    .card-title { font-weight: 600; font-size: 14px; }
+    .card-body { color: var(--muted); font-size: 13px; margin-top: var(--s2); line-height: 1.6; }
+    .stat { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: var(--s4); }
+    .stat .num { font-size: 28px; font-weight: 700; letter-spacing: -.5px; }
+    .stat .label { color: var(--muted); font-size: 12px; margin-top: var(--s1); }
+    .stat .delta--up { color: #16a34a; font-size: 12px; } .stat .delta--down { color: #e5484d; font-size: 12px; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); margin-top: var(--s4); }
+    table.table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .table thead th { position: sticky; top: 0; background: var(--surface); text-align: left; padding: 10px 12px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+    .table td { padding: 10px 12px; border-top: 1px solid var(--border); }
+    .table tbody tr:nth-child(even) { background: var(--surface); }
+    .btn { display: inline-flex; align-items: center; gap: var(--s2); padding: 9px 16px; border-radius: var(--radius-pill); border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; }
+    .btn--primary { background: var(--p); color: #fff; border-color: transparent; }
+    .btn--ghost { background: transparent; }
+    .badge, .tag { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: var(--radius-pill); background: var(--p-soft); color: var(--p-strong); font-size: 12px; font-weight: 600; }
+    .muted { color: var(--muted); } .right { text-align: right; } .center { text-align: center; }
+    .row { display: flex; gap: var(--s3); align-items: center; flex-wrap: wrap; }
+    .mt { margin-top: var(--s4); } .mb { margin-bottom: var(--s4); }
+    /* Interactive components (search/filter/sort/tabs/pagination) — all client-side */
+    .toolbar { display: flex; gap: var(--s3); align-items: center; flex-wrap: wrap; margin-top: var(--s4); }
+    .input, .search { padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--text); font-size: 13px; outline: none; }
+    .input:focus, .search:focus { border-color: var(--p); }
+    .search { min-width: 200px; flex: 1; max-width: 320px; }
+    .chip { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: var(--radius-pill); border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: 12px; cursor: pointer; user-select: none; }
+    .chip:hover { border-color: var(--p); color: var(--p); }
+    .chip.active { background: var(--p); color: #fff; border-color: transparent; }
+    .tabs { display: flex; gap: var(--s1); border-bottom: 1px solid var(--border); margin-top: var(--s4); }
+    .tab { padding: 8px 14px; font-size: 13px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
+    .tab.active { color: var(--p); border-bottom-color: var(--p); font-weight: 600; }
+    .table th.sortable { cursor: pointer; user-select: none; } .table th.sortable:hover { color: var(--p); }
+    .table tbody tr.clickable { cursor: pointer; } .table tbody tr.clickable:hover { background: var(--p-soft); }
+    .pagination { display: flex; gap: var(--s2); align-items: center; justify-content: center; margin-top: var(--s4); flex-wrap: wrap; }
+    .page { min-width: 32px; height: 32px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--text); font-size: 13px; cursor: pointer; }
+    .page:hover:not(:disabled) { border-color: var(--p); color: var(--p); } .page.active { background: var(--p); color: #fff; border-color: transparent; } .page:disabled { opacity: .4; cursor: not-allowed; }
+    .empty { padding: var(--s6); text-align: center; color: var(--muted); }
+    /* Slides (AI 幻灯片 / 文档转PPT) — a multi-page deck with click/key paging, rendered by ui.slides. */
+    .slides-stage { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; background: var(--bg); }
+    .slides-stage:focus { outline: none; }
+    .slide-host { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    /* Content slides flow from the TOP (head → bullets); only cover/section/quote center. */
+    .slide { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-start; gap: var(--s3); padding: 5% 7%; overflow: auto; }
+    .slide--title, .slide--section, .slide--quote { justify-content: center; align-items: center; text-align: center; }
+    .slide .s-title { font-size: clamp(22px, 3.8vw, 40px); line-height: 1.18; letter-spacing: -.5px; font-weight: 800; word-break: break-word; }
+    .slide .s-sub { color: var(--muted); font-size: clamp(13px, 1.7vw, 19px); margin-top: var(--s2); max-width: 760px; }
+    .slide .s-head { font-size: clamp(17px, 2.5vw, 26px); font-weight: 700; margin-bottom: var(--s1); border-left: 4px solid var(--p); padding-left: var(--s3); word-break: break-word; }
+    .slide .s-section-num { color: var(--p); font-weight: 700; letter-spacing: 3px; font-size: 13px; margin-bottom: var(--s2); }
+    .slide .s-bullets { list-style: none; display: flex; flex-direction: column; gap: var(--s2); font-size: clamp(13px, 1.6vw, 18px); line-height: 1.5; }
+    .slide .s-bullets li { display: flex; gap: var(--s3); align-items: flex-start; }
+    .slide .s-bullets li::before { content: '▸'; color: var(--p); flex-shrink: 0; font-weight: 700; }
+    .slide .s-two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s5); }
+    @media (max-width: 560px) { .slide .s-two { grid-template-columns: 1fr; } }
+    .slide .s-quote { font-size: clamp(20px, 3.2vw, 34px); font-weight: 600; line-height: 1.35; max-width: 900px; }
+    .slide .s-by { color: var(--muted); margin-top: var(--s4); font-size: 15px; }
+    .slide .s-chart { flex: 1; min-height: 220px; width: 100%; }
+    .slide .s-embed { flex: 1; min-height: 220px; width: 100%; overflow: auto; }
+    .slide .s-embed .muted { padding: var(--s5); }
+    .slide .s-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--s4); width: 100%; }
+    .slide .s-stat { text-align: center; }
+    .slide .s-stat .s-num { font-size: clamp(28px, 5vw, 52px); font-weight: 800; color: var(--p); letter-spacing: -1px; }
+    .slide .s-stat .s-label { color: var(--muted); margin-top: var(--s1); font-size: 14px; }
+    .slides-bar { display: flex; align-items: center; gap: var(--s3); padding: 8px 14px; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+    .slides-count { color: var(--muted); font-size: 13px; min-width: 54px; }
+    .slides-dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; flex: 1; }
+    .slides-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); cursor: pointer; border: none; padding: 0; }
+    .slides-dot.active { background: var(--p); transform: scale(1.25); }
+    .slides-nav { display: flex; gap: var(--s2); align-items: center; }
+    /* Print / export-PDF: hide the interactive stage, lay EVERY slide out one-per-page. */
+    .slides-print { display: none; }
+    /* During a print build: rendered & sized (so chart canvases get a real size) but hidden on screen. */
+    .slides-print.is-building { display: block; position: fixed; inset: 0; visibility: hidden; overflow: hidden; z-index: -1; }
+    .slides-print .slide { height: 600px; }
+    @media print {
+      .slides-stage { display: none !important; }
+      .slides-print, .slides-print.is-building {
+        display: block !important; position: static !important; visibility: visible !important;
+        overflow: visible !important; z-index: auto !important;
+      }
+      .slides-print .slide { height: 96vh; page-break-after: always; overflow: hidden; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <pre id="err"></pre>
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>

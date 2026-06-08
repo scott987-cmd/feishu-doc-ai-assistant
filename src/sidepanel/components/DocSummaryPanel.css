@@ -1,0 +1,36 @@
+.ds-body { display: flex; flex-direction: column; gap: 8px; padding: 4px 14px 14px; overflow-y: auto; }
+.ds-title { font-size: 15px; font-weight: 600; }
+.ds-sub { font-size: 12px; color: var(--color-text-secondary, #888); margin: -2px 0 4px; }
+.ds-btn {
+  padding: 9px 12px; font-size: 13px; font-weight: 500; border-radius: var(--radius, 12px);
+  border: 1px solid var(--color-border); background: var(--color-bg, #fff); color: var(--color-text);
+  cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.ds-btn:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary); }
+.ds-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.ds-btn--primary { background: var(--color-primary, #4f6bff); color: #fff; border-color: transparent; box-shadow: var(--shadow-sm); }
+.ds-btn--primary:hover:not(:disabled) { filter: brightness(1.04); box-shadow: var(--shadow-md); color: #fff; }
+.ds-hint { font-size: 11px; color: var(--color-text-secondary, #888); margin: 2px 0 0; }
+.ds-hint--err { color: #d33; }
+.ds-hint--warn { color: #c47d00; }
+
+.ds-fold { font-size: 11px; color: var(--color-text-secondary, #888); margin: 2px 2px; cursor: pointer; user-select: none; }
+.ds-fold:hover { color: var(--color-primary); }
+.ds-prompt {
+  width: 100%; padding: 9px 10px; font-size: 12px; line-height: 1.6; box-sizing: border-box;
+  border: 1px solid var(--color-border); border-radius: var(--radius, 12px);
+  background: var(--color-bg, #fff); color: var(--color-text); resize: vertical;
+}
+.ds-prompt-actions { display: flex; align-items: center; gap: 10px; margin: 4px 2px 2px; }
+.ds-mini { font-size: 11px; color: var(--color-primary); cursor: pointer; }
+.ds-mini:hover { text-decoration: underline; }
+.ds-mini-note { font-size: 11px; color: var(--color-text-secondary, #888); }
+
+.ds-result-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; font-size: 11px; color: var(--color-text-secondary, #888); }
+.ds-mini-btn { font-size: 11px; padding: 3px 10px; border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-bg, #fff); color: var(--color-text); cursor: pointer; }
+.ds-mini-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.ds-result {
+  font-size: 13px; line-height: 1.7; color: var(--color-text); white-space: pre-wrap; word-break: break-word;
+  background: var(--color-primary-soft, #f7f8fc); border: 1px solid var(--color-border); border-radius: var(--radius, 12px);
+  padding: 10px 12px; max-height: 50vh; overflow-y: auto;
+}

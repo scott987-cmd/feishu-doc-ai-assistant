@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  macOS MDM 配置描述文件：强制安装「飞书文档AI助手」到受管 Chrome。
+  使用前：把 YOUR-INTERNAL-HOST 改成你托管 update_manifest.xml 的内网 HTTPS 地址。
+  通过 MDM(Jamf/Intune/Kandji/Mosyle 等)下发到设备即可，无需用户操作。
+-->
+<plist version="1.0">
+<dict>
+  <key>PayloadContent</key>
+  <array>
+    <dict>
+      <key>PayloadType</key>
+      <string>com.google.Chrome</string>
+      <key>PayloadIdentifier</key>
+      <string>com.google.Chrome.feishu-ai-forceinstall</string>
+      <key>PayloadUUID</key>
+      <string>1A94B448-8837-403E-80DD-69734788BD28</string>
+      <key>PayloadVersion</key>
+      <integer>1</integer>
+      <key>PayloadEnabled</key>
+      <true/>
+      <key>PayloadDisplayName</key>
+      <string>Google Chrome — Feishu AI 强制安装</string>
+      <key>ExtensionInstallForcelist</key>
+      <array>
+        <string>jhdbgegkmhcopcilclkpioilclemkeog;https://YOUR-INTERNAL-HOST/update_manifest.xml</string>
+      </array>
+    </dict>
+  </array>
+  <key>PayloadType</key>
+  <string>Configuration</string>
+  <key>PayloadIdentifier</key>
+  <string>com.yourcompany.feishu-ai.chrome.forceinstall</string>
+  <key>PayloadUUID</key>
+  <string>4FD0FE40-ED16-4996-8823-0BA351B55B61</string>
+  <key>PayloadVersion</key>
+  <integer>1</integer>
+  <key>PayloadDisplayName</key>
+  <string>飞书文档AI助手 — Chrome Force Install</string>
+  <key>PayloadDescription</key>
+  <string>强制安装 飞书文档AI助手 扩展到受管 Google Chrome。</string>
+  <key>PayloadScope</key>
+  <string>System</string>
+</dict>
+</plist>

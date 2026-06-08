@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Feishu AI — UI Dev</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      /* Mimic Chrome side panel dimensions */
+      width: 380px;
+      height: 640px;
+      overflow: hidden;
+      border: 1px solid #e0e3e8;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.12);
+      /* Center in viewport for easy viewing */
+      margin: 20px auto;
+    }
+    /* resize handle so you can test narrow/wide */
+    body { resize: horizontal; }
+    #root { height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module">
+    import './src/dev/chrome-mock.ts'
+    import './src/dev/scenarios.ts'
+    import './src/sidepanel/main.tsx'
+  </script>
+</body>
+</html>

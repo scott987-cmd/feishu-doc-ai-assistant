@@ -1,0 +1,179 @@
+.clip-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  padding: 12px 14px;
+  gap: 10px;
+}
+.clip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.clip-title { font-size: 14px; font-weight: 600; }
+.clip-x {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-text-secondary, #888);
+  padding: 2px 6px;
+}
+.clip-source {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--color-border);
+}
+.clip-source-title { font-size: 13px; font-weight: 600; flex-basis: 100%; }
+.clip-source-url {
+  font-size: 11px;
+  color: var(--color-text-secondary, #888);
+  word-break: break-all;
+  flex-basis: 100%;
+}
+.clip-tag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-bg-subtle, rgba(0,0,0,0.05));
+  color: var(--color-text-secondary, #888);
+}
+.clip-tag--warn { color: #c47d00; background: rgba(196,125,0,0.12); }
+.clip-preview {
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius, 8px);
+  background: var(--color-bg-subtle, rgba(0,0,0,0.02));
+}
+.clip-actions { display: flex; gap: 8px; align-items: center; }
+.clip-label { font-size: 12px; font-weight: 600; margin-top: 4px; }
+.clip-input {
+  width: 100%;
+  padding: 7px 9px;
+  font-size: 13px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius, 8px);
+  background: var(--color-bg, #fff);
+  box-sizing: border-box;
+}
+.clip-shot-img {
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  object-position: top;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius, 12px);
+  background: var(--color-bg-subtle, rgba(0,0,0,0.02));
+}
+.clip-target { display: flex; flex-direction: column; gap: 8px; }
+.clip-presets { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.clip-recent-list { display: flex; flex-direction: column; gap: 6px; }
+.clip-recent-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius, 12px);
+  background: var(--color-bg, #fff);
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+.clip-recent-chip:hover:not(:disabled) { border-color: var(--color-primary); background: var(--color-primary-soft); }
+.clip-recent-chip:disabled { opacity: 0.5; cursor: not-allowed; }
+.clip-recent-kind {
+  flex-shrink: 0;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-bg-subtle, rgba(0,0,0,0.05));
+  color: var(--color-text-secondary, #888);
+}
+.clip-recent-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.clip-btn, .clip-btn-ghost, .clip-btn--primary {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--radius, 8px);
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg, #fff);
+  color: var(--color-text);
+  transition: border-color .15s ease, color .15s ease, box-shadow .15s ease, background .15s ease, transform .15s ease;
+}
+.clip-btn:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary); }
+.clip-btn:disabled, .clip-btn-ghost:disabled, .clip-btn--primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.clip-btn--primary {
+  background: var(--color-primary, #5b7cff);
+  color: #fff;
+  border-color: transparent;
+  width: 100%;
+  box-shadow: var(--shadow-sm);
+}
+.clip-btn--primary:hover:not(:disabled) { box-shadow: var(--shadow-md); filter: brightness(1.04); transform: translateY(-1px); }
+.clip-btn-ghost { background: transparent; color: var(--color-text-secondary, #888); }
+.clip-btn-ghost:hover:not(:disabled) { color: var(--color-primary); border-color: var(--color-primary); }
+
+/* "或新建一个" — three equal, elegant choice chips (icon over label). */
+.clip-divider {
+  display: flex; align-items: center; gap: 8px;
+  margin: 6px 0 2px;
+  font-size: 11px; color: var(--color-text-secondary, #888);
+}
+.clip-divider::before, .clip-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--color-border);
+}
+.clip-new-grid { display: flex; gap: 8px; }
+.clip-new-chip {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 13px 6px;
+  font-size: 12px; font-weight: 500;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius, 12px);
+  background: var(--color-bg, #fff);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease, background .15s ease, color .15s ease;
+}
+.clip-new-chip:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.clip-new-chip:disabled { opacity: 0.5; cursor: not-allowed; }
+.clip-new-ic { font-size: 20px; line-height: 1; }
+.clip-hint { font-size: 11px; color: var(--color-text-secondary, #888); margin: 2px 0 0; }
+.clip-hint--err { color: #d33; }
+.clip-error { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.clip-running { display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 12px; }
+.clip-status { font-size: 11px; color: var(--color-text-secondary, #888); }
+.clip-spinner {
+  width: 22px; height: 22px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-primary, #5b7cff);
+  border-radius: 50%;
+  animation: clip-spin 0.8s linear infinite;
+}
+@keyframes clip-spin { to { transform: rotate(360deg); } }
+.clip-done { display: flex; flex-direction: column; align-items: center; gap: 10px; padding-top: 8px; }
+.clip-done-icon { font-size: 28px; }
+.clip-done-text { font-size: 13px; text-align: center; white-space: pre-wrap; }

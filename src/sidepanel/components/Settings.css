@@ -1,0 +1,293 @@
+.settings {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.settings-header h2 { font-size: 14px; font-weight: 600; }
+
+.settings-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 2px;
+}
+
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+.field-hint {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+/* ── Accent picker ── */
+.accent-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.accent-swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--color-bg);
+  box-shadow: 0 0 0 1px var(--color-border-strong);
+  cursor: pointer;
+  padding: 0;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.accent-swatch:hover { transform: scale(1.1); }
+.accent-swatch--active {
+  box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-primary);
+}
+.accent-custom {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px dashed var(--color-border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  cursor: pointer;
+  overflow: hidden;
+}
+.accent-custom input[type=color] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+}
+
+.field-input {
+  padding: 7px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 12px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: inherit;
+  width: 100%;
+}
+.field-input:focus { border-color: var(--color-primary); box-shadow: var(--ring); }
+
+/* ── Built-in creds badge ── */
+.builtin-badge {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #e8f5e9;
+  border: 1px solid #a5d6a7;
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.builtin-icon { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
+.builtin-text { display: flex; flex-direction: column; gap: 2px; }
+.builtin-label { font-size: 12px; font-weight: 600; color: #2e7d32; }
+.builtin-sub { font-size: 11px; color: #388e3c; line-height: 1.5; }
+
+/* ── Field group ── */
+.field-group { display: flex; flex-direction: column; gap: 6px; }
+.field-label-inline { font-size: 12px; font-weight: 500; color: var(--color-text); }
+
+/* ── Storage note ── */
+.storage-note {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  padding: 4px 0 0;
+}
+
+.help-toggle-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Help box ── */
+.help-box {
+  background: #f0f5ff;
+  border: 1px solid #c7d7ff;
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--color-text);
+}
+.help-steps {
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.help-steps li { margin-bottom: 2px; }
+.help-code {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 6px 8px;
+  border-radius: 5px;
+  font-family: monospace;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 2px 0;
+}
+.help-note {
+  color: #b45309;
+  font-style: italic;
+  font-size: 11px;
+}
+
+/* ── Test connection ── */
+.test-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.btn-test {
+  padding: 6px 12px;
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  background: none;
+  color: var(--color-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.btn-test:hover:not(:disabled) { background: var(--color-primary); color: white; }
+.btn-test:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.test-result {
+  font-size: 11px;
+  font-weight: 500;
+}
+.test-result--ok { color: var(--color-success); }
+.test-result--err { color: var(--color-error); }
+
+/* ── Footer ── */
+.settings-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.settings-version {
+  margin-right: auto;
+  font-size: 11px;
+  color: var(--color-text-secondary, #888);
+  font-variant-numeric: tabular-nums;
+  user-select: text;
+}
+.btn-cancel {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--color-text);
+  transition: background 0.15s;
+  font-family: inherit;
+}
+.btn-cancel:hover { background: var(--color-surface); }
+.btn-save {
+  flex: 1;
+  padding: 9px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--gradient-brand);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(123, 92, 255, .3);
+  transition: transform .18s ease, box-shadow .18s ease;
+  font-family: inherit;
+}
+.btn-save:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(123, 92, 255, .42); }
+.btn-save:active { transform: translateY(0); }
+
+/* Password-protected App Secret unlock (personal hardening) */
+.unlock-box {
+  margin: 8px 0;
+  padding: 10px 12px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent, #5b7cff);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.unlock-head { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--color-text); }
+.unlock-title { font-weight: 600; }
+.unlock-row { display: flex; gap: 8px; }
+.unlock-row .field-input { flex: 1; }
+.unlock-btn { flex: 0 0 auto; padding: 9px 16px; }
