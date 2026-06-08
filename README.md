@@ -1,5 +1,7 @@
 <div align="center">
 
+🌐 [English](README.en.md) | **中文**
+
 # 🪶 飞书文档AI助手
 
 **用一句话操作飞书文档 / 多维表格 / 电子表格的 Chrome 侧边栏 AI 助手**

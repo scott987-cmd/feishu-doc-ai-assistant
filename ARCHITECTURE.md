@@ -1,3 +1,5 @@
+> 🌐 [English](ARCHITECTURE.en.md) | **中文**
+
 # Architecture（模块与内部细节深入参考）
 
 > 一站式上手见 [`docs/PROJECT.md`](docs/PROJECT.md)，安全逐条见 [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md)，

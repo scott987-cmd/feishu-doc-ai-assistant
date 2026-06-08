@@ -1,3 +1,5 @@
+> 🌐 [English](README.en.md) | **中文**
+
 # 飞书 OAuth 代理（自托管，无需 Cloudflare）
 
 让 **App Secret 只留服务端**、扩展包里一字节都不带。客户端只发授权材料（code / refresh_token），

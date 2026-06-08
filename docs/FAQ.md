@@ -1,3 +1,5 @@
+> 🌐 [English](FAQ.en.md) | **中文**
+
 # 常见问题手册（FAQ / 排错）
 
 > 用户与运维向。开发/迭代问题见 [`DEVELOPMENT.md`](DEVELOPMENT.md)。
