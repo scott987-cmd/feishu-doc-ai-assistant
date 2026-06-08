@@ -10,6 +10,7 @@
     "dev:ui": "vite --config vite.ui.config.ts",
     "dev:ext": "vite",
     "build": "vite build",
+    "pack": "node scripts/pack.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:ui": "node scripts/ui-smoke.mjs",

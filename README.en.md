@@ -150,6 +150,7 @@ unlock passwords to the repo** (already in `.gitignore`).
 
 | Document | Contents |
 |---|---|
+| [`docs/QUICKSTART.md`](docs/QUICKSTART.en.md) | **Personal quick start**: configure Feishu app permissions → fill config → `npm run pack` one-click package → load & use (5 steps) |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.en.md) | **Deployment guide**: quick start for enterprise / personal / private deployment (path selection + commands + variable cheat sheet) |
 | [`docs/PRIVATE_DEPLOYMENT.md`](docs/PRIVATE_DEPLOYMENT.en.md) | **Private-deployment specific**: complete solution for intranet / private Feishu (outbound lockdown / proxy / version rollback / verification checklist) |
 | [`docs/USER_GUIDE.md`](docs/USER_GUIDE.en.md) | **User guide**: full-feature walkthrough with text and images (includes screenshots) |
