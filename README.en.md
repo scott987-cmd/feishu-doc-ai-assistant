@@ -39,6 +39,18 @@ create tables, fill in data, write formulas, generate documents, revise drafts b
 
 ---
 
+## 🚀 Personal quick start (5 steps)
+
+> Full version (per-permission notes, encrypted mode, troubleshooting): [`docs/QUICKSTART.md`](docs/QUICKSTART.en.md).
+
+1. **Configure the Feishu app** ([open.feishu.cn](https://open.feishu.cn) → create a custom app): note the App ID / Secret; under "Permissions" enable `offline_access` (required) + as needed `bitable:app` `docx:document` `sheets:spreadsheet` `drive:drive` `wiki:wiki` `contact:user.base:readonly` (**all under "User identity"**); add `https://jhdbgegkmhcopcilclkpioilclemkeog.chromiumapp.org/` to "Redirect URLs"; add yourself to "Availability" and **publish**.
+2. **Fill config**: `cp .env.example .env.local` → set `VITE_FEISHU_APP_ID` + `VITE_FEISHU_APP_SECRET` (or run `node scripts/encrypt-secret.mjs` to get ciphertext for `VITE_FEISHU_APP_SECRET_ENC` and leave the plaintext empty).
+3. **One-click package**: `npm install && npm run pack` (produces `dist/` and `feishu-doc-ai-assistant.zip`).
+4. **Load**: `chrome://extensions` → Developer mode → "Load unpacked" → select `dist/`.
+5. **Use**: open a Feishu Base/Doc → side panel → "Authorize with Feishu" in Settings + enter your LLM key → (for encrypted mode, enter the unlock password first) → start with one sentence.
+
+---
+
 ## Features
 
 - **AI conversational operations**: ~50 tools covering Base (create/modify tables, fields, views, add/update/delete records, structured search),

@@ -39,6 +39,18 @@
 
 ---
 
+## 🚀 个人快速上手（5 步）
+
+> 完整版（每个权限的说明、加密模式、排错）见 [`docs/QUICKSTART.md`](docs/QUICKSTART.md)。
+
+1. **配飞书应用**（[open.feishu.cn](https://open.feishu.cn) → 创建企业自建应用）：记下 App ID / Secret；「权限管理」开通 `offline_access`（必须）+ 按需 `bitable:app` `docx:document` `sheets:spreadsheet` `drive:drive` `wiki:wiki` `contact:user.base:readonly`（**都勾「用户身份」**）；「重定向 URL」加 `https://jhdbgegkmhcopcilclkpioilclemkeog.chromiumapp.org/`；把自己加进「可用范围」并**发布**。
+2. **填配置**：`cp .env.example .env.local` → 填 `VITE_FEISHU_APP_ID` + `VITE_FEISHU_APP_SECRET`（或 `node scripts/encrypt-secret.mjs` 出密文填 `VITE_FEISHU_APP_SECRET_ENC`、明文留空）。
+3. **一键打包**：`npm install && npm run pack`（产出 `dist/` 与 `feishu-doc-ai-assistant.zip`）。
+4. **加载**：`chrome://extensions` → 开发者模式 → 「加载已解压」→ 选 `dist/`。
+5. **用**：打开飞书 多维表格/文档 → 侧边栏 → 设置里「飞书授权」+ 填大模型 Key →（加密模式先输解锁密码）→ 一句话开干。
+
+---
+
 ## 功能
 
 - **AI 对话操作**：~50 个工具覆盖多维表格(建/改表、字段、视图、记录增改删、结构化搜索)、
