@@ -15,6 +15,7 @@
     "test": "vitest run",
     "test:ui": "node scripts/ui-smoke.mjs",
     "screenshots": "node scripts/capture-screenshots.mjs",
+    "screenshots:store": "node scripts/store-screenshots.mjs",
     "serve:templates": "node scripts/serve-templates.mjs",
     "icons": "node scripts/generate-icons.js",
     "prepare": "npm run icons"
