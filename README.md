@@ -163,6 +163,8 @@ openssl rsa -in my-extension-key.pem -pubout -outform DER | openssl base64 -A
 | 文档 | 内容 |
 |---|---|
 | [`docs/QUICKSTART.md`](docs/QUICKSTART.md) | **个人快速部署**：配飞书应用权限 → 填配置 → `npm run pack` 一键打包 → 加载使用（5 步） |
+| [`docs/STORE_PUBLISHING.md`](docs/STORE_PUBLISHING.md) | **上架 Chrome 商店**：零凭据公开版构建 + 用户自带应用首配 + 上架清单 + 审核风险规避 |
+| [`PRIVACY.md`](PRIVACY.md) | **隐私政策**（中英）：上架必填的隐私权 URL，可直接托管使用 |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | **部署指南**：企业 / 个人 / 私有化快速上手（选路 + 命令 + 变量速查） |
 | [`docs/PRIVATE_DEPLOYMENT.md`](docs/PRIVATE_DEPLOYMENT.md) | **私有化专用**：内网/私有化飞书完整方案（出站锁定 / 代理 / 版本回退 / 验证清单） |
 | [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) | **使用手册**：全功能图文说明（含截图） |
