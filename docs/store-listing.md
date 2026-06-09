@@ -112,3 +112,18 @@ user), not any developer server. No credentials are bundled; each user enters th
 Feishu app credentials and LLM key, stored encrypted on-device. Security details:
 https://github.com/scott987-cmd/feishu-doc-ai-assistant/blob/main/SECURITY_AUDIT.md
 ```
+
+---
+
+## 权限理由（开发者后台逐框照填）/ Permission justifications
+
+> 后台「需请求权限的理由」每个框对应一段，直接粘贴。突出"单一用途 + 最小必要"。
+
+- **sidePanel**：提供本扩展的主界面。用户在飞书页面打开侧边栏，用自然语言下达指令（建表、填数、写公式、生成看板/PPT、总结/体检文档等）。这是扩展唯一的交互入口，为实现核心功能所必需。
+- **storage**：在本机 chrome.storage.local 中加密保存用户的设置与凭据：用户自己的飞书 App ID / App Secret、飞书 OAuth 令牌、大模型 API Key 及界面偏好。全部仅存本地、不上传任何服务器。无此权限用户每次都需重新配置与授权。
+- **activeTab**：读取用户当前正在查看的飞书标签页上下文（如当前多维表格/文档的标识），以便把用户的自然语言指令作用到“当前这篇文档/这张表”，无需用户手动粘贴 ID。仅在用户主动发起操作时使用。
+- **identity**：通过 chrome.identity 发起飞书 OAuth 登录（launchWebAuthFlow），获取用户本人的 user_access_token。扩展始终以用户本人身份调用飞书开放平台，绝不使用应用/租户身份越权。无此权限无法完成飞书登录授权。
+- **scripting**：在飞书页面注入内容脚本与侧边栏桥接，读取当前页面上下文，并在页面上渲染由用户触发的结果（如数据看板悬浮窗）。仅作用于飞书域名页面，用于执行用户下达的指令。
+- **contextMenus**：提供右键菜单项“剪藏到飞书”，让用户把当前网页内容整理后写入自己的飞书多维表格/文档。属可选的便捷入口。
+- **commands**：注册键盘快捷键（Alt+Shift+C）触发“剪藏到飞书”，与右键菜单等效，纯属操作便捷用途。
+- **主机权限 https://*.feishu.cn/***：本扩展只在飞书域名（*.feishu.cn）下工作：需要在飞书页面注入侧边栏、读取当前多维表格/文档/电子表格的上下文，并以用户本人身份调用飞书开放平台 API 完成用户指令。仅限飞书域名，不请求任何其它网站。
