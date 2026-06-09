@@ -90,7 +90,7 @@ grep -o '"key"' dist/manifest.json ; echo "↑ 应为空（无 key 字段）"
 - [ ] **分类**：Productivity / 办公。
 - [ ] **语言**：中文（简体），可加英文。
 - [ ] **截图**：1~5 张，**1280×800**、**24 位 PNG 无 alpha**。现成的：`npm run screenshots:store` → `docs/store-screenshots/store{1..5}.png`（已合成好标题+UI，符合规格，直接上传）。
-- [ ] **宣传图块**（可选）：小图 440×280。
+- [ ] **小型宣传图块**（可选）：440×280 · 24位PNG无alpha。现成的：`npm run promo` → `docs/store-screenshots/promo-440x280.png`。
 - [ ] **宣传视频**（可选但强烈建议）：填你的 YouTube 链接 `https://youtu.be/JhPNeOK1n8g`。
 - [ ] **商店图标** 128×128 ✅。
 

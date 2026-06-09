@@ -90,7 +90,7 @@ After installing, the user needs to do a one-time setup:
 - [ ] **Category**: Productivity / Office.
 - [ ] **Language**: Chinese (Simplified); English can be added.
 - [ ] **Screenshots**: 1–5, **1280×800**, **24-bit PNG with no alpha**. Ready-made: `npm run screenshots:store` → `docs/store-screenshots/store{1..5}.png` (caption + UI pre-composed to spec, upload directly).
-- [ ] **Promo tile** (optional): small tile 440×280.
+- [ ] **Small promo tile** (optional): 440×280 · 24-bit PNG no alpha. Ready-made: `npm run promo` → `docs/store-screenshots/promo-440x280.png`.
 - [ ] **Promo video** (optional but strongly recommended): fill in your YouTube link `https://youtu.be/JhPNeOK1n8g`.
 - [ ] **Store icon** 128×128 ✅.
 
