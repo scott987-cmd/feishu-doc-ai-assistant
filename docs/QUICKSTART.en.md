@@ -3,6 +3,7 @@
 # Personal Quick Deployment (5 Steps to Get Started)
 
 > Aimed at **personal use** (install it yourself, use it yourself, not distributed to others / not published to a store). For enterprise / private deployment, see [`DEPLOYMENT.md`](DEPLOYMENT.en.md) / [`PRIVATE_DEPLOYMENT.md`](PRIVATE_DEPLOYMENT.en.md).
+> **Publishing to the Chrome Web Store** (no credentials in the build, users bring their own Feishu app): see [`STORE_PUBLISHING.md`](STORE_PUBLISHING.en.md).
 > If you get stuck, check [`FAQ.md`](FAQ.en.md).
 
 The whole flow is just: **configure the Feishu app → fill in build config → one-click pack → load → authorize and use**.

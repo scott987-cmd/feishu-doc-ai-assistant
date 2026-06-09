@@ -3,6 +3,7 @@
 # 个人快速部署（5 步上手）
 
 > 面向**个人自用**（自己装、自己用，不发别人/不上架）。企业/私有化见 [`DEPLOYMENT.md`](DEPLOYMENT.md) / [`PRIVATE_DEPLOYMENT.md`](PRIVATE_DEPLOYMENT.md)。
+> **上架 Chrome 商店 / 公开发行**（包里零凭据、用户自带飞书应用）见 [`STORE_PUBLISHING.md`](STORE_PUBLISHING.md)。
 > 卡住了看 [`FAQ.md`](FAQ.md)。
 
 整体只需：**配飞书应用 → 填构建配置 → 一键打包 → 加载 → 授权用**。
