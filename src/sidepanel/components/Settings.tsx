@@ -7,6 +7,7 @@ import { getTenantAccessToken } from '../../shared/feishu/auth'
 import { authorizeFeishuUser, oauthRedirectUrl, fetchUserOpenId } from '../../shared/feishu/oauth'
 import { saveUserToken, clearUserToken } from '../../shared/feishu/auth'
 import { unlockAppSecret, lockAppSecret, isAppSecretLocked } from '../../shared/feishu/appSecret'
+import { saveUserAppCreds, getUserAppId, hasUserAppCreds } from '../../shared/feishu/userAppCreds'
 import { recipeCount, clearRecipes } from '../../shared/ai/recipes'
 import { ACCENT_PRESETS, DEFAULT_ACCENT } from '../../shared/theme'
 import { LLM_PROVIDERS, providerForBaseUrl, assertSafeBaseUrl, KNOWN_PROVIDER_HOSTS } from '../../shared/providers'
@@ -37,10 +38,30 @@ export default function Settings({ settings, accent, onAccentChange, onSave, onC
   const [unlockMsg, setUnlockMsg] = useState<{ ok: boolean; msg: string } | null>(null)
   const [policyLocks, setPolicyLocks] = useState<Set<keyof AppSettings>>(new Set())
   const [policyNotice, setPolicyNotice] = useState('')
+
+  // "Bring your own app" — public / store build ships no creds; user enters their own
+  // Feishu App ID + Secret (secret stored device-encrypted). Only relevant when !HAS_BUILTIN_CREDS.
+  const [byoAppId, setByoAppId] = useState('')
+  const [byoSecret, setByoSecret] = useState('')
+  const [byoSaved, setByoSaved] = useState(false)
+  const [byoMsg, setByoMsg] = useState('')
+  const redirectUrl = oauthRedirectUrl()
+
   useEffect(() => {
     if (HAS_ENCRYPTED_SECRET) void isAppSecretLocked().then(setSecretLocked)
     void loadPolicy().then((p) => { setPolicyLocks(policyLockedKeys(p)); setPolicyNotice(p?.notice || '') })
+    if (!HAS_BUILTIN_CREDS) void (async () => {
+      const id = await getUserAppId(); if (id) setByoAppId(id)
+      setByoSaved(await hasUserAppCreds())
+    })()
   }, [])
+
+  async function saveByoCreds() {
+    if (!byoAppId.trim() || !byoSecret.trim()) { setByoMsg('请填写 App ID 与 App Secret'); return }
+    await saveUserAppCreds(byoAppId.trim(), byoSecret.trim())
+    setByoSaved(true); setByoSecret('')
+    setByoMsg('✓ 已保存（App Secret 已本机加密存储）。现在可点「用飞书账号授权」。')
+  }
 
   async function handleUnlock() {
     setUnlockMsg(null)
@@ -328,6 +349,36 @@ export default function Settings({ settings, accent, onAccentChange, onSave, onC
             </div>
           ) : null}
 
+          {/* Bring-your-own Feishu app — public / store build (no baked creds). */}
+          {!HAS_BUILTIN_CREDS && (
+            <div className="field-group byo-box">
+              <label className="field-label-inline">自建飞书应用（本版本不内置凭据，请填你自己的）</label>
+              <input
+                className="field-input" type="text" value={byoAppId}
+                onChange={(e) => setByoAppId(e.target.value)} placeholder="App ID：cli_xxxxxxxxxxxx"
+              />
+              <input
+                className="field-input" type="password" value={byoSecret} style={{ marginTop: 6 }}
+                onChange={(e) => setByoSecret(e.target.value)}
+                placeholder={byoSaved ? 'App Secret（已保存，如需更新再填）' : 'App Secret'}
+              />
+              <div className="test-row" style={{ marginTop: 6 }}>
+                <button className="btn-test" type="button" onClick={() => void saveByoCreds()} disabled={!byoAppId.trim() || !byoSecret.trim()}>
+                  保存应用凭据
+                </button>
+                {byoSaved && <span className="test-result test-result--ok">已配置 ✓</span>}
+              </div>
+              {byoMsg && <span className="field-hint">{byoMsg}</span>}
+              {redirectUrl && (
+                <div className="help-box" style={{ marginTop: 6 }}>
+                  <p>在飞书后台「安全设置 → 重定向 URL」登记（须完全一致，含末尾斜杠）：</p>
+                  <pre className="help-code">{redirectUrl}</pre>
+                  <p>权限管理开通（勾<b>用户身份</b>）：<code>offline_access</code> + 按需 <code>bitable:app</code> <code>docx:document</code> <code>sheets:spreadsheet</code> <code>drive:drive</code> <code>wiki:wiki</code> <code>contact:user.base:readonly</code>；并把自己加入「可用范围」、发布应用。</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Password-protected App Secret (personal build): unlock before OAuth. */}
           {HAS_ENCRYPTED_SECRET && (
             <div className="unlock-box">
@@ -404,7 +455,7 @@ export default function Settings({ settings, accent, onAccentChange, onSave, onC
           </label>
 
           <div className="test-row">
-            {HAS_BUILTIN_CREDS && (
+            {(HAS_BUILTIN_CREDS || byoSaved) && (
               <button className="btn-test" onClick={authorize} disabled={authing}>
                 {authing ? '授权中…' : '用飞书账号授权'}
               </button>

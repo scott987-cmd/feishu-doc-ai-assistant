@@ -13,6 +13,7 @@
  */
 import { BUILD_CONFIG } from '../config'
 import { encryptField, decryptField } from '../crypto'
+import { getUserAppSecret } from './userAppCreds'
 
 const STORE_KEY = '_app_secret_dev_v1'
 const PBKDF2_ITERS = 210_000
@@ -91,13 +92,17 @@ export async function lockAppSecret(): Promise<void> {
 export async function getClientSecret(): Promise<string | null> {
   if (BUILD_CONFIG.feishuAppSecret) return BUILD_CONFIG.feishuAppSecret
   if (_secret) return _secret
-  if (!BUILD_CONFIG.appSecretEnc) return null
-  const stored = await storageGet(STORE_KEY)
-  if (typeof stored === 'string' && stored) {
-    const dec = await decryptField(stored)
-    if (dec) { _secret = dec; return dec }
+  if (BUILD_CONFIG.appSecretEnc) {
+    const stored = await storageGet(STORE_KEY)
+    if (typeof stored === 'string' && stored) {
+      const dec = await decryptField(stored)
+      if (dec) { _secret = dec; return dec }
+    }
+    return null // encrypted secret present but still locked → caller prompts for password
   }
-  return null
+  // No baked secret → public / store ("bring your own app") build: use the secret the user
+  // entered in Settings (device-encrypted). null when they haven't configured it yet.
+  return await getUserAppSecret()
 }
 
 /** True when an encrypted secret exists but hasn't been unlocked yet (this session/device). */

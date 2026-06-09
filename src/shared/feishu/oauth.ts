@@ -12,6 +12,13 @@
  */
 import { BUILD_CONFIG, FEISHU_API_BASE, FEISHU_AUTHORIZE_URL } from '../config'
 import { getClientSecret } from './appSecret'
+import { getUserAppId, hasUserAppCreds } from './userAppCreds'
+
+/** The App ID to use: the build-baked one, else the one the user entered in Settings
+ *  (public / store "bring your own app" build). */
+async function getEffectiveAppId(): Promise<string> {
+  return BUILD_CONFIG.feishuAppId || (await getUserAppId())
+}
 
 const AUTHORIZE = FEISHU_AUTHORIZE_URL
 const TOKEN = `${FEISHU_API_BASE}/authen/v2/oauth/token`
@@ -24,6 +31,7 @@ interface TokenResp { access_token?: string; refresh_token?: string; expires_in?
  * NOT sent — the proxy injects it server-side. Returns the parsed token response.
  */
 async function requestToken(payload: Record<string, unknown>): Promise<TokenResp> {
+  const clientId = await getEffectiveAppId()
   if (BUILD_CONFIG.oauthProxyUrl) {
     // Proxy adds client_id + client_secret; we send only the grant material. Optional X-Proxy-Key
     // is anti-abuse defense-in-depth (NOT a strong secret — it ships in the bundle).
@@ -33,28 +41,34 @@ async function requestToken(payload: Record<string, unknown>): Promise<TokenResp
         'Content-Type': 'application/json',
         ...(BUILD_CONFIG.oauthProxyKey ? { 'X-Proxy-Key': BUILD_CONFIG.oauthProxyKey } : {}),
       },
-      body: JSON.stringify({ ...payload, client_id: BUILD_CONFIG.feishuAppId }),
+      body: JSON.stringify({ ...payload, client_id: clientId }),
     })
     return (await res.json()) as TokenResp
   }
-  // Direct mode: the secret is either plaintext (legacy) or password-unlocked.
+  // Direct mode: secret is baked-plaintext, password-unlocked, or the user-entered one (store build).
+  if (!clientId) {
+    throw new Error('未配置 App ID：请在「设置 → 飞书鉴权」填写你自己的飞书 App ID 与 App Secret。')
+  }
   const clientSecret = await getClientSecret()
   if (!clientSecret) {
-    throw new Error('应用密钥已加密：请先在「设置 → 飞书鉴权」输入密码解锁后再操作。')
+    throw new Error('应用密钥未就绪：请在「设置 → 飞书鉴权」填写并保存你的 App Secret（内置加密版则先输入解锁密码）。')
   }
   const res = await fetch(TOKEN, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...payload, client_id: BUILD_CONFIG.feishuAppId, client_secret: clientSecret }),
+    body: JSON.stringify({ ...payload, client_id: clientId, client_secret: clientSecret }),
   })
   return (await res.json()) as TokenResp
 }
 
 /** OAuth is usable when an app id is configured AND we can obtain tokens — a baked secret
- *  (direct), a password-encrypted secret (direct, after unlock), or a proxy (secret-free). */
-function canDoOAuth(): boolean {
-  return !!BUILD_CONFIG.feishuAppId &&
-    (!!BUILD_CONFIG.feishuAppSecret || !!BUILD_CONFIG.appSecretEnc || !!BUILD_CONFIG.oauthProxyUrl)
+ *  (direct), a password-encrypted secret (direct, after unlock), a proxy (secret-free), or
+ *  user-entered App ID + Secret (public / store "bring your own app" build). */
+async function canDoOAuth(): Promise<boolean> {
+  if (BUILD_CONFIG.feishuAppId) {
+    return !!BUILD_CONFIG.feishuAppSecret || !!BUILD_CONFIG.appSecretEnc || !!BUILD_CONFIG.oauthProxyUrl
+  }
+  return await hasUserAppCreds()
 }
 
 export interface OAuthResult {
@@ -75,7 +89,7 @@ export interface OAuthResult {
 export async function refreshUserAccessToken(
   refreshToken: string,
 ): Promise<{ accessToken: string; refreshToken?: string; expiresIn?: number } | null> {
-  if (!canDoOAuth() || !refreshToken) return null
+  if (!refreshToken || !(await canDoOAuth())) return null
   try {
     const tj = await requestToken({ grant_type: 'refresh_token', refresh_token: refreshToken })
     if (!tj.access_token) {
@@ -121,9 +135,10 @@ export async function fetchUserOpenId(userToken: string): Promise<{ openId: stri
 }
 
 export async function authorizeFeishuUser(): Promise<OAuthResult> {
-  if (!canDoOAuth()) {
-    throw new Error('OAuth 需要内置 App 凭据：构建时注入 VITE_FEISHU_APP_ID，并提供 VITE_FEISHU_APP_SECRET（个人直连）或 VITE_OAUTH_PROXY_URL（企业/私有化代理）')
+  if (!(await canDoOAuth())) {
+    throw new Error('尚未配置飞书应用凭据：请在「设置 → 飞书鉴权」填写你的 App ID 与 App Secret（或本版本内置/代理模式）。')
   }
+  const appId = await getEffectiveAppId()
   const redirectUri = oauthRedirectUrl()
   if (!redirectUri) {
     throw new Error('无法获取扩展重定向 URL（需在扩展环境中运行，dev 预览不支持 OAuth）')
@@ -139,7 +154,7 @@ export async function authorizeFeishuUser(): Promise<OAuthResult> {
   const wanted = configured.filter((s) => s !== '-offline_access')
   const scope = Array.from(new Set(optOut ? wanted : ['offline_access', ...wanted])).join(' ')
   const authUrl =
-    `${AUTHORIZE}?client_id=${encodeURIComponent(BUILD_CONFIG.feishuAppId)}` +
+    `${AUTHORIZE}?client_id=${encodeURIComponent(appId)}` +
     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
     `&response_type=code&state=${state}&prompt=consent` +
     (scope ? `&scope=${encodeURIComponent(scope)}` : '')
