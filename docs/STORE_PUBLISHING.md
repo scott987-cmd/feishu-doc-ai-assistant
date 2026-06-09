@@ -7,26 +7,33 @@
 
 ---
 
-## 1. 构建公开版（零凭据包）
+## 1. 构建公开版（零凭据 + 无 key 包）
 
-`.env.local` 里**三个飞书凭据全部留空**（或干脆不设）：
+商店包有两条硬性要求：**① 不内置任何凭据** ② **manifest 里不能有 `key` 字段**（ID 由商店分配，带 `key` 会报"清单文件中不得包含 key 字段"上传失败）。
+
+用一个独立的 `.env.store.local`（已 gitignore，不动你的 `.env.local`）：
 ```bash
+cat > .env.store.local <<'E'
 VITE_FEISHU_APP_ID=
 VITE_FEISHU_APP_SECRET=
 VITE_FEISHU_APP_SECRET_ENC=
-# 也不要设 VITE_OAUTH_PROXY_URL（那是企业代理模式）
+VITE_OAUTH_PROXY_URL=
+VITE_WEBSTORE=1
+E
+npx vite build --mode store          # 零凭据 + 自动剥离 manifest.key
+cd dist && zip -qr ../feishu-doc-ai-assistant-store.zip . && cd ..
 ```
-打包：
+> `VITE_WEBSTORE=1` 让构建删除 `manifest.key`；`--mode store` 使 Vite 读 `.env.store.local`（其空值覆盖 `.env.local` 的凭据）。
+
+自检——**包里不能有 secret，manifest 不能有 key**：
 ```bash
-npm run pack          # 产出 dist/ 与 zip
+grep -riE "cli_[a-z0-9]{16}" dist/ ; echo "↑ 应为空（无 App ID）"
+grep -o '"key"' dist/manifest.json ; echo "↑ 应为空（无 key 字段）"
 ```
-自检——**包里绝不能有 secret**：
-```bash
-grep -riE "cli_[a-z0-9]{16}|appSecret" dist/ ; echo "↑ 应为空（无 App ID / secret）"
-```
-上架用 `dist/` 目录压成的 zip（Chrome 开发者后台上传 zip）。
+上传 `feishu-doc-ai-assistant-store.zip` 到 Chrome 开发者后台。
 
 > 商店版会自动进入「自带应用」模式：设置里出现"自建飞书应用"录入区，用户填自己的 App ID/Secret。
+> 去掉 `key` 后扩展 ID 由商店分配 → OAuth 重定向 URL 随之变化，但设置页会**运行时显示当前真实回调地址**，用户照着登记即可。
 
 ---
 

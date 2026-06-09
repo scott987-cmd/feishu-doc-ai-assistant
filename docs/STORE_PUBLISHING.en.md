@@ -7,26 +7,33 @@ This document covers: ① how to build the public edition → ② how a user con
 
 ---
 
-## 1. Building the Public Edition (zero-credential package)
+## 1. Building the Public Edition (zero-credential, no-`key` package)
 
-In `.env.local`, **leave all three Feishu credentials empty** (or simply don't set them):
+A store package has two hard requirements: **① no baked credentials** and **② no `key` field in the manifest** (the store assigns the ID; a `key` triggers the "Manifest must not include 'key'" upload error).
+
+Use a dedicated `.env.store.local` (gitignored; leaves your `.env.local` untouched):
 ```bash
+cat > .env.store.local <<'E'
 VITE_FEISHU_APP_ID=
 VITE_FEISHU_APP_SECRET=
 VITE_FEISHU_APP_SECRET_ENC=
-# Also don't set VITE_OAUTH_PROXY_URL (that's the enterprise proxy mode)
+VITE_OAUTH_PROXY_URL=
+VITE_WEBSTORE=1
+E
+npx vite build --mode store          # zero credentials + auto-strips manifest.key
+cd dist && zip -qr ../feishu-doc-ai-assistant-store.zip . && cd ..
 ```
-Package it:
+> `VITE_WEBSTORE=1` makes the build delete `manifest.key`; `--mode store` makes Vite read `.env.store.local` (its empty values override the credentials in `.env.local`).
+
+Self-check — **no secret in the package, no key in the manifest**:
 ```bash
-npm run pack          # produces dist/ and a zip
+grep -riE "cli_[a-z0-9]{16}" dist/ ; echo "↑ should be empty (no App ID)"
+grep -o '"key"' dist/manifest.json ; echo "↑ should be empty (no key field)"
 ```
-Self-check — **the package must never contain a secret**:
-```bash
-grep -riE "cli_[a-z0-9]{16}|appSecret" dist/ ; echo "↑ should be empty (no App ID / secret)"
-```
-Use the zip compressed from the `dist/` directory for publishing (upload the zip in the Chrome developer console).
+Upload `feishu-doc-ai-assistant-store.zip` to the Chrome developer console.
 
 > The Store edition automatically enters "bring-your-own-app" mode: a "self-built Feishu app" input area appears in Settings, where users enter their own App ID/Secret.
+> Once the `key` is removed, the store assigns the extension ID → the OAuth redirect URL changes accordingly, but the Settings page **displays the current real redirect URL at runtime**, so users just register that.
 
 ---
 
