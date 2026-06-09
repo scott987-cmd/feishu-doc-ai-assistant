@@ -65,10 +65,21 @@ export default defineConfig(({ command, mode }) => {
         // Template the deployment-specific bits so one codebase serves
         // personal / enterprise-SaaS / private-on-prem from build-time env alone.
         transformManifest(manifest: Record<string, unknown>) {
-          // Chrome Web Store rejects packages that contain a `key` (it assigns the ID itself).
-          // For a store build set VITE_WEBSTORE=1 to strip it; self-distributed .crx keeps the
-          // baked `key` so the extension ID (and OAuth redirect URL) stays stable.
-          if (env.VITE_WEBSTORE === '1' || env.VITE_WEBSTORE === 'true') delete manifest.key
+          // Chrome Web Store build (VITE_WEBSTORE=1):
+          //  • strip `key` — the store assigns the ID and rejects packages that contain one;
+          //  • override name/description — the store title & summary are READ FROM the package
+          //    (not editable in the console), and the default name "飞书文档AI助手" reads as an
+          //    official Feishu product (trademark risk). Use a trademark-safe, clearly-3rd-party
+          //    name + "no official affiliation" summary. Override via VITE_STORE_NAME/_DESC.
+          // Self-distributed .crx keeps the baked key + original name (stable ID).
+          if (env.VITE_WEBSTORE === '1' || env.VITE_WEBSTORE === 'true') {
+            delete manifest.key
+            manifest.name = env.VITE_STORE_NAME || 'AI 助手 for 飞书 · 表格/文档/电子表格（第三方）'
+            manifest.description = env.VITE_STORE_DESC ||
+              '第三方开源工具：用 AI 操作飞书多维表格/文档/电子表格——建表填数、图表看板、分析报告、PPT、文档总结体检，一句话搞定。与飞书无官方关联。'
+            const action = manifest.action as { default_title?: string } | undefined
+            if (action) action.default_title = manifest.name as string
+          }
           manifest.host_permissions = [feishuMatch]
           const cs = manifest.content_scripts as Array<{ matches: string[] }> | undefined
           if (cs?.[0]) cs[0].matches = [feishuMatch]

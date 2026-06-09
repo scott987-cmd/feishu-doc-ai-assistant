@@ -35,6 +35,12 @@ Upload `feishu-doc-ai-assistant-store.zip` to the Chrome developer console.
 > The Store edition automatically enters "bring-your-own-app" mode: a "self-built Feishu app" input area appears in Settings, where users enter their own App ID/Secret.
 > Once the `key` is removed, the store assigns the extension ID → the OAuth redirect URL changes accordingly, but the Settings page **displays the current real redirect URL at runtime**, so users just register that.
 
+**Store title/summary = the package's `manifest.name`/`description` (not editable in the console)**, and the default name "飞书文档AI助手" reads as an official Feishu product (trademark risk). So `VITE_WEBSTORE=1` **automatically** swaps in a compliant third-party name/summary:
+- Name: `AI 助手 for 飞书 · 表格/文档/电子表格（第三方）`
+- Summary: `第三方开源工具……与飞书无官方关联。`
+- To customize, set `VITE_STORE_NAME=` / `VITE_STORE_DESC=` in `.env.store.local` (summary ≤132 chars).
+- The icon is now an original AI sparkle (no letter, not Feishu blue), free of any Feishu/brand elements.
+
 ---
 
 ## 2. User First-Time Configuration (write this into your store description/help)

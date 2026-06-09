@@ -24,14 +24,25 @@ try {
 
 const SIZES = [16, 32, 48, 128]
 
+// Original mark: a 4-point "AI sparkle" on a violet→indigo gradient. Deliberately NO brand
+// letter and NOT Feishu blue — avoids implying affiliation with Feishu/ByteDance (and the
+// Facebook-style blue "F" the old icon resembled). Pure geometry, our own artwork.
+const sparkle = (cx, cy, R, w) =>
+  `M${cx},${cy - R} C${cx},${cy - w} ${cx + w},${cy} ${cx + R},${cy} ` +
+  `C${cx + w},${cy} ${cx},${cy + w} ${cx},${cy + R} ` +
+  `C${cx},${cy + w} ${cx - w},${cy} ${cx - R},${cy} ` +
+  `C${cx - w},${cy} ${cx},${cy - w} ${cx},${cy - R} Z`
+
 for (const size of SIZES) {
   const r = Math.round(size / 5)
-  const fontSize = Math.round(size * 0.52)
+  const R = size * 0.30, w = R * 0.18
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  <rect width="${size}" height="${size}" rx="${r}" fill="#3366FF"/>
-  <text x="${size / 2}" y="${size * 0.68}" text-anchor="middle"
-    font-family="Arial,Helvetica,sans-serif" font-weight="bold"
-    font-size="${fontSize}" fill="white">F</text>
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#7C5CFC"/><stop offset="1" stop-color="#B96BF0"/>
+  </linearGradient></defs>
+  <rect width="${size}" height="${size}" rx="${r}" fill="url(#g)"/>
+  <path d="${sparkle(size * 0.44, size * 0.54, R, w)}" fill="#ffffff"/>
+  <path d="${sparkle(size * 0.76, size * 0.27, size * 0.12, size * 0.12 * 0.18)}" fill="#ffffff" opacity="0.9"/>
 </svg>`
 
   await sharp(Buffer.from(svg))
