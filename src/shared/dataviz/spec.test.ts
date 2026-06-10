@@ -15,8 +15,10 @@ describe('validateSpec', () => {
     expect((s as any).chartType).toBe('bar')
   })
 
-  it('rejects a chart whose dimension is not a real field', () => {
-    expect(() => validateSpec({ kind: 'chart', chartType: 'bar', series: { dimension: '不存在' } }, FIELDS)).toThrow()
+  it('keeps a chart even if the dimension is not in the passed schema (no blank — degrade gracefully)', () => {
+    const c = validateSpec({ kind: 'chart', chartType: 'bar', series: { dimension: '不在schema里' } }, FIELDS) as any
+    expect(c.kind).toBe('chart')
+    expect(c.series.dimension).toBe('不在schema里')
   })
 
   it('clamps series.limit and pageSize', () => {
@@ -26,16 +28,16 @@ describe('validateSpec', () => {
     expect(t.pageSize).toBe(100)
   })
 
-  it('drops dashboard filters/kpis referencing unknown fields, keeps valid ones', () => {
+  it('keeps dashboard filters/kpis/charts as-is (no field-dropping → no blank)', () => {
     const d = validateSpec({
       kind: 'dashboard',
-      filters: ['状态', '幻觉字段'],
-      kpis: [{ label: '总额', value: { op: 'sum', field: '金额' } }, { label: '坏', value: { op: 'sum', field: '没有' } }],
+      filters: ['状态', '其它字段'],
+      kpis: [{ label: '总额', value: { op: 'sum', field: '金额' } }, { label: '订单', value: { op: 'sum', field: '订单数' } }],
       charts: [{ kind: 'chart', chartType: 'pie', series: { dimension: '区域' } }],
     }, FIELDS) as any
-    expect(d.filters).toEqual(['状态'])
-    expect(d.kpis).toHaveLength(2)             // both labels kept
-    expect(d.kpis[1].value.field).toBeUndefined() // unknown field dropped → falls back to count-like
+    expect(d.filters).toEqual(['状态', '其它字段'])  // kept, not dropped
+    expect(d.kpis).toHaveLength(2)
+    expect(d.kpis[0].value.field).toBe('金额')
     expect(d.charts).toHaveLength(1)
   })
 

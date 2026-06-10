@@ -95,8 +95,12 @@ const clampInt = (n: unknown, lo: number, hi: number, dflt: number) => {
  * dimension). With no eval, a sanitised spec can at worst render an empty widget.
  */
 export function validateSpec(input: unknown, fields: string[] = []): VizSpec {
-  const known = new Set(fields)
-  const ok = (f?: string) => !f || known.size === 0 || known.has(f)
+  // Keep field references as-is — DON'T drop them when they aren't in `fields`. Dropping was
+  // the cause of "blank dashboards/sites": one slightly-off field name from the model nuked
+  // every chart/kpi. The interpreter degrades gracefully on a missing field (empty group / 0),
+  // and correct fields still render. (`fields` is still used to guide the prompt.)
+  void fields
+  const ok = (_f?: string) => true
   const obj = input as Record<string, unknown>
   if (!obj || typeof obj !== 'object' || typeof obj.kind !== 'string') {
     throw new Error('生成结果不是有效的可视化规格（缺少 kind）。请换一个支持 JSON 输出的模型重试。')
