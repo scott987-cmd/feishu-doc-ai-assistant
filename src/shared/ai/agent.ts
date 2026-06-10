@@ -9,6 +9,7 @@ import type { BlockSpec } from '../feishu/docx'
 import * as Compose from '../feishu/compose'
 import { feishuReq } from '../feishu/http'
 import { storageGet } from '../storage'
+import { captureRecords, saveDeleteUndo } from '../feishu/undo'
 import type { Metric } from '../feishu/compose'
 import { resolveToken, invalidateToken, isPermissionError, isTokenExpiredError, forceRefreshUserToken } from '../feishu/auth'
 import { HAS_BUILTIN_CREDS, BUILD_CONFIG } from '../config'
@@ -781,11 +782,21 @@ export async function executeTool(
         args.records as Array<{ record_id: string; fields: Record<string, unknown> }>
       )
 
-    case 'delete_record':
-      return API.deleteRecord(token, app!, tableId!, recordId!)
+    case 'delete_record': {
+      // Capture the row BEFORE deleting so the UI can offer a one-click 撤销 (re-create).
+      const captured = await captureRecords(token, app!, tableId!, [recordId!])
+      const r = await API.deleteRecord(token, app!, tableId!, recordId!)
+      await saveDeleteUndo({ appToken: app!, tableId: tableId!, label: '删除 1 条记录', records: captured })
+      return r
+    }
 
-    case 'batch_delete_records':
-      return API.batchDeleteRecords(token, app!, tableId!, args.record_ids as string[])
+    case 'batch_delete_records': {
+      const ids = (args.record_ids as string[]) ?? []
+      const captured = await captureRecords(token, app!, tableId!, ids)
+      const r = await API.batchDeleteRecords(token, app!, tableId!, ids)
+      await saveDeleteUndo({ appToken: app!, tableId: tableId!, label: `删除 ${ids.length} 条记录`, records: captured })
+      return r
+    }
 
     case 'list_dashboards':
       return API.listDashboards(token, app!)

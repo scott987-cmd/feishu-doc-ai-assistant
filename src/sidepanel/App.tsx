@@ -28,6 +28,7 @@ import Settings from './components/Settings'
 import NetworkBlocked from './components/NetworkBlocked'
 import ScenarioPanel from './components/ScenarioPanel'
 import DemoPanel from './components/DemoPanel'
+import UndoBar from './components/UndoBar'
 import SessionDrawer from './components/SessionDrawer'
 import { useSessions } from './sessions/useSessions'
 import './App.css'
@@ -504,6 +505,8 @@ export default function App() {
           <span>→</span>
         </button>
       )}
+
+      {!showSettings && <UndoBar settings={settings} />}
 
       <main className="app-main">
         <div className="app-view view-enter" key={showSettings ? 'settings' : tab}>

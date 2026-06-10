@@ -164,6 +164,22 @@ export function batchUpdateRecords(
   )
 }
 
+/** Fetch full field data for specific record_ids — used to CAPTURE rows right before a delete
+ *  so the deletion can be undone (re-created) afterward. */
+export function batchGetRecords(
+  token: string,
+  appToken: string,
+  tableId: string,
+  recordIds: string[]
+) {
+  return req(
+    'POST',
+    `/bitable/v1/apps/${appToken}/tables/${tableId}/records/batch_get`,
+    token,
+    { record_ids: recordIds }
+  )
+}
+
 export function batchDeleteRecords(
   token: string,
   appToken: string,
