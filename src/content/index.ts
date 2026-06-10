@@ -42,7 +42,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true
   }
   if (msg.type === 'DATAVIZ_RENDER') {
-    renderViz({ vizId: msg.vizId ?? 'preview', code: msg.code, data: msg.data, datasets: msg.datasets, theme: msg.theme, name: msg.name, source: msg.source, fieldTypes: msg.fieldTypes })
+    renderViz({ vizId: msg.vizId ?? 'preview', code: msg.code, spec: msg.spec, data: msg.data, datasets: msg.datasets, theme: msg.theme, name: msg.name, source: msg.source, fieldTypes: msg.fieldTypes })
     return false
   }
   if (msg.type === 'DATAVIZ_WRITE_RESULT') {
