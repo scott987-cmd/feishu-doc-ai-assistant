@@ -26,6 +26,7 @@ import ClipPanel from './components/ClipPanel'
 import Settings from './components/Settings'
 import NetworkBlocked from './components/NetworkBlocked'
 import ScenarioPanel from './components/ScenarioPanel'
+import DemoPanel from './components/DemoPanel'
 import SessionDrawer from './components/SessionDrawer'
 import { useSessions } from './sessions/useSessions'
 import './App.css'
@@ -37,6 +38,7 @@ type NetworkState = 'checking' | 'allowed' | 'blocked'
 export default function App() {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS)
   const [showSettings, setShowSettings] = useState(false)
+  const [showDemo, setShowDemo] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     try { return localStorage.getItem('fa-theme') === 'dark' ? 'dark' : 'light' } catch { return 'light' }
   })
@@ -487,6 +489,8 @@ export default function App() {
               onSave={saveSettings}
               onCancel={() => setShowSettings(false)}
             />
+          ) : showDemo ? (
+            <DemoPanel settings={settings} onBack={() => setShowDemo(false)} />
           ) : tab === 'clip' ? (
             <ClipPanel
               settings={settings}
@@ -504,6 +508,9 @@ export default function App() {
                 <br />当前不是飞书页面，已暂停显示。
                 {CLIP_ENABLED && <><br /><br />💡 也可以把 <b>CSV / 表格文件</b>拖进来,AI 整理后写入飞书。</>}
               </div>
+              <button className="not-feishu-demo" onClick={() => setShowDemo(true)} style={{ marginTop: 16 }}>
+                🎬 体验示例（无需飞书登录）
+              </button>
             </div>
           ) : tab === 'chat' ? (
             <ChatPanel
