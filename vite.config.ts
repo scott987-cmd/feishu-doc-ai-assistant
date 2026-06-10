@@ -47,8 +47,12 @@ export default defineConfig(({ command, mode }) => {
   // allow-modals: the CSP `sandbox` directive is the OUTER limit — it intersects with the iframe's
   // own sandbox attr, so without allow-modals here `window.print()` (导出 PDF) is silently ignored
   // even though the <iframe sandbox> grants it. connect-src 'none' still walls the LLM code off.
+  // Store build (VITE_WEBSTORE=1): data-viz renders from a declarative VizSpec via the bundled
+  // interpreter, NOT from LLM-generated JS — so we drop 'unsafe-eval' and can honestly answer
+  // "no remote code". Self-distributed builds keep 'unsafe-eval' for the legacy codegen path.
+  const noEval = env.VITE_WEBSTORE === '1' || env.VITE_WEBSTORE === 'true'
   const sandboxCsp =
-    `sandbox allow-scripts allow-modals; script-src 'self' 'unsafe-inline' 'unsafe-eval'; ` +
+    `sandbox allow-scripts allow-modals; script-src 'self' 'unsafe-inline'${noEval ? '' : " 'unsafe-eval'"}; ` +
     `object-src 'none'; child-src 'none'; frame-src 'none'; connect-src 'none'; ` +
     `img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; base-uri 'none'`
 

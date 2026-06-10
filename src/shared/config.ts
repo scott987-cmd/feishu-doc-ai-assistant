@@ -67,6 +67,11 @@ export const BUILD_CONFIG = {
    *  comma-separated domains where clipping is allowed. Empty = allow anywhere. */
   clipManagedDomains: (import.meta.env.VITE_CLIP_MANAGED_DOMAINS ?? '')
     .split(',').map((s: string) => s.trim().toLowerCase()).filter(Boolean) as string[],
+  /** Chrome Web Store build: ship NO baked credentials AND execute NO remotely-obtained code
+   *  — data-viz/site render from a declarative VizSpec via the bundled interpreter instead of
+   *  LLM-generated JS, so the sandbox CSP drops 'unsafe-eval'. Also strips manifest `key`. */
+  webstore: ((import.meta.env.VITE_WEBSTORE ?? '') as string).trim() === '1' ||
+    ((import.meta.env.VITE_WEBSTORE ?? '') as string).trim() === 'true',
 } as const
 
 /** True when an App ID is configured AND we can mint a user token — a baked-in secret
@@ -92,6 +97,10 @@ export const HAS_ENTERPRISE_POLICY = BUILD_CONFIG.enterprisePolicy && !!BUILD_CO
 
 /** Web Clipper feature flag (see BUILD_CONFIG.clipEnabled). */
 export const CLIP_ENABLED = BUILD_CONFIG.clipEnabled
+
+/** No-remote-code mode (store build): data-viz/site render from a declarative VizSpec, never
+ *  from LLM-generated JS; lets us honestly answer "no remote code" + drop sandbox 'unsafe-eval'. */
+export const NO_REMOTE_CODE = BUILD_CONFIG.webstore
 
 /** Web Speech API (webkitSpeechRecognition) routes audio through Google's servers, which
  *  breaks the "only Feishu + LLM / pure-intranet" posture. So it's only offered on the
