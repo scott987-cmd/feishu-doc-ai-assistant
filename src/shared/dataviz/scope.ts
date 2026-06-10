@@ -46,3 +46,15 @@ export function vizMatchesCtx(source: VizSource, f: Ctx): boolean {
   }
   return source.kind === 'sheet' && f?.kind === 'sheet' && f.spreadsheetToken === source.spreadsheetToken
 }
+
+/**
+ * Match a SAVED viz/site to the current page — multi-aware. A MULTI-table 建站 spans the WHOLE
+ * Base (it reads all sub-tables), so it must show on ANY table of that Base, not only the one it
+ * was generated from — otherwise it vanishes from the side-panel list the moment the URL points
+ * at another table (while the launcher pill still shows it). The side panel AND the on-page
+ * launcher MUST use this same function so they never disagree about what's visible.
+ */
+export function savedVizMatchesCtx(v: { multi?: boolean; source: VizSource }, f: Ctx): boolean {
+  if (v.multi && v.source.kind === 'base') return f?.kind === 'base' && f.appToken === v.source.appToken
+  return vizMatchesCtx(v.source, f)
+}

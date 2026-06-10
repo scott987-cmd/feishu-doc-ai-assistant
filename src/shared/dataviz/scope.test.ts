@@ -1,6 +1,19 @@
 import { describe, it, expect } from 'vitest'
-import { vizDocKey, ctxDocKey, ctxScopeKey, vizMatchesCtx } from './scope'
+import { vizDocKey, ctxDocKey, ctxScopeKey, vizMatchesCtx, savedVizMatchesCtx } from './scope'
 import type { VizSource } from './types'
+
+describe('savedVizMatchesCtx — multi-table site shows on any table of its Base', () => {
+  const src: VizSource = { kind: 'base', appToken: 'APP', tableId: 't1' }
+  it('single-table viz: only its own table (per-table)', () => {
+    expect(savedVizMatchesCtx({ multi: false, source: src }, { kind: 'base', appToken: 'APP', tableId: 't1' })).toBe(true)
+    expect(savedVizMatchesCtx({ multi: false, source: src }, { kind: 'base', appToken: 'APP', tableId: 't2' })).toBe(false)
+  })
+  it('MULTI site: matches ANY table of the same Base (the bug fix)', () => {
+    expect(savedVizMatchesCtx({ multi: true, source: src }, { kind: 'base', appToken: 'APP', tableId: 't2' })).toBe(true)
+    expect(savedVizMatchesCtx({ multi: true, source: src }, { kind: 'base', appToken: 'APP' })).toBe(true)
+    expect(savedVizMatchesCtx({ multi: true, source: src }, { kind: 'base', appToken: 'OTHER', tableId: 't1' })).toBe(false)
+  })
+})
 
 describe('dataviz scope keys', () => {
   it('vizDocKey is a coarse doc-level key (Base app / Spreadsheet)', () => {

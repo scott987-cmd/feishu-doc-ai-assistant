@@ -5,7 +5,7 @@ import { fetchVizData, deriveVizSource, fetchDocDatasets, docOf } from '../../sh
 import { NO_REMOTE_CODE } from '../../shared/config'
 import { sendVizToActiveTab } from '../../shared/dataviz/send'
 import { loadVizList, saveViz, deleteViz } from '../../shared/dataviz/store'
-import { ctxScopeKey, vizMatchesCtx } from '../../shared/dataviz/scope'
+import { ctxScopeKey, savedVizMatchesCtx } from '../../shared/dataviz/scope'
 import type { SavedViz, VizSource } from '../../shared/dataviz/types'
 import type { VizSpec } from '../../shared/dataviz/spec'
 import { buildDataReport } from '../../shared/report/build'
@@ -79,7 +79,7 @@ export default function AISitePanel({ settings, context, disabled, onBack }: Pro
   // whole Base file). ctxScopeKey gates "on a Base/Sheet at all" AND keys the restore-cache per
   // table (so switching tables in one Base won't restore/save another table's draft); vizMatchesCtx does the match.
   const curKey = ctxScopeKey(context.feishu)
-  const visible = curKey ? list.filter((v) => vizMatchesCtx(v.source, context.feishu)) : []
+  const visible = curKey ? list.filter((v) => savedVizMatchesCtx(v, context.feishu)) : []
 
   // Restore (or clear) the in-progress generated site for the doc now in view — survives the
   // unmount that a browser-tab switch triggers, so the user doesn't have to regenerate.

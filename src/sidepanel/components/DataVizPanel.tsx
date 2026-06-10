@@ -4,7 +4,7 @@ import { generateViz } from '../../shared/ai/dataviz'
 import { fetchVizData, deriveVizSource } from '../../shared/dataviz/data'
 import { sendVizToActiveTab } from '../../shared/dataviz/send'
 import { loadVizList, saveViz, deleteViz } from '../../shared/dataviz/store'
-import { ctxScopeKey, vizMatchesCtx } from '../../shared/dataviz/scope'
+import { ctxScopeKey, savedVizMatchesCtx } from '../../shared/dataviz/scope'
 import { NO_REMOTE_CODE } from '../../shared/config'
 import { isTokenExpiredError } from '../../shared/feishu/auth'
 import type { SavedViz, VizSource } from '../../shared/dataviz/types'
@@ -74,7 +74,7 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
   // Key the restore-cache per TABLE (ctxScopeKey), so switching tables in one Base doesn't
   // restore/save another table's draft (visible already filters per-table via vizMatchesCtx).
   const curKey = ctxScopeKey(context.feishu)
-  const visible = curKey ? list.filter((v) => vizMatchesCtx(v.source, context.feishu)) : []
+  const visible = curKey ? list.filter((v) => savedVizMatchesCtx(v, context.feishu)) : []
 
   // Restore (or clear) the in-progress generated 小程序 for the doc now in view — survives the
   // unmount a browser-tab switch triggers, so the user doesn't have to regenerate.

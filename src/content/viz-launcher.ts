@@ -5,7 +5,7 @@
  */
 import { parseFeishuContext } from '../shared/feishu/pageUrl'
 import { loadVizList } from '../shared/dataviz/store'
-import { ctxDocKey, vizMatchesCtx } from '../shared/dataviz/scope'
+import { ctxDocKey, savedVizMatchesCtx } from '../shared/dataviz/scope'
 import type { SavedViz } from '../shared/dataviz/types'
 import { isVizOpen, closeViz } from './viz-overlay'
 
@@ -77,10 +77,7 @@ export async function refreshLauncher() {
   // table site spans the whole doc, so show its pill on ANY table of that Base — not just the one
   // table it was generated from (otherwise a multi-table 建站 vanishes the moment you switch table).
   const matches = ctxDocKey(f)
-    ? (await loadVizList()).filter((v) =>
-        v.multi && v.source.kind === 'base'
-          ? f?.kind === 'base' && f.appToken === v.source.appToken
-          : vizMatchesCtx(v.source, f))
+    ? (await loadVizList()).filter((v) => savedVizMatchesCtx(v, f))
     : []
   if (myRun !== runSeq) return // a newer refresh started during the await — let it win (guards clearBar too)
   if (!matches.length) { clearBar(); return }
