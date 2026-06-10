@@ -247,6 +247,7 @@ export default function AISitePanel({ settings, context, disabled, onBack }: Pro
 
         {isWiki && <p className="as-hint as-hint--warn">正在解析知识库（Wiki）页面…若长时间无法识别，请直接打开多维表格 / 电子表格本体再使用。</p>}
         {!onFeishuTable && !isWiki && <p className="as-hint as-hint--warn">请先打开一个<b>多维表格 / 电子表格</b>页面再使用。</p>}
+        {NO_REMOTE_CODE && <p className="as-hint">📊 本版本生成<b>数据看板式网站</b>（指标 / 图表 / 可筛选联动 / 明细表）；不含自由式网页 / 计算器 / 自定义脚本视图（这些在自建分发版可用）。</p>}
 
         <textarea
           className="as-input" rows={3}
@@ -255,10 +256,13 @@ export default function AISitePanel({ settings, context, disabled, onBack }: Pro
             : '描述你想要的网站，例如：做一个销售业绩门户——英雄区 + 一块可按地区/品类筛选、联动指标卡和图表的数据看板，下面带搜索的明细表…'}
           value={request} onChange={(e) => setRequest(e.target.value)} disabled={disabled || !onFeishuTable}
         />
-        <input
-          className="as-url" placeholder="参考站点 URL（可选，让 AI 参考它的布局 / 风格；生成的页面仍离线自包含）"
-          value={refUrl} onChange={(e) => setRefUrl(e.target.value)} disabled={disabled || !onFeishuTable}
-        />
+        {/* 参考站点 URL 仅在自分发(代码生成)版生效；商店(数据驱动)版忽略它，故隐藏。 */}
+        {!NO_REMOTE_CODE && (
+          <input
+            className="as-url" placeholder="参考站点 URL（可选，让 AI 参考它的布局 / 风格；生成的页面仍离线自包含）"
+            value={refUrl} onChange={(e) => setRefUrl(e.target.value)} disabled={disabled || !onFeishuTable}
+          />
+        )}
 
         {!hasGen ? (
           <div className="as-row">

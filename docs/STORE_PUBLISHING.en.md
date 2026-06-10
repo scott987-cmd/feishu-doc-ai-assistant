@@ -104,12 +104,22 @@ After installing, the user needs to do a one-time setup:
 - **Rename it**: don't use a plain "Feishu Doc AI Assistant" that implies it's official; use a clear third-party name, such as **"AI Assistant for Feishu (Unofficial)"** or **"Feishu Base AI Assistant · Third-party"**.
 - Add a line in the description: **"This extension is a third-party open-source tool with no official affiliation with Feishu / ByteDance."**
 
-### 4.2 ⚠️ Remote code / dynamic execution (MV3 focus)
-The extension uses a sandbox to run **LLM-generated JS** (`unsafe-eval`). MV3 prohibits "remotely hosted code". Mitigation notes (state these clearly in the review remarks):
-- The code is **not a script loaded from a remote server**, but text returned by the LLM, rendered locally inside an **isolated sandbox iframe** (opaque origin);
-- That sandbox is **`connect-src 'none'`**, with **no network egress at all** — the generated code can neither obtain nor send out data;
-- The extension's own logic is all bundled locally and does not fetch and execute remote scripts at runtime.
-> This is the most likely point to be questioned; explain it proactively up front in the "submission notes / review remarks", and attach the `SECURITY_AUDIT.md` link.
+### 4.2 ✅ Remote code — the store build is genuinely "no remote code" (Plan B)
+For "Are you using remote code?", the **store build (`VITE_WEBSTORE=1`) can honestly answer "No"**.
+
+A store build automatically switches to **data-driven rendering (no eval)**:
+- the LLM only emits a **declarative JSON spec (VizSpec — data, not code)**;
+- a **bundled interpreter** in the sandbox uses it to render charts / dashboards / tables / data-sites / slides via ECharts + built-in UI;
+- so the sandbox CSP **drops `unsafe-eval`**, and the bundle contains **no `new Function` / `eval`** — nothing remotely obtained is executed at runtime.
+
+**Proof (run before submitting; screenshot for the reviewer)**:
+```bash
+npx vite build --mode store     # includes VITE_WEBSTORE=1
+node scripts/check-no-eval.mjs  # → ✅ no new Function( in dist/
+```
+- **Coverage**: charts / multi-chart dashboards / tables / data-sites / slides (PPT) are all data-driven.
+- **Gap (disclose honestly)**: the store build's "AI website" is a **data-dashboard site**, not free-form web apps / calculators / custom-script views — those require executing generated code and exist only in the **self-distributed build** (which keeps `unsafe-eval`). The site panel shows a notice about this in store builds.
+> Note: self-distributed / enterprise-intranet builds (not on the store) keep the full "generate-and-run" capability and aren't bound by the store's remote-code policy.
 
 ### 4.3 ⚠️ Broad `connect-src https:`
 To support users **filling in any LLM address themselves**, the extension page's CSP `connect-src` includes the `https:` wildcard. Explanation: this is to let users connect to the OpenAI-compatible service **of their own choosing**, not to connect to the author's server; data is only sent to the endpoint the user configures.

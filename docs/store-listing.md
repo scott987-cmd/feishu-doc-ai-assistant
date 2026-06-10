@@ -102,14 +102,16 @@ An AI assistant to operate Feishu Base / Docs / Sheets via natural language.
 ## 审核备注（提交时贴到 "Notes to reviewer"）/ Notes to reviewer
 
 ```
-This extension does NOT load or execute remotely-hosted code. The visualization/page
-code is text returned by an LLM and rendered locally inside an isolated sandboxed iframe
-(opaque origin) whose CSP is connect-src 'none' — it has no network access and cannot
-exfiltrate data. The extension's own logic is fully bundled; nothing is fetched and run as
-remote script at runtime. The broad connect-src 'https:' on extension pages exists only so
-users can connect to THEIR OWN chosen OpenAI-compatible LLM endpoint (configured by the
-user), not any developer server. No credentials are bundled; each user enters their own
-Feishu app credentials and LLM key, stored encrypted on-device. Security details:
+This store build executes NO remote code. The AI only returns a declarative JSON spec
+(data describing charts/dashboards/tables/slides); a bundled interpreter renders it via
+ECharts and built-in UI inside an isolated sandboxed iframe (opaque origin, CSP
+connect-src 'none', no 'unsafe-eval'). The bundle contains no eval/new Function (verifiable:
+`npx vite build --mode store && node scripts/check-no-eval.mjs`). The extension's logic is
+fully bundled; nothing is fetched and executed as script at runtime. The broad
+connect-src 'https:' on extension pages exists only so users can connect to THEIR OWN chosen
+OpenAI-compatible LLM endpoint (configured by the user), not any developer server. No
+credentials are bundled; each user enters their own Feishu app credentials and LLM key,
+stored encrypted on-device. Security details:
 https://github.com/scott987-cmd/feishu-doc-ai-assistant/blob/main/SECURITY_AUDIT.md
 ```
 
