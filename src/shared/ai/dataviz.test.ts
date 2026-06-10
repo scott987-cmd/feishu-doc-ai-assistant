@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const mockCreate = vi.fn()
-vi.mock('openai', () => ({ default: class { chat = { completions: { create: mockCreate } } } }))
+// generateViz now streams via chatCompleteStream (for live progress + cancel), so mock that.
+const mockStream = vi.fn()
+vi.mock('./llm', () => ({
+  chatCompleteStream: (...a: unknown[]) => mockStream(...a),
+  chatComplete: vi.fn(),
+}))
 
 const { generateViz, hasForbiddenCalls } = await import('./dataviz')
 const { DEFAULT_SETTINGS } = await import('../types')
@@ -12,7 +16,9 @@ const input = {
   sampleRows: [{ 地区: '华东', 销量: '10' }],
   request: '按地区做柱状图',
 }
-const reply = (content: string) => mockCreate.mockResolvedValue({ choices: [{ message: { content } }] })
+const reply = (content: string) => mockStream.mockResolvedValue(content)
+// The prompt is the 2nd arg to chatCompleteStream(settings, content, opts).
+const sentPrompt = () => mockStream.mock.calls[0][1] as string
 
 describe('hasForbiddenCalls', () => {
   it('flags network / import calls, allows clean ECharts code', () => {
@@ -24,14 +30,14 @@ describe('hasForbiddenCalls', () => {
 })
 
 describe('generateViz', () => {
-  beforeEach(() => mockCreate.mockReset())
+  beforeEach(() => mockStream.mockReset())
 
   it('parses {title, code} and sends schema + sample + request', async () => {
     reply(JSON.stringify({ title: '地区销量', code: 'chart.setOption({})' }))
     const r = await generateViz(settings, input)
     expect(r.name).toBe('地区销量')
     expect(r.code).toContain('setOption')
-    const sent = (mockCreate.mock.calls[0][0] as { messages: { content: string }[] }).messages[0].content
+    const sent = sentPrompt()
     expect(sent).toContain('地区')
     expect(sent).toContain('按地区做柱状图')
   })
@@ -39,7 +45,7 @@ describe('generateViz', () => {
   it('prompts for all (read-only) app kinds — no data-entry / write-back', async () => {
     reply(JSON.stringify({ title: 'T', code: 'chart.setOption({})' }))
     await generateViz(settings, input)
-    const sent = (mockCreate.mock.calls[0][0] as { messages: { content: string }[] }).messages[0].content
+    const sent = sentPrompt()
     for (const kind of ['图表看板', '计算器', '打印', '幻灯片', '视图']) expect(sent).toContain(kind)
     // The 录入表单 kind + sandbox write-back bridge were removed — the generator is read-only.
     expect(sent).not.toContain('录入表单')
@@ -54,7 +60,7 @@ describe('generateViz', () => {
   it('refine (previousCode) sends an EDIT prompt that hands back the code and forbids touching other charts', async () => {
     reply(JSON.stringify({ title: 'T', code: 'chart.setOption({})' }))
     await generateViz(settings, { ...input, previousCode: 'var A=echarts.init(x); A.setOption({UNIQUE_MARKER:1})' })
-    const sent = (mockCreate.mock.calls[0][0] as { messages: { content: string }[] }).messages[0].content
+    const sent = sentPrompt()
     expect(sent).toContain('UNIQUE_MARKER')   // the current code is handed back to edit
     expect(sent).toContain('逐字保留')          // keep untouched charts identical
     expect(sent).toContain('最小改动')

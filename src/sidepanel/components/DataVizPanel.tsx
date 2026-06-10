@@ -44,6 +44,8 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
   const [status, setStatus] = useState('')
   const [errMsg, setErrMsg] = useState('')
   const [busy, setBusy] = useState(false)
+  const [genChars, setGenChars] = useState(0)
+  const abortRef = useRef<AbortController | null>(null)
   const [list, setList] = useState<SavedViz[]>([])
   // The just-generated viz, available to save / iterate on. Its `code` is the base a
   // "调整" edits in place (keeps charts the user didn't mention byte-identical).
@@ -89,7 +91,8 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
   async function generate(refine = false) {
     if (!request.trim() || busy) return
     if (refine && !last.current) return
-    setBusy(true); setErrMsg(''); setCanSave(false)
+    setBusy(true); setErrMsg(''); setCanSave(false); setGenChars(0)
+    const ac = new AbortController(); abortRef.current = ac
     try {
       if (!context.feishu) throw new Error('请在多维表格 / 电子表格页面使用')
       setStatus('读取表结构…')
@@ -105,6 +108,7 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
         schema: sample.schema, sampleRows: sample.rows, request: request.trim(),
         previousCode: refine ? last.current!.code : undefined,
         previousSpec: refine ? last.current!.spec : undefined,
+        signal: ac.signal, onProgress: setGenChars,
       })
       // On a tweak, keep the dashboard's existing name (the edit shouldn't rename it).
       const finalName = refine && last.current ? last.current.name : name
@@ -120,11 +124,14 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
       setStatus(`已${refine ? '调整' : '生成'}「${finalName}」并展示在页面上`)
       if (warning) setErrMsg('⚠ ' + warning)
     } catch (e) {
-      setErrMsg(errText(e)); setStatus('')
+      if (e instanceof Error && e.name === 'AbortError') setStatus('已取消')
+      else { setErrMsg(errText(e)); setStatus('') }
     } finally {
-      setBusy(false)
+      setBusy(false); abortRef.current = null
     }
   }
+
+  function cancel() { abortRef.current?.abort() }
 
   async function save() {
     if (!last.current) return
@@ -199,6 +206,12 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
           <button className="dv-btn" onClick={save} disabled={busy}>⭐ 保存为「我的小程序」</button>
         )}
         {status && <p className="dv-hint">{status}</p>}
+        {busy && (
+          <p className="dv-hint">
+            {genChars > 0 ? `AI 生成中…已生成 ${genChars} 字` : 'AI 处理中…'}
+            {abortRef.current && <span className="dv-cancel" onClick={cancel} style={{ marginLeft: 8, color: '#4f6bff', cursor: 'pointer' }}>取消</span>}
+          </p>
+        )}
         {errMsg && <p className="dv-hint dv-hint--err">{errMsg}</p>}
         {disabled && <p className="dv-hint">请先在「设置」里完成 API Key / 飞书授权。</p>}
 

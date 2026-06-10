@@ -1,13 +1,10 @@
-import OpenAI from 'openai'
 import type { AppSettings } from '../types'
-import { assertSafeBaseUrl } from '../providers'
-import { BUILD_CONFIG, NO_REMOTE_CODE } from '../config'
+import { NO_REMOTE_CODE } from '../config'
 import type { VizField } from '../dataviz/types'
 import type { VizSpec } from '../dataviz/spec'
 import { validateSpec, referencedFields } from '../dataviz/spec'
 import { chatComplete, chatCompleteStream } from './llm'
 import { stripFences as fences } from './text'
-import { resolveLlmConfig } from './llmConfig'
 import { sanitizeForLlm } from './redact'
 
 /** Declarative-spec prompt (no-remote-code build): the model emits a VizSpec (DATA), which the
@@ -139,22 +136,19 @@ function buildEditPrompt(previousCode: string, request: string, schema: VizField
 
 export async function generateViz(
   settings: AppSettings,
-  input: { schema: VizField[]; sampleRows: Record<string, string>[]; request: string; previousCode?: string; previousSpec?: VizSpec },
+  input: {
+    schema: VizField[]; sampleRows: Record<string, string>[]; request: string
+    previousCode?: string; previousSpec?: VizSpec
+    signal?: AbortSignal; onProgress?: (chars: number) => void
+  },
 ): Promise<{ name: string; code?: string; spec?: VizSpec; warning?: string }> {
-  const cfg = await resolveLlmConfig(settings)
-  const baseURL = assertSafeBaseUrl(cfg.baseUrl, BUILD_CONFIG.openaiAllowedHosts)
-  const client = new OpenAI({ baseURL, apiKey: cfg.apiKey, dangerouslyAllowBrowser: true })
   const content = NO_REMOTE_CODE
     ? (input.previousSpec ? buildSpecEditPrompt(input.previousSpec, input.request, input.schema) : buildSpecPrompt(input.schema, input.sampleRows, input.request))
     : (input.previousCode ? buildEditPrompt(input.previousCode, input.request, input.schema) : buildPrompt(input.schema, input.sampleRows, input.request))
-  const resp = await client.chat.completions.create({
-    model: cfg.model,
-    stream: false,
-    messages: [{ role: 'user', content }],
-  })
-  let out = (resp.choices[0]?.message?.content ?? '').trim()
+  // Stream so the panel shows live progress ("已生成 N 字") + a working cancel — a 小程序 codegen
+  // can take many seconds and a frozen spinner reads as "hung".
+  const out = fences(await chatCompleteStream(settings, content, { signal: input.signal, onChunk: (f) => input.onProgress?.(f.length) }))
   if (!out) throw new Error('模型未返回内容。')
-  out = fences(out) // strip code fences the model adds despite instructions
   if (NO_REMOTE_CODE) return parseSpec(out, input.schema)
   let parsed: { title?: string; name?: string; code?: string }
   try {
