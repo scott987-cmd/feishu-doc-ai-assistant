@@ -43,7 +43,14 @@ export function parseFeishuContext(url: string): PageContext['feishu'] | undefin
  * Returns '' when the title isn't a real, settled name (caller should then keep the old one).
  */
 export function cleanDocTitle(title: string): string {
-  const name = (title || '').replace(/\s*[-–—|]\s*(飞书|feishu|lark)[^-–—|]*$/i, '').trim()
-  if (!name || /^(飞书|feishu|lark|飞书云文档|loading|加载中)$/i.test(name)) return ''
+  const name = (title || '')
+    // SaaS / Lark brand suffix: "… - 飞书云文档" / "… - Feishu Docs" / "… - Lark".
+    .replace(/\s*[-–—|]\s*(飞书|feishu|lark)[^-–—|]*$/i, '')
+    // Private/on-prem brand suffix: "… - <品牌>云文档 / 云空间 / Docs / Sheets / Wiki". Anchored to
+    // these PRODUCT words (not bare 文档/表格) after a separator, so a real doc named e.g.
+    // "项目文档" isn't truncated.
+    .replace(/\s*[-–—|]\s*[^-–—|]*?(云文档|云空间|Docs?|Sheets?|Wiki)\s*$/i, '')
+    .trim()
+  if (!name || /^(飞书|feishu|lark|飞书云文档|云文档|loading|加载中)$/i.test(name)) return ''
   return name
 }

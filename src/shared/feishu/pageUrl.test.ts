@@ -80,4 +80,11 @@ describe('cleanDocTitle', () => {
   it('keeps a plain title unchanged', () => {
     expect(cleanDocTitle('我的文档')).toBe('我的文档')
   })
+
+  it('strips private/on-prem brand suffixes but not real names ending in 文档/表格', () => {
+    expect(cleanDocTitle('季度销售 - kastd云文档')).toBe('季度销售')
+    expect(cleanDocTitle('项目计划 - MyCorp Docs')).toBe('项目计划')
+    expect(cleanDocTitle('项目文档')).toBe('项目文档')   // real name, not a brand suffix → kept
+    expect(cleanDocTitle('云文档')).toBe('')
+  })
 })

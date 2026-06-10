@@ -57,7 +57,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 })
 
 function pushContext() {
-  try { chrome.runtime.sendMessage({ type: 'PAGE_CONTEXT_UPDATE', payload: extractContext() }) } catch { /* ignore */ }
+  const ctx = extractContext()
+  // Remember this tenant's origin (e.g. https://<tenant>.kastd01.statusfeishu.cn) whenever we're
+  // on a real Feishu resource page. Used to build correct doc links when the user later creates a
+  // doc from a NON-Feishu page (web clipping) — where the page URL can't supply the tenant.
+  if (ctx.feishu) { try { chrome.storage.local.set({ _feishu_tenant_origin: location.origin }) } catch { /* ignore */ } }
+  try { chrome.runtime.sendMessage({ type: 'PAGE_CONTEXT_UPDATE', payload: ctx }) } catch { /* ignore */ }
 }
 
 let lastUrl = location.href

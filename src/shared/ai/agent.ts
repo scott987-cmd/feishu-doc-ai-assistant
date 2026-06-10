@@ -8,6 +8,7 @@ import * as Docx from '../feishu/docx'
 import type { BlockSpec } from '../feishu/docx'
 import * as Compose from '../feishu/compose'
 import { feishuReq } from '../feishu/http'
+import { storageGet } from '../storage'
 import type { Metric } from '../feishu/compose'
 import { resolveToken, invalidateToken, isPermissionError, isTokenExpiredError, forceRefreshUserToken } from '../feishu/auth'
 import { HAS_BUILTIN_CREDS, BUILD_CONFIG } from '../config'
@@ -1020,21 +1021,28 @@ async function executeSheetTool(
 
 // docx's create API returns no `url`, so build a clickable one from the current
 // Feishu origin (the tenant domain) so the assistant can give a one-click link.
-function withDocUrl(
+async function withDocUrl(
   r: { document?: { document_id?: string } },
   context: PageContext
-): unknown {
+): Promise<unknown> {
   const id = r.document?.document_id
   if (!id) return r
-  // Build the link from the configured base domain so private/on-prem deploys get a
-  // correct, clickable URL (not a hardcoded feishu.cn one).
   const d = BUILD_CONFIG.feishuBaseDomain
+  const isFeishuHost = (urlStr?: string): boolean => {
+    try { const h = new URL(urlStr ?? '').hostname.toLowerCase(); return h === d || h.endsWith('.' + d) } catch { return false }
+  }
+  // Prefer the CURRENT page's origin (it carries the tenant subdomain, e.g.
+  // <tenant>.kastd01.statusfeishu.cn). When NOT on a Feishu page — e.g. clipping a web page —
+  // context.url is the clipped site, so fall back to the last-seen Feishu tenant origin the
+  // content script persisted; only then to the bare base domain (which drops the tenant and
+  // yields a broken link on private/on-prem deploys).
   let origin = `https://${d}`
-  try {
-    const u = new URL(context.url)
-    const h = u.hostname.toLowerCase()
-    if (h === d || h.endsWith('.' + d)) origin = u.origin
-  } catch { /* no usable page URL — fall back to the configured host */ }
+  if (isFeishuHost(context.url)) {
+    origin = new URL(context.url).origin
+  } else {
+    const stored = await storageGet('_feishu_tenant_origin')
+    if (typeof stored === 'string' && isFeishuHost(stored)) origin = stored
+  }
   return { ...r, document: { ...r.document, url: `${origin}/docx/${id}` } }
 }
 
@@ -1054,7 +1062,7 @@ async function executeDocTool(
         sanitizeToken(args.folder_token as string | undefined)
       )) as { document?: { document_id?: string } }
       await maybeTransfer(token, r.document?.document_id, 'docx', settings)
-      return withDocUrl(r, context)
+      return await withDocUrl(r, context)
     }
     case 'create_doc_from_markdown': {
       const r = (await Docx.createDocFromMarkdown(
@@ -1062,7 +1070,7 @@ async function executeDocTool(
         sanitizeToken(args.folder_token as string | undefined)
       )) as { document?: { document_id?: string } }
       await maybeTransfer(token, r.document?.document_id, 'docx', settings)
-      return withDocUrl(r, context)
+      return await withDocUrl(r, context)
     }
     case 'insert_table':
       return Docx.insertTable(
