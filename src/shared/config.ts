@@ -70,8 +70,11 @@ export const BUILD_CONFIG = {
   /** Chrome Web Store build: ship NO baked credentials AND execute NO remotely-obtained code
    *  — data-viz/site render from a declarative VizSpec via the bundled interpreter instead of
    *  LLM-generated JS, so the sandbox CSP drops 'unsafe-eval'. Also strips manifest `key`. */
-  webstore: ((import.meta.env.VITE_WEBSTORE ?? '') as string).trim() === '1' ||
-    ((import.meta.env.VITE_WEBSTORE ?? '') as string).trim() === 'true',
+  // NOTE: parse identically to sandbox/main.ts NO_EVAL and vite.config.ts noEval (bare ===,
+  // no .trim()) so a whitespaced VITE_WEBSTORE can't make the app believe "no remote code"
+  // while the CSP/manifest still ship eval + key. One value, one parse, everywhere.
+  webstore: (import.meta.env.VITE_WEBSTORE ?? '') === '1' ||
+    (import.meta.env.VITE_WEBSTORE ?? '') === 'true',
 } as const
 
 /** True when an App ID is configured AND we can mint a user token — a baked-in secret

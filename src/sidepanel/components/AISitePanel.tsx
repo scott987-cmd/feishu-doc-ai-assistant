@@ -212,9 +212,13 @@ export default function AISitePanel({ settings, context, disabled, onBack }: Pro
         setStatus(`「${v.name}」由旧版生成，正用当前数据重建…`)
         const vd = await fetchVizData(settings, v.source, RENDER_CAP)
         const { spec } = await generateSite(settings, { schema: vd.schema, sampleRows: vd.rows.slice(0, SAMPLE_CAP), request: v.request || v.name })
-        const editSource = v.source.kind === 'base' ? v.source : undefined
+        // Match the normal-open guard: never enable write-back on a MULTI-sheet site (the spec
+        // renders only the primary table, so an edit could target the wrong sub-table).
+        const editSource = !v.multi && v.source.kind === 'base' ? v.source : undefined
         await sendVizToActiveTab({ spec, data: vd.rows, name: v.name, theme: theme(), source: editSource, fieldTypes: editSource ? fieldTypesOf(vd.schema) : undefined })
-        setList(onlySites(await saveViz({ ...v, spec, code: undefined })))
+        // KEEP the original `code` — self-distribution builds still render it full-fidelity
+        // (incl. multi-table); only store builds use the rebuilt spec. Never destroy the original.
+        setList(onlySites(await saveViz({ ...v, spec })))
         setStatus(`已重建并渲染「${v.name}」（已保存，下次秒开）`)
         return
       }

@@ -16,6 +16,12 @@ describe('interpret — num parsing', () => {
     expect(num('85%')).toBe(85)
     expect(Number.isNaN(num('abc'))).toBe(true)
   })
+  it('rejects dates/ranges/multi-sign as NaN (strict, not parseFloat)', () => {
+    expect(Number.isNaN(num('2024-01'))).toBe(true)
+    expect(Number.isNaN(num('1-3'))).toBe(true)
+    expect(Number.isNaN(num('1.2.3'))).toBe(true)
+    expect(Number.isNaN(num(''))).toBe(true)
+  })
 })
 
 describe('interpret — evalAggregate', () => {
@@ -41,6 +47,7 @@ describe('interpret — evalFilter', () => {
     expect(evalFilter(rows[1], [{ field: '状态', op: 'ne', value: '完成' }])).toBe(true)
     expect(evalFilter(rows[0], [{ field: '区域', op: 'contains', value: '华' }])).toBe(true)
     expect(evalFilter(rows[0], [{ field: '区域', op: 'in', value: ['华东', '华南'] }])).toBe(true)
+    expect(evalFilter(rows[0], [{ field: '区域', op: 'in', value: '华东' as unknown as string[] }])).toBe(true) // scalar tolerated
     expect(evalFilter(rows[1], [{ field: '金额', op: 'gt', value: 150 }])).toBe(true)
     expect(evalFilter(rows[0], [{ field: '金额', op: 'gt', value: 150 }])).toBe(false)
   })

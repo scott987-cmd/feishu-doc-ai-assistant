@@ -143,11 +143,12 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
       // call) from its saved request, persist the spec, then it's instant on future opens.
       if (NO_REMOTE_CODE && !v.spec && v.code) {
         setStatus(`「${v.name}」由旧版生成，正用当前数据重建…`)
-        const sample = await fetchVizData(settings, v.source, SAMPLE_CAP)
-        const { spec } = await generateViz(settings, { schema: sample.schema, sampleRows: sample.rows, request: v.request || v.name })
+        // Single fetch (RENDER_CAP ⊇ SAMPLE_CAP) — slice a prefix for codegen, render the rest.
         const full = await fetchVizData(settings, v.source, RENDER_CAP)
+        const { spec } = await generateViz(settings, { schema: full.schema, sampleRows: full.rows.slice(0, SAMPLE_CAP), request: v.request || v.name })
         await sendToOverlay({ spec }, full.rows, v.name)
-        setList(onlyVizzes(await saveViz({ ...v, spec, code: undefined })))
+        // KEEP original `code` (self-dist still renders it; only store builds use the spec).
+        setList(onlyVizzes(await saveViz({ ...v, spec })))
         setStatus(`已重建并渲染「${v.name}」（已保存，下次秒开）`)
         return
       }

@@ -8,11 +8,15 @@ import type { Aggregate, FilterClause, SeriesSpec, ChartSpec } from './spec'
 
 type Row = Record<string, string>
 
-/** Parse a cell string ("1,234.5" / "¥100" / "85%") to a number; NaN when non-numeric. */
+/** Parse a cell string ("1,234.5" / "¥100" / "85%") to a number; NaN when non-numeric.
+ *  Uses strict Number() (not parseFloat) so dates/ranges/multi-sign strings ('2024-01', '1-3',
+ *  '1.2.3') become NaN and are EXCLUDED from sums/avgs instead of yielding garbage. */
 export function num(v: unknown): number {
   if (typeof v === 'number') return v
-  const n = parseFloat(String(v ?? '').replace(/[^0-9.\-]/g, ''))
-  return n
+  const s = String(v ?? '').replace(/[^\d.\-]/g, '')
+  if (!s || s === '-' || s === '.') return NaN
+  const n = Number(s)
+  return Number.isFinite(n) ? n : NaN
 }
 
 const asNum = (v: unknown) => { const n = num(v); return Number.isFinite(n) ? n : null }
@@ -24,7 +28,7 @@ function matchClause(row: Row, c: FilterClause): boolean {
     case 'eq':  return String(cell) === String(c.value)
     case 'ne':  return String(cell) !== String(c.value)
     case 'contains': return String(cell).includes(String(c.value))
-    case 'in':  return Array.isArray(c.value) && c.value.map(String).includes(String(cell))
+    case 'in':  { const arr = Array.isArray(c.value) ? c.value : [c.value]; return arr.map(String).includes(String(cell)) }
     case 'gt': case 'gte': case 'lt': case 'lte': {
       const a = asNum(cell), b = asNum(c.value)
       if (a === null || b === null) return false

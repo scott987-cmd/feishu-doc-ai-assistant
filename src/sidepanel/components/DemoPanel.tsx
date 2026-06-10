@@ -102,6 +102,12 @@ export default function DemoPanel({ settings, onBack }: Props) {
       <iframe
         ref={iframeRef}
         src={typeof chrome !== 'undefined' ? chrome.runtime.getURL('src/sandbox/index.html') : ''}
+        onLoad={() => {
+          // Fallback for the DATAVIZ_READY race: by load the sandbox's message listener is
+          // registered, so mark ready and flush any queued render even if the READY msg was missed.
+          ready.current = true
+          if (pending.current) { post(pending.current); pending.current = null }
+        }}
         style={{ flex: 1, width: '100%', border: 'none', background: '#fff' }}
         title="demo-preview"
       />

@@ -441,8 +441,8 @@ const ui = {
         const ee = slot.querySelector('.s-embed') as HTMLElement | null
         if (ee) {
           try {
-            if (s.spec) runSpec(ee, s.spec, tableRows, curTheme())
-            else if (!NO_EVAL && s.code) execInto(ee, s.code, tableRows, curTheme(), { 默认: tableRows })
+            if (!NO_EVAL && s.code) execInto(ee, s.code, tableRows, curTheme(), { 默认: tableRows })
+            else if (s.spec) runSpec(ee, s.spec, tableRows, curTheme())
           } catch { ee.textContent = '看板渲染失败' }
         }
       }
@@ -616,16 +616,22 @@ function runSpec(container: HTMLElement, spec: VizSpec, data: unknown, theme: st
     // data carries the table rows (for embed slides); ui.slides renders the deck reliably.
     ui.slides(container, spec.slides as SlideSpec[], (Array.isArray(data) ? data : []) as Rows)
   } else if (spec.kind === 'site') {
+    // Use the SAME design-system classes the codegen path is told to use (buildSiteCheatsheet /
+    // sandbox/index.html <style id="ds">): .site / .nav>.brand / .hero(h1/p) / .section>.section-title/.section-sub.
     const wrap = document.createElement('div'); wrap.className = 'site'
-    if (spec.title) { const nav = document.createElement('div'); nav.className = 'nav'; nav.innerHTML = `<b>${esc(spec.title)}</b>`; wrap.appendChild(nav) }
+    if (spec.title) { const nav = document.createElement('div'); nav.className = 'nav'; nav.innerHTML = `<span class="brand">${esc(spec.title)}</span>`; wrap.appendChild(nav) }
     for (const s of spec.sections) {
-      const tag = s.type === 'hero' ? '1' : '2'
-      const sec = document.createElement('section')
-      sec.className = s.type === 'hero' ? 'hero' : 'section'
-      sec.innerHTML =
-        (s.title ? `<h${tag}>${esc(s.title)}</h${tag}>` : '') +
-        (s.subtitle ? `<p class="sub">${esc(s.subtitle)}</p>` : '') +
-        (s.body ? `<p>${esc(s.body)}</p>` : '')
+      const sec = document.createElement('div')
+      if (s.type === 'hero') {
+        sec.className = 'hero'
+        sec.innerHTML = (s.title ? `<h1>${esc(s.title)}</h1>` : '') + (s.subtitle ? `<p>${esc(s.subtitle)}</p>` : '') + (s.body ? `<p>${esc(s.body)}</p>` : '')
+      } else {
+        sec.className = 'section'
+        sec.innerHTML =
+          (s.title ? `<div class="section-title">${esc(s.title)}</div>` : '') +
+          (s.subtitle ? `<div class="section-sub">${esc(s.subtitle)}</div>` : '') +
+          (s.body ? `<p>${esc(s.body)}</p>` : '')
+      }
       wrap.appendChild(sec)
     }
     const mount = document.createElement('div'); mount.className = 'section'
@@ -657,11 +663,15 @@ function render(msg: RenderMsg) {
     // echarts.init'd. We just dispose/resize them (execViz tolerates body OR full function).
     // `datasets` defaults to a single-entry map so multi-table code paths still work when the
     // doc has just one sub-table (and `data` always = the primary table's rows).
-    if (msg.spec) {
-      runSpec(root, msg.spec, msg.data, msg.theme === 'dark' ? 'dark' : 'light')
-    } else if (!NO_EVAL && typeof msg.code === 'string') {
+    // Precedence: when eval IS available (self-distribution), prefer `code` — it's the original,
+    // full-fidelity artifact (e.g. a multi-table site / custom app). Only fall back to `spec`
+    // when there's no code (fresh store-build generation) — so a board that carries BOTH (a
+    // store-rebuilt legacy board keeps its original code) renders faithfully in each build.
+    if (!NO_EVAL && typeof msg.code === 'string') {
       const datasets = msg.datasets && Object.keys(msg.datasets).length ? msg.datasets : { 默认: msg.data }
       execViz(msg.code, msg.data, msg.theme === 'dark' ? 'dark' : 'light', datasets)
+    } else if (msg.spec) {
+      runSpec(root, msg.spec, msg.data, msg.theme === 'dark' ? 'dark' : 'light')
     } else {
       throw new Error(NO_EVAL
         ? '此看板由旧版生成，请在「我的看板」里点「重新生成」用当前数据重建（本版本不执行生成代码）。'
