@@ -5,6 +5,7 @@ import { fetchVizData, deriveVizSource } from '../../shared/dataviz/data'
 import { sendVizToActiveTab } from '../../shared/dataviz/send'
 import { loadVizList, saveViz, deleteViz } from '../../shared/dataviz/store'
 import { ctxScopeKey, vizMatchesCtx } from '../../shared/dataviz/scope'
+import { NO_REMOTE_CODE } from '../../shared/config'
 import { isTokenExpiredError } from '../../shared/feishu/auth'
 import type { SavedViz, VizSource } from '../../shared/dataviz/types'
 import type { VizSpec } from '../../shared/dataviz/spec'
@@ -134,10 +135,22 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
     setList(onlyVizzes(await saveViz(v))); setCanSave(false); setStatus(`已保存「${v.name}」到「我的小程序」`)
   }
 
-  // Re-open a saved viz: re-fetch LIVE data and render with the SAVED code — zero LLM.
+  // Re-open a saved viz: re-fetch LIVE data and render with the SAVED code/spec — zero LLM.
   async function open(v: SavedViz) {
     setBusy(true); setErrMsg(''); setStatus(`打开「${v.name}」…`)
     try {
+      // No-remote-code build can't run a legacy code-only board — rebuild it as a spec (one LLM
+      // call) from its saved request, persist the spec, then it's instant on future opens.
+      if (NO_REMOTE_CODE && !v.spec && v.code) {
+        setStatus(`「${v.name}」由旧版生成，正用当前数据重建…`)
+        const sample = await fetchVizData(settings, v.source, SAMPLE_CAP)
+        const { spec } = await generateViz(settings, { schema: sample.schema, sampleRows: sample.rows, request: v.request || v.name })
+        const full = await fetchVizData(settings, v.source, RENDER_CAP)
+        await sendToOverlay({ spec }, full.rows, v.name)
+        setList(onlyVizzes(await saveViz({ ...v, spec, code: undefined })))
+        setStatus(`已重建并渲染「${v.name}」（已保存，下次秒开）`)
+        return
+      }
       const full = await fetchVizData(settings, v.source, RENDER_CAP)
       await sendToOverlay({ code: v.code, spec: v.spec }, full.rows, v.name)
       setStatus(`已用最新数据渲染「${v.name}」`)

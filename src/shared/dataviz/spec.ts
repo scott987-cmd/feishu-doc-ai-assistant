@@ -73,7 +73,11 @@ export interface SiteSpec {
   dashboard: DashboardSpec
 }
 
-export type VizSpec = ChartSpec | RawChartSpec | TableSpec | DashboardSpec | SiteSpec
+/** A slide deck (AI 幻灯片 / 文档转PPT). `slides` are already-sanitized content slides (the
+ *  SlideSpec shape the sandbox ui.slides renders); app-constructed, not raw model output. */
+export interface SlidesSpec { kind: 'slides'; slides: unknown[] }
+
+export type VizSpec = ChartSpec | RawChartSpec | TableSpec | DashboardSpec | SiteSpec | SlidesSpec
 
 const AGG_OPS = new Set(['count', 'countDistinct', 'sum', 'avg', 'min', 'max'])
 const FILTER_OPS = new Set(['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'contains', 'in'])
@@ -163,6 +167,8 @@ export function validateSpec(input: unknown, fields: string[] = []): VizSpec {
       return { kind: 'table', columns: cleanCols(obj.columns), pageSize: clampInt(obj.pageSize, 1, 100, 20), search: obj.search !== false, actions: cleanActions(obj.actions) }
     case 'dashboard':
       return cleanDash(obj)
+    case 'slides':
+      return { kind: 'slides', slides: Array.isArray(obj.slides) ? obj.slides : [] }
     case 'site': {
       const sections = Array.isArray(obj.sections)
         ? (obj.sections as SiteSection[]).filter((s) => s && (s.type === 'hero' || s.type === 'section'))

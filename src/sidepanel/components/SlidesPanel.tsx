@@ -7,6 +7,7 @@ import { fetchVizData } from '../../shared/dataviz/data'
 import { ctxDocKey } from '../../shared/dataviz/scope'
 import type { VizSource } from '../../shared/dataviz/types'
 import { isTokenExpiredError } from '../../shared/feishu/auth'
+import { NO_REMOTE_CODE } from '../../shared/config'
 import './SlidesPanel.css'
 
 interface Props {
@@ -32,6 +33,11 @@ const deckCache = new Map<string, Deck>()
 async function showDeck(deck: Deck): Promise<void> {
   const hasEmbed = deck.slides.some((s) => s.layout === 'embed')
   const rows = hasEmbed ? (deck.rows ?? []) : undefined
+  if (NO_REMOTE_CODE) {
+    // No-remote-code build: render the deck via a declarative slides spec (no eval bootstrap).
+    await sendVizToActiveTab({ spec: { kind: 'slides', slides: deck.slides }, data: rows ?? [], name: deck.name, theme: theme() })
+    return
+  }
   await sendVizToActiveTab({
     code: rows ? "ui.slides(container, data, (datasets && datasets['默认']) || [])" : 'ui.slides(container, data)',
     data: deck.slides,

@@ -8,6 +8,7 @@ import type { VizField, VizSource } from '../dataviz/types'
 import { stripFences as fences } from './text'
 import { sanitizeForLlm } from './redact'
 import { chatCompleteStream } from './llm'
+import { NO_REMOTE_CODE } from '../config'
 
 /**
  * 文档转 PPT / AI 幻灯片 — read a Feishu doc, summarize it, and structure it into a multi-page
@@ -30,6 +31,8 @@ export interface Slide {
   chart?: Record<string, unknown>
   /** layout:'embed' — a saved 看板/小程序's render code, re-run live against the table's rows. */
   code?: string
+  /** layout:'embed' — Plan B: a saved board's declarative spec (no-remote-code builds). */
+  spec?: import('../dataviz/spec').VizSpec
 }
 
 const MAX_CHARS = 16000
@@ -195,9 +198,10 @@ const TABLE_ROWS_CAP = 1000
 export async function savedDashboardEmbeds(feishu: NonNullable<PageContext['feishu']>): Promise<Slide[]> {
   const list = await loadVizList()
   return list
-    .filter((v) => v.kind !== 'site' && vizMatchesCtx(v.source, feishu))
+    // In no-remote-code builds an embed can only render from a spec — drop legacy code-only boards.
+    .filter((v) => v.kind !== 'site' && vizMatchesCtx(v.source, feishu) && (!NO_REMOTE_CODE || v.spec))
     .slice(0, 4)
-    .map((v) => ({ layout: 'embed' as const, title: v.name, code: v.code }))
+    .map((v) => ({ layout: 'embed' as const, title: v.name, code: v.code, spec: v.spec }))
 }
 
 /** Read the current Base/Sheet table and turn it into a slide deck. Appends the user's saved 看板

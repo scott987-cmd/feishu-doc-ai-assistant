@@ -612,6 +612,9 @@ function runSpec(container: HTMLElement, spec: VizSpec, data: unknown, theme: st
     })
   } else if (spec.kind === 'dashboard') {
     ui.dashboard(container, dashToUi(spec, rows))
+  } else if (spec.kind === 'slides') {
+    // data carries the table rows (for embed slides); ui.slides renders the deck reliably.
+    ui.slides(container, spec.slides as SlideSpec[], (Array.isArray(data) ? data : []) as Rows)
   } else if (spec.kind === 'site') {
     const wrap = document.createElement('div'); wrap.className = 'site'
     if (spec.title) { const nav = document.createElement('div'); nav.className = 'nav'; nav.innerHTML = `<b>${esc(spec.title)}</b>`; wrap.appendChild(nav) }

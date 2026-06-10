@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { AppSettings, PageContext } from '../../shared/types'
 import { generateSite, planSite, type SitePlan } from '../../shared/ai/dataviz'
 import { fetchVizData, deriveVizSource, fetchDocDatasets, docOf } from '../../shared/dataviz/data'
+import { NO_REMOTE_CODE } from '../../shared/config'
 import { sendVizToActiveTab } from '../../shared/dataviz/send'
 import { loadVizList, saveViz, deleteViz } from '../../shared/dataviz/store'
 import { ctxScopeKey, vizMatchesCtx } from '../../shared/dataviz/scope'
@@ -205,6 +206,18 @@ export default function AISitePanel({ settings, context, disabled, onBack }: Pro
   async function open(v: SavedViz) {
     setBusy(true); setErrMsg(''); setStatus(`打开「${v.name}」…`); setReport(null); setPushed('')
     try {
+      // No-remote-code build can't run a legacy code-only site — rebuild it as a spec (one LLM
+      // call) from its saved request, persist, then instant on future opens.
+      if (NO_REMOTE_CODE && !v.spec && v.code) {
+        setStatus(`「${v.name}」由旧版生成，正用当前数据重建…`)
+        const vd = await fetchVizData(settings, v.source, RENDER_CAP)
+        const { spec } = await generateSite(settings, { schema: vd.schema, sampleRows: vd.rows.slice(0, SAMPLE_CAP), request: v.request || v.name })
+        const editSource = v.source.kind === 'base' ? v.source : undefined
+        await sendVizToActiveTab({ spec, data: vd.rows, name: v.name, theme: theme(), source: editSource, fieldTypes: editSource ? fieldTypesOf(vd.schema) : undefined })
+        setList(onlySites(await saveViz({ ...v, spec, code: undefined })))
+        setStatus(`已重建并渲染「${v.name}」（已保存，下次秒开）`)
+        return
+      }
       // Multi-sheet sites re-fetch ALL sub-tables; single-table sites just their one source.
       let data: unknown[]; let datasets: Record<string, unknown[]> | undefined
       let schema: { name: string; type: string }[] | undefined
