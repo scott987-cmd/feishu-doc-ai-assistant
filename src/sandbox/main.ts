@@ -23,10 +23,21 @@ echarts.use([
   CanvasRenderer,
 ])
 
+import type { VizSpec, DashboardSpec, ChartSpec as VizChartSpec, RawChartSpec } from '../shared/dataviz/spec'
+import { buildOption, evalAggregate, formatValue, actionTemplate } from '../shared/dataviz/interpret'
+
+// No-remote-code path: render a declarative VizSpec via the bundled interpreter (no eval).
+// When VITE_WEBSTORE=1 this const is statically true → Vite dead-code-eliminates every legacy
+// execViz/execInto branch below, so the store bundle contains no `new Function(` at all.
+const NO_EVAL = import.meta.env.VITE_WEBSTORE === '1' || import.meta.env.VITE_WEBSTORE === 'true'
+
 type RenderMsg = {
   type: 'DATAVIZ_RENDER'
   nonce: string
-  code: string
+  /** Legacy: LLM-generated render JS (self-distribution builds only). */
+  code?: string
+  /** Plan B: declarative spec rendered by runSpec (store / no-remote-code builds). */
+  spec?: VizSpec
   data: Array<Record<string, unknown>>
   /** Named sub-tables for multi-sheet sites (name → rows). `data` is the primary one. */
   datasets?: Record<string, Array<Record<string, unknown>>>
@@ -165,6 +176,8 @@ interface SlideSpec {
   chart?: unknown
   /** layout:'embed' — a saved 看板's render code, executed live against `rows` in the slide. */
   code?: string
+  /** layout:'embed' — Plan B: declarative spec rendered via runSpec (no eval). */
+  spec?: VizSpec
 }
 
 /** Dispatch a per-row quick action up to the host (→ background → createTask as the user). */
@@ -424,9 +437,14 @@ const ui = {
       if (s.layout === 'chart' && s.chart) {
         const ce = slot.querySelector('.s-chart') as HTMLElement | null
         if (ce) ui.chart(ce, s.chart)
-      } else if (s.layout === 'embed' && s.code) {
+      } else if (s.layout === 'embed' && (s.spec || s.code)) {
         const ee = slot.querySelector('.s-embed') as HTMLElement | null
-        if (ee) { try { execInto(ee, s.code, tableRows, curTheme(), { 默认: tableRows }) } catch { ee.textContent = '看板渲染失败' } }
+        if (ee) {
+          try {
+            if (s.spec) runSpec(ee, s.spec, tableRows, curTheme())
+            else if (!NO_EVAL && s.code) execInto(ee, s.code, tableRows, curTheme(), { 默认: tableRows })
+          } catch { ee.textContent = '看板渲染失败' }
+        }
       }
     }
     const disposeIn = (node: HTMLElement): void => {
@@ -560,6 +578,60 @@ function execViz(code: string, data: unknown, theme: string, datasets: Record<st
   execInto(root, code, data, theme, datasets)
 }
 
+// ── No-remote-code renderer: turn a declarative VizSpec into the same ui.* calls, NO eval ──
+type SpecRows = Array<Record<string, string>>
+
+/** Map a declarative DashboardSpec onto ui.dashboard's DashSpec, synthesizing the calc/build
+ *  closures from the pure interpreter (the model supplies data, never functions). */
+function dashToUi(spec: DashboardSpec, rows: SpecRows): DashSpec {
+  return {
+    data: rows,
+    filters: spec.filters,
+    kpis: spec.kpis?.map((k) => ({ label: k.label, calc: (rs: Rows) => formatValue(evalAggregate(rs as SpecRows, k.value), k.value.format) })),
+    charts: spec.charts?.map((c) => ({ title: c.title, build: (rs: Rows) => (c.kind === 'rawChart' ? (c as RawChartSpec).option : buildOption(rs as SpecRows, c as VizChartSpec)) })),
+    columns: spec.table?.columns,
+    pageSize: spec.table?.pageSize,
+    actions: spec.table?.actions?.map((a) => ({ label: a.label, build: (row: Record<string, unknown>) => actionTemplate(row as Record<string, string>, a.template) })),
+  }
+}
+
+/** Render a VizSpec into `container` using the bundled ui.* helpers + interpreter. Hoisted so
+ *  ui.slides can call it for embed slides. */
+function runSpec(container: HTMLElement, spec: VizSpec, data: unknown, theme: string): void {
+  const rows = (Array.isArray(data) ? data : []) as SpecRows
+  document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : 'light'
+  container.innerHTML = ''
+  if (spec.kind === 'chart' || spec.kind === 'rawChart') {
+    const el = document.createElement('div'); el.style.height = '100%'; el.style.minHeight = '320px'
+    container.appendChild(el)
+    ui.chart(el, spec.kind === 'rawChart' ? spec.option : buildOption(rows, spec))
+  } else if (spec.kind === 'table') {
+    ui.table(container, rows, {
+      columns: spec.columns, pageSize: spec.pageSize, search: spec.search,
+      actions: spec.actions?.map((a) => ({ label: a.label, build: (row: Record<string, unknown>) => actionTemplate(row as Record<string, string>, a.template) })),
+    })
+  } else if (spec.kind === 'dashboard') {
+    ui.dashboard(container, dashToUi(spec, rows))
+  } else if (spec.kind === 'site') {
+    const wrap = document.createElement('div'); wrap.className = 'site'
+    if (spec.title) { const nav = document.createElement('div'); nav.className = 'nav'; nav.innerHTML = `<b>${esc(spec.title)}</b>`; wrap.appendChild(nav) }
+    for (const s of spec.sections) {
+      const tag = s.type === 'hero' ? '1' : '2'
+      const sec = document.createElement('section')
+      sec.className = s.type === 'hero' ? 'hero' : 'section'
+      sec.innerHTML =
+        (s.title ? `<h${tag}>${esc(s.title)}</h${tag}>` : '') +
+        (s.subtitle ? `<p class="sub">${esc(s.subtitle)}</p>` : '') +
+        (s.body ? `<p>${esc(s.body)}</p>` : '')
+      wrap.appendChild(sec)
+    }
+    const mount = document.createElement('div'); mount.className = 'section'
+    wrap.appendChild(mount)
+    container.appendChild(wrap)
+    ui.dashboard(mount, dashToUi(spec.dashboard, rows))
+  }
+}
+
 function render(msg: RenderMsg) {
   errEl.style.display = 'none'
   root.style.display = 'block'
@@ -582,8 +654,16 @@ function render(msg: RenderMsg) {
     // echarts.init'd. We just dispose/resize them (execViz tolerates body OR full function).
     // `datasets` defaults to a single-entry map so multi-table code paths still work when the
     // doc has just one sub-table (and `data` always = the primary table's rows).
-    const datasets = msg.datasets && Object.keys(msg.datasets).length ? msg.datasets : { 默认: msg.data }
-    execViz(msg.code, msg.data, msg.theme === 'dark' ? 'dark' : 'light', datasets)
+    if (msg.spec) {
+      runSpec(root, msg.spec, msg.data, msg.theme === 'dark' ? 'dark' : 'light')
+    } else if (!NO_EVAL && typeof msg.code === 'string') {
+      const datasets = msg.datasets && Object.keys(msg.datasets).length ? msg.datasets : { 默认: msg.data }
+      execViz(msg.code, msg.data, msg.theme === 'dark' ? 'dark' : 'light', datasets)
+    } else {
+      throw new Error(NO_EVAL
+        ? '此看板由旧版生成，请在「我的看板」里点「重新生成」用当前数据重建（本版本不执行生成代码）。'
+        : '无可渲染内容（缺少 code/spec）。')
+    }
     eachChart((c) => c.resize())
     reapplyAccent() // keep the user's chosen color across regenerate/refine (CSS vars + chart palette)
     notifyDirty() // sync the overlay's 提交 button to 0 pending after a fresh render
@@ -627,7 +707,7 @@ window.addEventListener('message', (event) => {
     return
   }
   const msg = event.data as RenderMsg
-  if (msg?.type === 'DATAVIZ_RENDER' && typeof msg.code === 'string') { render(msg); return }
+  if (msg?.type === 'DATAVIZ_RENDER' && (typeof msg.code === 'string' || (msg.spec != null && typeof msg.spec === 'object'))) { render(msg); return }
 })
 
 // Keep all charts fitted to the (resizable) overlay. rAF-coalesced: a resize-drag fires this
