@@ -43,6 +43,9 @@ export function parseFeishuContext(url: string): PageContext['feishu'] | undefin
  * Returns '' when the title isn't a real, settled name (caller should then keep the old one).
  */
 export function cleanDocTitle(title: string): string {
+  // Some (esp. private/on-prem) doc pages briefly expose the URL itself as document.title —
+  // never use a URL as the doc name (it produced "name = full URL" on kastd01.*).
+  if (/^https?:\/\//i.test((title || '').trim())) return ''
   const name = (title || '')
     // SaaS / Lark brand suffix: "… - 飞书云文档" / "… - Feishu Docs" / "… - Lark".
     .replace(/\s*[-–—|]\s*(飞书|feishu|lark)[^-–—|]*$/i, '')

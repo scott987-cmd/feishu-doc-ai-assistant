@@ -122,6 +122,12 @@ export function getDocumentContent(token: string, documentId: string) {
   return feishuReq('GET', `/docx/v1/documents/${documentId}/raw_content`, token)
 }
 
+/** Document metadata (mainly the real title). Used to name a direct /docx/ page reliably —
+ *  the SPA's document.title is unreliable on some (esp. private/on-prem) deployments. */
+export function getDocumentMeta(token: string, documentId: string) {
+  return feishuReq('GET', `/docx/v1/documents/${documentId}`, token) as Promise<{ document?: { title?: string } }>
+}
+
 /** List a document's blocks, following pagination so large docs aren't silently truncated
  *  (the agent computes block indices off this view — a single page would hide blocks past #500). */
 export async function listBlocks(token: string, documentId: string, cap = 2000) {

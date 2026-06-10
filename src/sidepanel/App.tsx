@@ -12,6 +12,7 @@ function wikiToFeishu(objType: string, objToken: string): PageContext['feishu'] 
 }
 import { isFeishuConfigured, resolveToken, isTokenExpiredError, forceRefreshUserToken } from '../shared/feishu/auth'
 import * as API from '../shared/feishu/api'
+import { getDocumentMeta } from '../shared/feishu/docx'
 import { encryptField, decryptField } from '../shared/crypto'
 import { checkNetworkAccess } from '../shared/network'
 import { BUILD_CONFIG, HAS_NETWORK_RESTRICTION, HAS_BUILTIN_CREDS, CLIP_ENABLED, HAS_ENTERPRISE_POLICY } from '../shared/config'
@@ -113,6 +114,9 @@ export default function App() {
   // Resolve a wiki node to its real resource (doc / sheet / base). Cached per token.
   // Needs the app's wiki scope; without it the page stays a generic "知识库".
   const wikiCacheRef = useRef<Map<string, NonNullable<PageContext['feishu']>>>(new Map())
+  // Real titles of direct /docx/ pages, fetched via API (the SPA's document.title is unreliable
+  // on some private/on-prem deploys — it can even be the raw URL). Cached per documentId.
+  const docTitleCacheRef = useRef<Map<string, string>>(new Map())
   // True when a Feishu call failed because the user session is expired AND can't be refreshed
   // (the refresh_token is dead → needs manual re-auth). Drives the "登录已失效" banner so the
   // user isn't left staring at a misleading "正在解析知识库…" / "请先打开表格" hint.
@@ -178,6 +182,28 @@ export default function App() {
     })()
     return () => { cancelled = true }
   }, [wikiToken, settings])
+
+  // Direct /docx/ pages (no wiki): fetch the REAL doc title via API and use it as the name —
+  // mirrors how Base pages resolve appName. Without this, the doc name falls back to the SPA's
+  // document.title, which on some private/on-prem deploys is the raw URL (the "name = full URL"
+  // bug). Wiki-resolved docs already get their title from getWikiNode, so skip those.
+  const docId = ctx.feishu?.kind === 'doc' && !ctx.feishu.wikiToken ? ctx.feishu.documentId : undefined
+  useEffect(() => {
+    if (!docId) return
+    const cached = docTitleCacheRef.current.get(docId)
+    const applyTitle = (t: string) => setCtx((c) =>
+      c.feishu?.kind === 'doc' && c.feishu.documentId === docId ? { ...c, title: t } : c)
+    if (cached) { applyTitle(cached); return }
+    let cancelled = false
+    void (async () => {
+      try {
+        const meta = await getDocumentMeta(await resolveToken(settings), docId)
+        const t = meta?.document?.title?.trim()
+        if (t && !cancelled) { docTitleCacheRef.current.set(docId, t); applyTitle(t) }
+      } catch { /* keep document.title fallback */ }
+    })()
+    return () => { cancelled = true }
+  }, [docId, settings])
 
   // Default the view by page type: a supported Feishu resource opens to 对话, an
   // unsupported page opens to 首页 (scenes). This only sets the DEFAULT for a fresh
