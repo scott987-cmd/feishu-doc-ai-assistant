@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { validateSpec } from './spec'
+import { validateSpec, referencedFields } from './spec'
 
 const FIELDS = ['区域', '金额', '状态']
 
@@ -55,6 +55,21 @@ describe('validateSpec', () => {
     }, FIELDS) as any
     expect(s.sections).toHaveLength(1)
     expect(s.dashboard.charts).toHaveLength(1)
+  })
+
+  it('referencedFields collects dimensions/measures/filters/columns for the unmatched-field warning', () => {
+    const d = validateSpec({
+      kind: 'dashboard',
+      filters: ['状态'],
+      kpis: [{ label: '额', value: { op: 'sum', field: '金额', where: [{ field: '区域', op: 'eq', value: '华东' }] } }],
+      charts: [{ kind: 'chart', chartType: 'bar', series: { dimension: '产品' } }],
+      table: { columns: [{ key: '订单数' }] },
+    }, FIELDS)
+    const refs = referencedFields(d)
+    expect(refs.sort()).toEqual(['产品', '区域', '金额', '订单数', '状态'].sort())
+    // diff against a schema → the unmatched ones drive the user warning
+    const known = new Set(['金额', '状态'])
+    expect(refs.filter((f) => !known.has(f)).sort()).toEqual(['产品', '区域', '订单数'].sort())
   })
 
   it('with no field list, does not drop fields (permissive)', () => {

@@ -101,7 +101,7 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
       setStatus(refine ? 'AI 调整当前小程序…' : 'AI 生成小程序代码…')
       // Refine = EDIT the previous code in place (only change what's asked, keep the rest
       // identical). Far better for multi-chart dashboards than regenerating from scratch.
-      const { name, code, spec } = await generateViz(settings, {
+      const { name, code, spec, warning } = await generateViz(settings, {
         schema: sample.schema, sampleRows: sample.rows, request: request.trim(),
         previousCode: refine ? last.current!.code : undefined,
         previousSpec: refine ? last.current!.spec : undefined,
@@ -118,6 +118,7 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
       setHasGen(true); setCanSave(true)
       if (refine) setRequest('') // each tweak is independent now — clear for the next one
       setStatus(`已${refine ? '调整' : '生成'}「${finalName}」并展示在页面上`)
+      if (warning) setErrMsg('⚠ ' + warning)
     } catch (e) {
       setErrMsg(errText(e)); setStatus('')
     } finally {

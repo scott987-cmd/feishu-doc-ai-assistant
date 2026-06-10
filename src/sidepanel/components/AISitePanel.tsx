@@ -141,7 +141,7 @@ export default function AISitePanel({ settings, context, disabled, onBack }: Pro
       const primary = fullDs[0]
       const others = fullDs.slice(1).map((d) => ({ name: d.name, schema: d.schema, sampleRows: d.rows.slice(0, 6) }))
       setStatus(refine ? 'AI 调整网站中…（约需几十秒）' : 'AI 生成网站中…（约需几十秒，请耐心等待）')
-      const { name, code, spec } = await generateSite(settings, {
+      const { name, code, spec, warning } = await generateSite(settings, {
         schema: primary.schema, sampleRows: primary.rows.slice(0, SAMPLE_CAP), request: request.trim(),
         refUrl: refUrl.trim() || undefined,
         planText: !refine ? (planText.trim() || undefined) : undefined,
@@ -164,6 +164,7 @@ export default function AISitePanel({ settings, context, disabled, onBack }: Pro
       setHasGen(true); setCanSave(true); setPlanText(''); setPlanQuestion('')
       if (refine) setRequest('')
       setStatus(`已${refine ? '调整' : '生成'}「${finalName}」并展示在页面上`)
+      if (warning) setErrMsg('⚠ ' + warning)
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') setStatus('已取消')
       else { setErrMsg(errText(e)); setStatus('') }

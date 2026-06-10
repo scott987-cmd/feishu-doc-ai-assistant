@@ -65,8 +65,9 @@ export default function DemoPanel({ settings, onBack }: Props) {
         if (NO_REMOTE_CODE) post({ spec: { kind: 'slides', slides }, data: [] })
         else post({ code: 'ui.slides(container, data)', data: slides })
       } else {
-        const { code, spec } = await generateViz(settings, { schema: SAMPLE_DATA.schema, sampleRows: SAMPLE_DATA.rows.slice(0, 30), request: req })
+        const { code, spec, warning } = await generateViz(settings, { schema: SAMPLE_DATA.schema, sampleRows: SAMPLE_DATA.rows.slice(0, 30), request: req })
         post({ code, spec, data: SAMPLE_DATA.rows })
+        if (warning) setErrMsg('⚠ ' + warning)
       }
       setStatus('已渲染到右侧/下方预览。可改下面的描述再生成。')
     } catch (e) {

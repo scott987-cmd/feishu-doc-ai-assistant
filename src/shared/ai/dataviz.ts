@@ -4,7 +4,7 @@ import { assertSafeBaseUrl } from '../providers'
 import { BUILD_CONFIG, NO_REMOTE_CODE } from '../config'
 import type { VizField } from '../dataviz/types'
 import type { VizSpec } from '../dataviz/spec'
-import { validateSpec } from '../dataviz/spec'
+import { validateSpec, referencedFields } from '../dataviz/spec'
 import { chatComplete, chatCompleteStream } from './llm'
 import { stripFences as fences } from './text'
 import { resolveLlmConfig } from './llmConfig'
@@ -46,12 +46,18 @@ function buildSpecEditPrompt(previousSpec: VizSpec, request: string, schema: Viz
   )
 }
 
-/** Parse {title, spec} from model output → validated VizSpec. */
-function parseSpec(out: string, schema: VizField[]): { name: string; spec: VizSpec } {
+/** Parse {title, spec} from model output → validated VizSpec. `warning` flags field names the
+ *  model referenced that don't exist in the real table (their widgets will render empty). */
+function parseSpec(out: string, schema: VizField[]): { name: string; spec: VizSpec; warning?: string } {
   let parsed: { title?: string; name?: string; spec?: unknown }
   try { parsed = JSON.parse(out) } catch { throw new Error('模型输出不是有效 JSON，无法解析可视化规格。请重试或换一个支持 JSON 输出的模型。') }
   const spec = validateSpec(parsed.spec, schema.map((f) => f.name))
-  return { name: (parsed.title || parsed.name || '可视化').slice(0, 40), spec }
+  const known = new Set(schema.map((f) => f.name))
+  const unknown = referencedFields(spec).filter((f) => !known.has(f))
+  const warning = unknown.length
+    ? `这些字段名没匹配到表里的列：${unknown.join('、')}（相关图表/指标可能显示为空）。可点重试或换种描述。`
+    : undefined
+  return { name: (parsed.title || parsed.name || '可视化').slice(0, 40), spec, warning }
 }
 
 /**
@@ -134,7 +140,7 @@ function buildEditPrompt(previousCode: string, request: string, schema: VizField
 export async function generateViz(
   settings: AppSettings,
   input: { schema: VizField[]; sampleRows: Record<string, string>[]; request: string; previousCode?: string; previousSpec?: VizSpec },
-): Promise<{ name: string; code?: string; spec?: VizSpec }> {
+): Promise<{ name: string; code?: string; spec?: VizSpec; warning?: string }> {
   const cfg = await resolveLlmConfig(settings)
   const baseURL = assertSafeBaseUrl(cfg.baseUrl, BUILD_CONFIG.openaiAllowedHosts)
   const client = new OpenAI({ baseURL, apiKey: cfg.apiKey, dangerouslyAllowBrowser: true })
@@ -222,7 +228,7 @@ export async function generateSite(
     refUrl?: string; planText?: string; previousCode?: string; previousSpec?: VizSpec; otherTables?: OtherTable[]
     signal?: AbortSignal; onProgress?: (chars: number) => void
   },
-): Promise<{ name: string; code?: string; spec?: VizSpec }> {
+): Promise<{ name: string; code?: string; spec?: VizSpec; warning?: string }> {
   // Language-adjust reuses the chart edit prompt (minimal-diff, keep-the-rest semantics are generic).
   const content = NO_REMOTE_CODE
     ? (input.previousSpec ? buildSpecEditPrompt(input.previousSpec, input.request, input.schema) : buildSiteSpecPrompt(input.schema, input.sampleRows, input.request, input.planText))

@@ -79,6 +79,28 @@ export interface SlidesSpec { kind: 'slides'; slides: unknown[] }
 
 export type VizSpec = ChartSpec | RawChartSpec | TableSpec | DashboardSpec | SiteSpec | SlidesSpec
 
+/** All field names a spec references (dimensions, aggregate fields, filters, columns). Used to
+ *  warn the user when the model invented a field name not in the real table → empty widget. */
+export function referencedFields(spec: VizSpec): string[] {
+  const out = new Set<string>()
+  const agg = (a?: Aggregate) => { if (a?.field) out.add(a.field); a?.where?.forEach((w) => w.field && out.add(w.field)) }
+  const series = (s?: SeriesSpec) => { if (s?.dimension) out.add(s.dimension); agg(s?.measure) }
+  const chart = (c: ChartSpec | RawChartSpec) => { if (c.kind === 'chart') series(c.series) }
+  const dash = (d: DashboardSpec) => {
+    d.filters?.forEach((f) => f && out.add(f))
+    d.kpis?.forEach((k) => agg(k.value))
+    d.charts?.forEach(chart)
+    d.table?.columns?.forEach((c) => c.key && out.add(c.key))
+  }
+  switch (spec.kind) {
+    case 'chart': series(spec.series); break
+    case 'table': spec.columns?.forEach((c) => c.key && out.add(c.key)); break
+    case 'dashboard': dash(spec); break
+    case 'site': dash(spec.dashboard); break
+  }
+  return Array.from(out)
+}
+
 const AGG_OPS = new Set(['count', 'countDistinct', 'sum', 'avg', 'min', 'max'])
 const FILTER_OPS = new Set(['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'contains', 'in'])
 const CHART_TYPES = new Set(['bar', 'line', 'pie', 'scatter'])
