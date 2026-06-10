@@ -6,6 +6,7 @@ import { sendVizToActiveTab } from '../../shared/dataviz/send'
 import { loadVizList, saveViz, deleteViz } from '../../shared/dataviz/store'
 import { ctxScopeKey, vizMatchesCtx } from '../../shared/dataviz/scope'
 import type { SavedViz, VizSource } from '../../shared/dataviz/types'
+import type { VizSpec } from '../../shared/dataviz/spec'
 import { buildDataReport } from '../../shared/report/build'
 import type { ReportResult } from '../../shared/report/types'
 import { resolveToken, isTokenExpiredError } from '../../shared/feishu/auth'
@@ -23,7 +24,7 @@ function theme(): 'light' | 'dark' { return document.documentElement.dataset.the
 const fieldTypesOf = (schema?: { name: string; type: string }[]): Record<string, string> | undefined =>
   schema?.length ? Object.fromEntries(schema.map((f) => [f.name, f.type])) : undefined
 
-type LastGen = { name: string; code: string; source: VizSource; multi: boolean }
+type LastGen = { name: string; code?: string; spec?: VizSpec; request?: string; source: VizSource; multi: boolean }
 // The just-generated (maybe-unsaved) site, kept OUTSIDE React state keyed by the Base/Sheet doc.
 // The side panel page stays loaded across browser-tab switches, but AISitePanel unmounts when the
 // host view changes (e.g. visiting a non-Feishu tab) — local state would be lost and the user
@@ -54,7 +55,7 @@ export default function AISitePanel({ settings, context, disabled, onBack }: Pro
   const [hasGen, setHasGen] = useState(false)
   const [canSave, setCanSave] = useState(false)
   const [list, setList] = useState<SavedViz[]>([])
-  const last = useRef<{ name: string; code: string; source: VizSource; multi: boolean } | null>(null)
+  const last = useRef<LastGen | null>(null)
   // 输出闭环：导出飞书文档 + 推送到群。
   const [report, setReport] = useState<ReportResult | null>(null)
   const [chats, setChats] = useState<ChatBrief[]>([])
@@ -139,11 +140,12 @@ export default function AISitePanel({ settings, context, disabled, onBack }: Pro
       const primary = fullDs[0]
       const others = fullDs.slice(1).map((d) => ({ name: d.name, schema: d.schema, sampleRows: d.rows.slice(0, 6) }))
       setStatus(refine ? 'AI 调整网站中…（约需几十秒）' : 'AI 生成网站中…（约需几十秒，请耐心等待）')
-      const { name, code } = await generateSite(settings, {
+      const { name, code, spec } = await generateSite(settings, {
         schema: primary.schema, sampleRows: primary.rows.slice(0, SAMPLE_CAP), request: request.trim(),
         refUrl: refUrl.trim() || undefined,
         planText: !refine ? (planText.trim() || undefined) : undefined,
         previousCode: refine ? last.current!.code : undefined,
+        previousSpec: refine ? last.current!.spec : undefined,
         otherTables: others.length ? others : undefined,
         signal: ac.signal, onProgress: setGenChars,
       })
@@ -155,8 +157,8 @@ export default function AISitePanel({ settings, context, disabled, onBack }: Pro
       // column types so edited cells are coerced to the right JSON type (else the batch is rejected).
       const editSource = !multi && source.kind === 'base' ? source : undefined
       const fieldTypes = editSource ? fieldTypesOf(fullDs[0]?.schema) : undefined
-      await sendVizToActiveTab({ code, data, datasets, name: finalName, theme: theme(), source: editSource, fieldTypes })
-      last.current = { name: finalName, code, source, multi }
+      await sendVizToActiveTab({ code, spec, data, datasets, name: finalName, theme: theme(), source: editSource, fieldTypes })
+      last.current = { name: finalName, code, spec, request: refine && last.current ? last.current.request : request.trim(), source, multi }
       if (curKey) genCache.set(curKey, last.current) // survive tab-switch unmount → no regenerate
       setHasGen(true); setCanSave(true); setPlanText(''); setPlanQuestion('')
       if (refine) setRequest('')
@@ -171,7 +173,7 @@ export default function AISitePanel({ settings, context, disabled, onBack }: Pro
 
   async function save() {
     if (!last.current) return
-    const v: SavedViz = { id: crypto.randomUUID(), name: last.current.name, source: last.current.source, code: last.current.code, createdAt: Date.now(), kind: 'site', multi: last.current.multi }
+    const v: SavedViz = { id: crypto.randomUUID(), name: last.current.name, source: last.current.source, code: last.current.code, spec: last.current.spec, request: last.current.request, createdAt: Date.now(), kind: 'site', multi: last.current.multi }
     setList(onlySites(await saveViz(v))); setCanSave(false); setStatus(`已保存「${v.name}」到「我的网站」`)
   }
 
@@ -216,7 +218,7 @@ export default function AISitePanel({ settings, context, disabled, onBack }: Pro
       }
       const editSource = !v.multi && v.source.kind === 'base' ? v.source : undefined
       const fieldTypes = editSource ? fieldTypesOf(schema) : undefined
-      await sendVizToActiveTab({ code: v.code, data, datasets, name: v.name, theme: theme(), source: editSource, fieldTypes })
+      await sendVizToActiveTab({ code: v.code, spec: v.spec, data, datasets, name: v.name, theme: theme(), source: editSource, fieldTypes })
       setStatus(`已用最新数据渲染「${v.name}」`)
     } catch (e) { setErrMsg(errText(e)); setStatus('') } finally { setBusy(false) }
   }

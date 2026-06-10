@@ -7,6 +7,7 @@ import { loadVizList, saveViz, deleteViz } from '../../shared/dataviz/store'
 import { ctxScopeKey, vizMatchesCtx } from '../../shared/dataviz/scope'
 import { isTokenExpiredError } from '../../shared/feishu/auth'
 import type { SavedViz, VizSource } from '../../shared/dataviz/types'
+import type { VizSpec } from '../../shared/dataviz/spec'
 import './DataVizPanel.css'
 
 /** Map an error to a user-facing string — expired sessions get a clear re-login hint. */
@@ -27,11 +28,11 @@ function theme(): 'light' | 'dark' {
   return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'
 }
 
-async function sendToOverlay(code: string, data: unknown[], name: string) {
-  await sendVizToActiveTab({ code, data, name, theme: theme() })
+async function sendToOverlay(artifact: { code?: string; spec?: VizSpec }, data: unknown[], name: string) {
+  await sendVizToActiveTab({ ...artifact, data, name, theme: theme() })
 }
 
-type LastViz = { name: string; code: string; source: VizSource }
+type LastViz = { name: string; code?: string; spec?: VizSpec; request?: string; source: VizSource }
 // The just-generated (maybe-unsaved) 小程序, kept OUTSIDE React state keyed by the doc — survives
 // the AISitePanel/DataVizPanel unmount a browser-tab switch causes, so returning doesn't force a
 // regenerate (the side panel page itself stays loaded across tab switches).
@@ -45,7 +46,7 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
   const [list, setList] = useState<SavedViz[]>([])
   // The just-generated viz, available to save / iterate on. Its `code` is the base a
   // "调整" edits in place (keeps charts the user didn't mention byte-identical).
-  const last = useRef<{ name: string; code: string; source: VizSource } | null>(null)
+  const last = useRef<LastViz | null>(null)
   const [canSave, setCanSave] = useState(false)
   const [hasGen, setHasGen] = useState(false)
 
@@ -99,18 +100,19 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
       setStatus(refine ? 'AI 调整当前小程序…' : 'AI 生成小程序代码…')
       // Refine = EDIT the previous code in place (only change what's asked, keep the rest
       // identical). Far better for multi-chart dashboards than regenerating from scratch.
-      const { name, code } = await generateViz(settings, {
+      const { name, code, spec } = await generateViz(settings, {
         schema: sample.schema, sampleRows: sample.rows, request: request.trim(),
         previousCode: refine ? last.current!.code : undefined,
+        previousSpec: refine ? last.current!.spec : undefined,
       })
       // On a tweak, keep the dashboard's existing name (the edit shouldn't rename it).
       const finalName = refine && last.current ? last.current.name : name
 
       setStatus('拉取全部数据并渲染…')
       const full = await fetchVizData(settings, source, RENDER_CAP)
-      await sendToOverlay(code, full.rows, finalName)
+      await sendToOverlay({ code, spec }, full.rows, finalName)
 
-      last.current = { name: finalName, code, source }
+      last.current = { name: finalName, code, spec, request: refine && last.current ? last.current.request : request.trim(), source }
       if (curKey) genCache.set(curKey, last.current) // survive tab-switch unmount → no regenerate
       setHasGen(true); setCanSave(true)
       if (refine) setRequest('') // each tweak is independent now — clear for the next one
@@ -126,7 +128,8 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
     if (!last.current) return
     const v: SavedViz = {
       id: crypto.randomUUID(), name: last.current.name, source: last.current.source,
-      code: last.current.code, createdAt: Date.now(), kind: 'viz',
+      code: last.current.code, spec: last.current.spec, request: last.current.request,
+      createdAt: Date.now(), kind: 'viz',
     }
     setList(onlyVizzes(await saveViz(v))); setCanSave(false); setStatus(`已保存「${v.name}」到「我的小程序」`)
   }
@@ -136,7 +139,7 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
     setBusy(true); setErrMsg(''); setStatus(`打开「${v.name}」…`)
     try {
       const full = await fetchVizData(settings, v.source, RENDER_CAP)
-      await sendToOverlay(v.code, full.rows, v.name)
+      await sendToOverlay({ code: v.code, spec: v.spec }, full.rows, v.name)
       setStatus(`已用最新数据渲染「${v.name}」`)
     } catch (e) {
       setErrMsg(errText(e)); setStatus('')

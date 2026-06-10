@@ -10,7 +10,7 @@ import { vizMatchesCtx } from '../shared/dataviz/scope'
 import { ACCENT_PRESETS } from '../shared/theme'
 
 interface VizBaseSource { kind: 'base'; appToken: string; tableId: string }
-interface Payload { vizId: string; code: string; data: unknown[]; datasets?: Record<string, unknown[]>; theme?: 'light' | 'dark'; name?: string; source?: VizBaseSource; fieldTypes?: Record<string, string> }
+interface Payload { vizId: string; code?: string; spec?: unknown; data: unknown[]; datasets?: Record<string, unknown[]>; theme?: 'light' | 'dark'; name?: string; source?: VizBaseSource; fieldTypes?: Record<string, string> }
 // Field values are type-coerced in the sandbox (Number→number, Checkbox→boolean, Date→ms) before
 // they reach here, so the cached edits carry mixed JSON types — batch_update wants exactly that.
 type Edit = { record_id: string; fields: Record<string, unknown> }
@@ -229,7 +229,7 @@ function makeResizable(el: HTMLElement) {
 
 function post(o: Overlay, p: Payload) {
   o.iframe.contentWindow?.postMessage(
-    { type: 'DATAVIZ_RENDER', nonce: o.nonce, code: p.code, data: p.data, datasets: p.datasets, theme: p.theme, source: p.source, fieldTypes: p.fieldTypes },
+    { type: 'DATAVIZ_RENDER', nonce: o.nonce, code: p.code, spec: p.spec, data: p.data, datasets: p.datasets, theme: p.theme, source: p.source, fieldTypes: p.fieldTypes },
     '*',
   )
 }

@@ -215,7 +215,7 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
       }
       // Single-table Base saved site → pass source so the overlay enables editable write-back.
       const source = !viz.multi && viz.source.kind === 'base' ? viz.source : undefined
-      chrome.tabs.sendMessage(tabId, { type: 'DATAVIZ_RENDER', vizId: viz.id, code: viz.code, data: dataRows, datasets, name: viz.name, theme: 'light', source, fieldTypes: source ? fieldTypes : undefined }).catch(() => {})
+      chrome.tabs.sendMessage(tabId, { type: 'DATAVIZ_RENDER', vizId: viz.id, code: viz.code, spec: viz.spec, data: dataRows, datasets, name: viz.name, theme: 'light', source, fieldTypes: source ? fieldTypes : undefined }).catch(() => {})
     } catch { /* surfaced as no overlay; the pill stays */ }
   })()
   return undefined

@@ -20,8 +20,13 @@ export interface SavedViz {
   id: string
   name: string
   source: VizSource
-  /** Body of render(data, echarts, chart, container) — the saved artifact (no data inside). */
-  code: string
+  /** Body of render(data, echarts, chart, container) — the saved artifact (no data inside).
+   *  Optional now: store / no-remote-code builds save a declarative `spec` instead. */
+  code?: string
+  /** Plan B: declarative VizSpec (no-remote-code builds). One of code/spec is present. */
+  spec?: import('./spec').VizSpec
+  /** Original NL request, kept so a legacy code-only board can be re-generated as a spec. */
+  request?: string
   createdAt: number
   /** 'viz' = chart/小程序 (default when absent), 'site' = AI 建站 full page. Cosmetic only
    *  (icon/label); both reuse the same render/save/launcher/open-with-fresh-data path. */

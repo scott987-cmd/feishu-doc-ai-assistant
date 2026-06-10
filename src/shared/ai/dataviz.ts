@@ -1,12 +1,58 @@
 import OpenAI from 'openai'
 import type { AppSettings } from '../types'
 import { assertSafeBaseUrl } from '../providers'
-import { BUILD_CONFIG } from '../config'
+import { BUILD_CONFIG, NO_REMOTE_CODE } from '../config'
 import type { VizField } from '../dataviz/types'
+import type { VizSpec } from '../dataviz/spec'
+import { validateSpec } from '../dataviz/spec'
 import { chatComplete, chatCompleteStream } from './llm'
 import { stripFences as fences } from './text'
 import { resolveLlmConfig } from './llmConfig'
 import { sanitizeForLlm } from './redact'
+
+/** Declarative-spec prompt (no-remote-code build): the model emits a VizSpec (DATA), which the
+ *  bundled interpreter renders — no JS is generated or executed. */
+function buildSpecPrompt(schema: VizField[], sampleRows: Record<string, string>[], request: string): string {
+  return (
+    `你是"数据看板生成器"。根据【字段】【样本数据】【需求】，输出一个 JSON：{"title":"简短标题","spec":<规格>}。\n` +
+    `spec 是**声明式规格(不是代码)**，按需求选一种 kind：\n` +
+    `· 单图：{"kind":"chart","title":"","chartType":"bar|line|pie|scatter","series":{"dimension":"分组字段","measure":{"op":"count|sum|avg|min|max|countDistinct","field":"数值字段(count 可省)"},"sort":"value-desc","limit":20},"axis":{"rotateLabels":true,"scale":true}}\n` +
+    `· 看板(多指标/多图/可筛选)：{"kind":"dashboard","filters":["字段"…],"kpis":[{"label":"标签","value":{"op":"sum","field":"金额"}}…],"charts":[{"title":"","chartType":"pie","series":{"dimension":"字段","measure":{"op":"count"}}}…],"table":{"columns":[{"key":"真实字段","editable":false}],"pageSize":20}}\n` +
+    `· 纯明细表：{"kind":"table","columns":[{"key":"真实字段","label":""}],"pageSize":20,"search":true,"actions":[{"label":"建任务","template":"跟进 {字段} 的 {字段}"}]}\n` +
+    `【规则】dimension/field/filters/columns.key 只用【字段】里**真实存在**的字段名；聚合 op 只用 count/countDistinct/sum/avg/min/max；图表类型只用 bar/line/pie/scatter；不编造数据。可选 measure.where 过滤：[{"field":"","op":"eq|ne|gt|gte|lt|lte|contains|in","value":""}]。\n` +
+    `只输出那个 JSON 对象本身，不要任何解释、前言或代码围栏。\n` +
+    `\n【字段】${fieldList(schema)}\n\n【样本数据（前 ${sampleRows.length} 行）】\n${sanitizeForLlm(JSON.stringify(sampleRows))}\n\n【需求】${request}`
+  )
+}
+
+/** Declarative-spec SITE prompt: a SiteSpec = static text sections + one dashboard. */
+function buildSiteSpecPrompt(schema: VizField[], sampleRows: Record<string, string>[], request: string, planText?: string): string {
+  return (
+    `你是数据网站生成器。根据【字段】【样本】【需求】，输出 JSON：{"title":"标题","spec":{"kind":"site","title":"页面标题","sections":[{"type":"hero","title":"","subtitle":""},{"type":"section","title":"","body":"纯文本说明"}],"dashboard":<看板规格>}}。\n` +
+    `sections 仅**静态文本**(hero/section，body 为纯文本)；数据区全部放进 dashboard。\n` +
+    `dashboard 规格：{"kind":"dashboard","filters":["字段"…],"kpis":[{"label":"","value":{"op":"sum","field":"金额"}}…],"charts":[{"title":"","chartType":"bar|line|pie","series":{"dimension":"字段","measure":{"op":"count|sum","field":""}}}…],"table":{"columns":[{"key":"真实字段"}],"pageSize":20}}\n` +
+    `【规则】只用真实存在的字段名；op 只用 count/countDistinct/sum/avg/min/max；图表只用 bar/line/pie/scatter；不编造数据。只输出该 JSON，无解释/围栏。\n` +
+    (planText ? `【已确认方案】${planText}\n` : '') +
+    `\n【字段】${fieldList(schema)}\n\n【样本数据（前 ${sampleRows.length} 行）】\n${sanitizeForLlm(JSON.stringify(sampleRows))}\n\n【需求】${request}`
+  )
+}
+
+/** Spec edit (minimal change): hand the model the current spec JSON + a change request. */
+function buildSpecEditPrompt(previousSpec: VizSpec, request: string, schema: VizField[]): string {
+  return (
+    `下面是一个数据看板的**当前规格(JSON)**。请按【修改要求】做**最小改动**，其余原样保留。\n` +
+    `只用【字段】里真实存在的字段名；保持 kind 与整体结构；只输出 {"title":"标题","spec":<修改后的完整规格>}，无解释/围栏。\n` +
+    `【字段】${fieldList(schema)}\n【当前规格】${JSON.stringify(previousSpec)}\n【修改要求】${request}`
+  )
+}
+
+/** Parse {title, spec} from model output → validated VizSpec. */
+function parseSpec(out: string, schema: VizField[]): { name: string; spec: VizSpec } {
+  let parsed: { title?: string; name?: string; spec?: unknown }
+  try { parsed = JSON.parse(out) } catch { throw new Error('模型输出不是有效 JSON，无法解析可视化规格。请重试或换一个支持 JSON 输出的模型。') }
+  const spec = validateSpec(parsed.spec, schema.map((f) => f.name))
+  return { name: (parsed.title || parsed.name || '可视化').slice(0, 40), spec }
+}
 
 /**
  * One-shot codegen: given a table schema + a small sample of rows + a natural-language
@@ -87,14 +133,14 @@ function buildEditPrompt(previousCode: string, request: string, schema: VizField
 
 export async function generateViz(
   settings: AppSettings,
-  input: { schema: VizField[]; sampleRows: Record<string, string>[]; request: string; previousCode?: string },
-): Promise<{ name: string; code: string }> {
+  input: { schema: VizField[]; sampleRows: Record<string, string>[]; request: string; previousCode?: string; previousSpec?: VizSpec },
+): Promise<{ name: string; code?: string; spec?: VizSpec }> {
   const cfg = await resolveLlmConfig(settings)
   const baseURL = assertSafeBaseUrl(cfg.baseUrl, BUILD_CONFIG.openaiAllowedHosts)
   const client = new OpenAI({ baseURL, apiKey: cfg.apiKey, dangerouslyAllowBrowser: true })
-  const content = input.previousCode
-    ? buildEditPrompt(input.previousCode, input.request, input.schema)
-    : buildPrompt(input.schema, input.sampleRows, input.request)
+  const content = NO_REMOTE_CODE
+    ? (input.previousSpec ? buildSpecEditPrompt(input.previousSpec, input.request, input.schema) : buildSpecPrompt(input.schema, input.sampleRows, input.request))
+    : (input.previousCode ? buildEditPrompt(input.previousCode, input.request, input.schema) : buildPrompt(input.schema, input.sampleRows, input.request))
   const resp = await client.chat.completions.create({
     model: cfg.model,
     stream: false,
@@ -103,6 +149,7 @@ export async function generateViz(
   let out = (resp.choices[0]?.message?.content ?? '').trim()
   if (!out) throw new Error('模型未返回内容。')
   out = fences(out) // strip code fences the model adds despite instructions
+  if (NO_REMOTE_CODE) return parseSpec(out, input.schema)
   let parsed: { title?: string; name?: string; code?: string }
   try {
     parsed = JSON.parse(out)
@@ -172,17 +219,18 @@ export async function generateSite(
   settings: AppSettings,
   input: {
     schema: VizField[]; sampleRows: Record<string, string>[]; request: string
-    refUrl?: string; planText?: string; previousCode?: string; otherTables?: OtherTable[]
+    refUrl?: string; planText?: string; previousCode?: string; previousSpec?: VizSpec; otherTables?: OtherTable[]
     signal?: AbortSignal; onProgress?: (chars: number) => void
   },
-): Promise<{ name: string; code: string }> {
+): Promise<{ name: string; code?: string; spec?: VizSpec }> {
   // Language-adjust reuses the chart edit prompt (minimal-diff, keep-the-rest semantics are generic).
-  const content = input.previousCode
-    ? buildEditPrompt(input.previousCode, input.request, input.schema)
-    : buildSitePrompt(input.schema, input.sampleRows, input.request, input.refUrl, input.planText, input.otherTables)
+  const content = NO_REMOTE_CODE
+    ? (input.previousSpec ? buildSpecEditPrompt(input.previousSpec, input.request, input.schema) : buildSiteSpecPrompt(input.schema, input.sampleRows, input.request, input.planText))
+    : (input.previousCode ? buildEditPrompt(input.previousCode, input.request, input.schema) : buildSitePrompt(input.schema, input.sampleRows, input.request, input.refUrl, input.planText, input.otherTables))
   // Stream so the panel can show live progress + offer cancel (a full website is a big call).
   const out = fences(await chatCompleteStream(settings, content, { signal: input.signal, onChunk: (f) => input.onProgress?.(f.length) }))
   if (!out) throw new Error('模型未返回内容。')
+  if (NO_REMOTE_CODE) return parseSpec(out, input.schema)
   let parsed: { title?: string; code?: string }
   try { parsed = JSON.parse(out) } catch { throw new Error('模型输出不是有效 JSON，无法解析网站代码。请重试或换一个支持 JSON 输出的模型。') }
   const code = (parsed.code ?? '').trim()

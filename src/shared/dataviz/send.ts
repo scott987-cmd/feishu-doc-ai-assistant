@@ -8,7 +8,10 @@
  * fails, we surface an actionable "refresh the page" error.
  */
 export async function sendVizToActiveTab(payload: {
-  code: string
+  /** Legacy LLM-generated JS (self-distribution builds). One of code/spec is present. */
+  code?: string
+  /** Plan B declarative spec (store / no-remote-code builds). */
+  spec?: import('./spec').VizSpec
   data: unknown[]
   /** Optional named sub-tables (multi-sheet sites) — the render gets them as the `datasets` map. */
   datasets?: Record<string, unknown[]>
