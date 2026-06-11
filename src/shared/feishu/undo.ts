@@ -22,15 +22,32 @@ export interface DeleteUndo {
   records: Array<{ fields: Record<string, unknown> }>
 }
 
-/** Capture the field data of specific records right before deleting them. Never throws — a
- *  capture failure must not block the delete; it just means no undo is offered. */
+// Feishu field types that are COMPUTED / AUTO and rejected by records/batch_create. Capturing
+// them would make the whole undo's re-create FAIL, so they're stripped: 19 Lookup · 20 Formula ·
+// 1001 CreatedTime · 1002 ModifiedTime · 1003 CreatedUser · 1004 ModifiedUser · 1005 AutoNumber.
+const READONLY_FIELD_TYPES = new Set([19, 20, 1001, 1002, 1003, 1004, 1005])
+
+/** Capture the WRITABLE field data of specific records right before deleting them (read-only
+ *  computed/auto fields are stripped so the restore's batch_create isn't rejected). Never throws —
+ *  a capture failure must not block the delete; it just means no undo is offered. */
 export async function captureRecords(
   token: string, appToken: string, tableId: string, recordIds: string[],
 ): Promise<Array<{ fields: Record<string, unknown> }>> {
   if (!recordIds?.length) return []
   try {
-    const r = (await API.batchGetRecords(token, appToken, tableId, recordIds)) as { records?: Array<{ fields?: Record<string, unknown> }> }
-    return (r.records ?? []).map((x) => ({ fields: x.fields ?? {} })).filter((x) => Object.keys(x.fields).length)
+    const [recRes, fieldRes] = await Promise.all([
+      API.batchGetRecords(token, appToken, tableId, recordIds) as Promise<{ records?: Array<{ fields?: Record<string, unknown> }> }>,
+      (API.listFields(token, appToken, tableId) as Promise<{ items?: Array<{ field_name?: string; type?: number }> }>).catch(() => null),
+    ])
+    // Set of writable field names; if field meta can't be read, keep everything (best-effort).
+    const writable = fieldRes?.items
+      ? new Set(fieldRes.items.filter((f) => f.type == null || !READONLY_FIELD_TYPES.has(f.type)).map((f) => f.field_name))
+      : null
+    return (recRes.records ?? []).map((x) => {
+      const all = x.fields ?? {}
+      const fields = writable ? Object.fromEntries(Object.entries(all).filter(([k]) => writable.has(k))) : all
+      return { fields }
+    })
   } catch { return [] }
 }
 

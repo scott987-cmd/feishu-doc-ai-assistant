@@ -10,6 +10,7 @@ import * as Compose from '../feishu/compose'
 import { feishuReq } from '../feishu/http'
 import { storageGet } from '../storage'
 import { captureRecords, saveDeleteUndo } from '../feishu/undo'
+import { isTenantHost, TENANT_ORIGIN_KEY } from '../feishu/tenant'
 import type { Metric } from '../feishu/compose'
 import { resolveToken, invalidateToken, isPermissionError, isTokenExpiredError, forceRefreshUserToken } from '../feishu/auth'
 import { HAS_BUILTIN_CREDS, BUILD_CONFIG } from '../config'
@@ -1051,52 +1052,49 @@ async function executeSheetTool(
 
 // ─── Document tool execution ────────────────────────────────────────────────
 
-const isFeishuHost = (urlStr?: string): boolean => {
-  const d = BUILD_CONFIG.feishuBaseDomain
-  try { const h = new URL(urlStr ?? '').hostname.toLowerCase(); return h === d || h.endsWith('.' + d) } catch { return false }
-}
-
 /**
  * Resolve the Feishu TENANT origin (e.g. https://<tenant>.kastd01.statusfeishu.cn) — the prefix
  * every clickable doc/base/sheet link needs. Prefer the current page's origin (carries the
- * tenant subdomain); when NOT on a Feishu page (e.g. clipping a web page) fall back to the
- * last-seen tenant origin the content script persisted; only then to the bare base domain
- * (which DROPS the tenant → a broken link on private/on-prem deploys).
+ * tenant subdomain); else the last-seen tenant origin the content script persisted. Returns
+ * `null` when NO real tenant is known — callers must then NOT rewrite (rewriting a correct
+ * tenant link down to the bare base domain would BREAK it).
  */
-async function resolveTenantOrigin(context: PageContext): Promise<string> {
-  if (isFeishuHost(context.url)) { try { return new URL(context.url).origin } catch { /* fall through */ } }
-  const stored = await storageGet('_feishu_tenant_origin')
-  if (typeof stored === 'string' && isFeishuHost(stored)) return stored
-  return `https://${BUILD_CONFIG.feishuBaseDomain}`
+async function resolveTenantOrigin(context: PageContext): Promise<string | null> {
+  if (isTenantHost(context.url)) { try { return new URL(context.url).origin } catch { /* fall through */ } }
+  const stored = await storageGet(TENANT_ORIGIN_KEY)
+  if (typeof stored === 'string' && isTenantHost(stored)) return stored
+  return null
 }
 
 /**
  * Recurrence guard: rewrite the ORIGIN of every Feishu resource link in `text` to the tenant
  * origin. The model often hand-writes links (clip "give a clickable link", reports, etc.) and
- * guesses the bare base domain → tenant-less, unopenable URLs. This normalizes ALL of them in
- * one place at the output boundary, so a single missed call site can't reintroduce the bug.
- * Only touches hosts that ARE the base domain or a subdomain of it; foreign URLs are left alone.
+ * guesses the bare base domain → tenant-less, unopenable URLs. Normalizes ALL of them in one
+ * place at the output boundary. NO-OP when `tenantOrigin` is null/empty — without a known tenant
+ * we must not touch links (downgrading a correct one to the bare base domain would break it).
  */
-export function rewriteFeishuOrigins(text: string, tenantOrigin: string): string {
-  if (!text) return text
+export function rewriteFeishuOrigins(text: string, tenantOrigin: string | null): string {
+  if (!text || !tenantOrigin) return text
   const d = BUILD_CONFIG.feishuBaseDomain
   return text.replace(
-    /https?:\/\/([a-z0-9.-]+)(\/(?:docx|docs|base|sheets|wiki)\/[A-Za-z0-9]+)/gi,
+    /https?:\/\/([a-z0-9.:-]+)(\/(?:docx|docs|base|sheets|wiki)\/[A-Za-z0-9]+)/gi,
     (m, host: string, rest: string) => {
-      const h = host.toLowerCase()
+      const h = host.toLowerCase().replace(/:\d+$/, '')
       return h === d || h.endsWith('.' + d) ? tenantOrigin.replace(/\/+$/, '') + rest : m
     },
   )
 }
 
-// docx's create API returns no `url`, so build a clickable one from the tenant origin.
+// docx's create API returns no `url`, so build a clickable one from the tenant origin (falling
+// back to the bare base domain only when no tenant is known — the link still names the doc).
 async function withDocUrl(
   r: { document?: { document_id?: string } },
   context: PageContext
 ): Promise<unknown> {
   const id = r.document?.document_id
   if (!id) return r
-  return { ...r, document: { ...r.document, url: `${await resolveTenantOrigin(context)}/docx/${id}` } }
+  const origin = (await resolveTenantOrigin(context)) ?? `https://${BUILD_CONFIG.feishuBaseDomain}`
+  return { ...r, document: { ...r.document, url: `${origin}/docx/${id}` } }
 }
 
 async function executeDocTool(

@@ -9,6 +9,11 @@ describe('markdownToSegments — tables become real table segments, not raw text
     const table = segs.find((s) => s.kind === 'table') as { kind: 'table'; rows: string[][] }
     expect(table.rows).toEqual([['区域', '销量'], ['华东', '100'], ['华南', '50']])
   })
+  it('keeps a body row that is only dashes (does not truncate the table early)', () => {
+    const md = '| 名 | 值 |\n| --- | --- |\n| a | 1 |\n| - | - |\n| b | 2 |'
+    const t = markdownToSegments(md).find((s) => s.kind === 'table') as { kind: 'table'; rows: string[][] }
+    expect(t.rows).toEqual([['名', '值'], ['a', '1'], ['-', '-'], ['b', '2']]) // all 3 body rows kept
+  })
   it('does NOT treat a | line inside a code fence as a table', () => {
     const md = '```\n| not | a | table |\n| --- | --- | --- |\n```'
     const segs = markdownToSegments(md)

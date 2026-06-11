@@ -4,6 +4,7 @@ import type { ClipCapture } from '../../shared/clip/types'
 import type { BaseCtx } from '../../shared/feishu/context'
 import { fetchBaseCtx } from '../../shared/feishu/context'
 import { resolveToken } from '../../shared/feishu/auth'
+import { rememberTenantOrigin } from '../../shared/feishu/tenant'
 import * as API from '../../shared/feishu/api'
 import * as Sheets from '../../shared/feishu/sheets'
 import { parseFeishuContext } from '../../shared/feishu/pageUrl'
@@ -164,7 +165,7 @@ export default function ClipPanel({ settings, clip, error, disabled, onClose }: 
   async function loadTarget() {
     // The pasted target link carries the TENANT origin (e.g. https://<tenant>.<domain>) — capture
     // it so a clip-generated doc link keeps the tenant prefix (else it's unopenable on on-prem).
-    if (parsed) { try { chrome.storage.local.set({ _feishu_tenant_origin: new URL(baseUrl.trim()).origin }) } catch { /* bare token, not a URL */ } }
+    if (parsed) rememberTenantOrigin(baseUrl.trim())
     // wiki link wraps the real resource — resolve obj_type → base / sheet / doc.
     if (!appToken && parsed?.kind === 'wiki' && parsed.wikiToken) {
       setLoadingCtx(true)

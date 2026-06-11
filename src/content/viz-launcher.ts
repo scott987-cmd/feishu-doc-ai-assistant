@@ -19,7 +19,10 @@ let runSeq = 0
 
 
 function ensureBar(): HTMLDivElement {
-  if (bar) return bar
+  // Rebuild if the host was orphaned — Feishu's SPA can replace document.body, detaching our host;
+  // without this check ensureBar would keep returning the stale (invisible) bar and pills vanish.
+  if (bar && host?.isConnected) return bar
+  if (host) { try { host.remove() } catch { /* already detached */ } }
   // Render INSIDE a Shadow DOM: the Feishu page's global CSS can't reach in, so our flex row
   // can't be reset/overridden — without this, page styles stacked the pills on top of each other
   // instead of laying them out in a row.

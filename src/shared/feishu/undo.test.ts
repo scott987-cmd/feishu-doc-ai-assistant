@@ -7,17 +7,23 @@ const mem: Record<string, unknown> = {}
     set: (o: Record<string, unknown>, cb?: () => void) => { Object.assign(mem, o); cb?.() },
   } },
 }
-const mockGet = vi.fn(), mockCreate = vi.fn()
-vi.mock('./api', () => ({ batchGetRecords: (...a: unknown[]) => mockGet(...a), batchCreateRecords: (...a: unknown[]) => mockCreate(...a) }))
+const mockGet = vi.fn(), mockCreate = vi.fn(), mockFields = vi.fn()
+vi.mock('./api', () => ({
+  batchGetRecords: (...a: unknown[]) => mockGet(...a),
+  batchCreateRecords: (...a: unknown[]) => mockCreate(...a),
+  listFields: (...a: unknown[]) => mockFields(...a),
+}))
 
 const { captureRecords, saveDeleteUndo, loadDeleteUndo, clearDeleteUndo, restoreDeleteUndo, UNDO_TTL_MS } = await import('./undo')
 
-beforeEach(() => { for (const k of Object.keys(mem)) delete mem[k]; mockGet.mockReset(); mockCreate.mockReset() })
+beforeEach(() => { for (const k of Object.keys(mem)) delete mem[k]; mockGet.mockReset(); mockCreate.mockReset(); mockFields.mockReset() })
 
 describe('delete undo', () => {
-  it('captureRecords returns field data, drops empty, never throws on failure', async () => {
-    mockGet.mockResolvedValue({ records: [{ record_id: 'r1', fields: { 名称: 'A' } }, { record_id: 'r2', fields: {} }] })
-    expect(await captureRecords('t', 'app', 'tbl', ['r1', 'r2'])).toEqual([{ fields: { 名称: 'A' } }])
+  it('captureRecords keeps WRITABLE fields, strips read-only (formula/created-time), never throws', async () => {
+    mockGet.mockResolvedValue({ records: [{ record_id: 'r1', fields: { 名称: 'A', 公式列: 99, 创建时间: 123 } }] })
+    mockFields.mockResolvedValue({ items: [{ field_name: '名称', type: 1 }, { field_name: '公式列', type: 20 }, { field_name: '创建时间', type: 1001 }] })
+    // formula(20) + createdTime(1001) stripped → batch_create won't be rejected
+    expect(await captureRecords('t', 'app', 'tbl', ['r1'])).toEqual([{ fields: { 名称: 'A' } }])
     mockGet.mockRejectedValue(new Error('403'))
     expect(await captureRecords('t', 'app', 'tbl', ['r1'])).toEqual([]) // capture failure never blocks delete
     expect(await captureRecords('t', 'app', 'tbl', [])).toEqual([])

@@ -20,6 +20,10 @@ describe('rewriteFeishuOrigins — clip/report links always keep the tenant pref
     expect(rewriteFeishuOrigins('', T)).toBe('')
     expect(rewriteFeishuOrigins('没有链接的普通文字', T)).toBe('没有链接的普通文字')
   })
+  it('does NOT rewrite when no tenant is known (null) — must not downgrade a correct link', () => {
+    // A correct tenant link must survive untouched when we have no tenant origin to apply.
+    expect(rewriteFeishuOrigins('打开 https://acme.feishu.cn/docx/doxX', null)).toBe('打开 https://acme.feishu.cn/docx/doxX')
+  })
 })
 import type { AgentCallbacks } from './agent'
 

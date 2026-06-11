@@ -258,7 +258,10 @@ export function markdownToSegments(md: string): MdSegment[] {
       flush()
       const rows = [tableCells(l)]
       i += 2 // skip header + separator
-      while (i < lines.length && TABLE_ROW.test(lines[i]) && !TABLE_SEP.test(lines[i])) { rows.push(tableCells(lines[i])); i++ }
+      // Consume ALL following |…| rows as DATA. (Don't stop on a TABLE_SEP-looking row: the real
+      // separator is already consumed above, and a body row of only dashes is legitimate data —
+      // testing it would truncate the table and silently drop that row + everything after it.)
+      while (i < lines.length && TABLE_ROW.test(lines[i])) { rows.push(tableCells(lines[i])); i++ }
       i--
       segs.push({ kind: 'table', rows })
     } else buf.push(l)
