@@ -179,14 +179,16 @@ describe('assertApiCallAllowed — feishu_api_call security gate', () => {
 })
 
 describe('isDestructiveApiCall — raw-API deletes still hit the confirm gate', () => {
-  it('flags POST batch_delete (records/blocks) and Sheets deleteDimension/deleteRange', () => {
+  it('flags destructive POSTs deny-by-default: batch_delete, move_to_trash, Sheets deleteDimension, DELETE', () => {
     expect(isDestructiveApiCall('feishu_api_call', { method: 'POST', path: '/bitable/v1/apps/a/tables/t/records/batch_delete' })).toBe(true)
+    expect(isDestructiveApiCall('feishu_api_call', { method: 'POST', path: '/drive/v1/files/f/move_to_trash' })).toBe(true) // drive trash — previously slipped through
     expect(isDestructiveApiCall('feishu_api_call', { method: 'POST', path: '/sheets/v2/spreadsheets/s/sheets_batch_update', body: { requests: [{ deleteDimension: { dimension: { majorDimension: 'ROWS' } } }] } })).toBe(true)
     expect(isDestructiveApiCall('feishu_api_call', { method: 'DELETE', path: '/x' })).toBe(true)
   })
   it('does NOT flag normal creates/reads (no over-prompting)', () => {
     expect(isDestructiveApiCall('feishu_api_call', { method: 'POST', path: '/bitable/v1/apps/a/tables/t/records/batch_create' })).toBe(false)
     expect(isDestructiveApiCall('feishu_api_call', { method: 'POST', path: '/sheets/v2/spreadsheets/s/sheets_batch_update', body: { requests: [{ insertDimension: {} }] } })).toBe(false)
+    expect(isDestructiveApiCall('feishu_api_call', { method: 'POST', path: '/bitable/v1/apps/a/tables/t/records/batch_get' })).toBe(false)
     expect(isDestructiveApiCall('feishu_api_call', { method: 'GET', path: '/x' })).toBe(false)
     expect(isDestructiveApiCall('list_records', {})).toBe(false)
   })

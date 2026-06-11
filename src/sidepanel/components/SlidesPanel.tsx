@@ -116,7 +116,7 @@ export default function SlidesPanel({ settings, context, disabled, onBack }: Pro
   function newDraft() {
     last.current = null
     if (srcKey) deckCache.delete(srcKey)
-    setHasGen(false); setCanSave(false); setRequest(''); setStatus(''); setErrMsg(''); setGenChars(0); setAdjReq('')
+    setHasGen(false); setCanSave(false); setRequest(''); setStatus(''); setErrMsg(''); setGenChars(0); setAdjReq(''); setAdjPage(1)
   }
 
   async function reshow() {

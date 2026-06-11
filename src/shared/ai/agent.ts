@@ -102,21 +102,21 @@ function isWritingApiCall(name: string, args: Record<string, unknown>): boolean 
   return name === 'feishu_api_call' && /^(PUT|PATCH)$/i.test(String(args.method ?? ''))
 }
 
-/** A generic feishu_api_call that DELETES content via a POST — bitable/doc `batch_delete`, or a
- *  Sheets `sheets_batch_update` carrying a deleteDimension/deleteRange/deleteSheet request. These
- *  slip past isWritingApiCall (PUT/PATCH only) AND the file-level DELETE block, so without this a
- *  raw-API deletion (e.g. deleting spreadsheet rows) would run with NO confirmation. */
+/** A generic feishu_api_call that DELETES/TRASHES content via a POST — bitable/doc `batch_delete`,
+ *  a drive move-to-trash, or a Sheets `sheets_batch_update` carrying a deleteDimension/Range/Sheet.
+ *  These slip past isWritingApiCall (PUT/PATCH only) AND the file-level DELETE block, so without
+ *  this a raw-API deletion would run with NO confirmation. DENY-BY-DEFAULT: any POST whose path or
+ *  body looks like a deletion is gated (an extra confirm is far safer than a silent destroy; legit
+ *  create/get/search POSTs don't carry delete/trash/remove tokens, so they aren't over-prompted). */
 export function isDestructiveApiCall(name: string, args: Record<string, unknown>): boolean {
   if (name !== 'feishu_api_call') return false
   const method = String(args.method ?? '').toUpperCase()
   const path = String(args.path ?? '')
   if (method === 'DELETE') return true // (also file-level-blocked, but content DELETE if it ever isn't)
   if (method === 'POST') {
-    if (/batch_delete\b/i.test(path)) return true
-    if (/sheets_batch_update/i.test(path)) {
-      const body = JSON.stringify(args.body ?? args.payload ?? args.data ?? {})
-      if (/delete(Dimension|Range|Sheet)/i.test(body)) return true
-    }
+    if (/(delete|trash|remove)/i.test(path)) return true // batch_delete, move_to_trash, …
+    const body = JSON.stringify(args.body ?? args.payload ?? args.data ?? {})
+    if (/"delete[A-Za-z]*"|deleteDimension|deleteRange|deleteSheet/i.test(body)) return true // sheets_batch_update delete reqs
   }
   return false
 }

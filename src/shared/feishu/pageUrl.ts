@@ -49,10 +49,12 @@ export function cleanDocTitle(title: string): string {
   const name = (title || '')
     // SaaS / Lark brand suffix: "… - 飞书云文档" / "… - Feishu Docs" / "… - Lark".
     .replace(/\s*[-–—|]\s*(飞书|feishu|lark)[^-–—|]*$/i, '')
-    // Private/on-prem brand suffix: "… - <品牌>云文档 / 云空间 / Docs / Sheets / Wiki". Anchored to
-    // these PRODUCT words (not bare 文档/表格) after a separator, so a real doc named e.g.
-    // "项目文档" isn't truncated.
-    .replace(/\s*[-–—|]\s*[^-–—|]*?(云文档|云空间|Docs?|Sheets?|Wiki)\s*$/i, '')
+    // Private/on-prem brand suffix: "… - <品牌>云文档 / 云空间". Anchored to these unambiguous
+    // Chinese product words only — NOT English Docs/Sheets/Wiki, which are common real-title
+    // endings (e.g. a doc genuinely named "接口Docs" must not be truncated). The doc/sheet title
+    // is also fetched cleanly via API now (getDocumentMeta/getSpreadsheet), so this is just a
+    // fallback for document.title.
+    .replace(/\s*[-–—|]\s*[^-–—|]*?(云文档|云空间)\s*$/i, '')
     .trim()
   if (!name || /^(飞书|feishu|lark|飞书云文档|云文档|loading|加载中)$/i.test(name)) return ''
   return name
