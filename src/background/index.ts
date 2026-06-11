@@ -6,7 +6,7 @@
 // running clip write), and (b) could wedge a tab's panel "un-reopenable" until the
 // extension was reinstalled. The React UI decides what to show per page (Feishu
 // assistant / clip flow / a hint on other sites).
-import { CLIP_ENABLED } from '../shared/config'
+import { CLIP_ENABLED, NO_REMOTE_CODE } from '../shared/config'
 import { captureClip, captureClipScrolling } from '../shared/clip/capture'
 import { MAX_CLIP_CHARS } from '../shared/clip/types'
 import type { ClipCapture } from '../shared/clip/types'
@@ -15,6 +15,7 @@ import type { AppSettings } from '../shared/types'
 import { decryptField } from '../shared/crypto'
 import { fetchVizData, fetchDocDatasets, docOf } from '../shared/dataviz/data'
 import { loadVizList } from '../shared/dataviz/store'
+import { loadDecks } from '../shared/ai/slidesStore'
 import { resolveToken } from '../shared/feishu/auth'
 import { batchUpdateRecords, getWikiNode } from '../shared/feishu/api'
 import { applyInBatches } from '../shared/feishu/compose'
@@ -217,6 +218,31 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
       const source = !viz.multi && viz.source.kind === 'base' ? viz.source : undefined
       chrome.tabs.sendMessage(tabId, { type: 'DATAVIZ_RENDER', vizId: viz.id, code: viz.code, spec: viz.spec, data: dataRows, datasets, name: viz.name, theme: 'light', source, fieldTypes: source ? fieldTypes : undefined }).catch(() => {})
     } catch { /* surfaced as no overlay; the pill stays */ }
+  })()
+  return undefined
+})
+
+// Launcher pill for a saved PPT deck → render the slides in the page overlay. Mirrors
+// SlidesPanel.showDeck: embed (看板) slides re-fetch their table rows live; others are self-contained.
+chrome.runtime.onMessage.addListener((msg, sender) => {
+  if (msg?.type !== 'DATAVIZ_OPEN_DECK' || sender.tab?.id == null) return undefined
+  const tabId = sender.tab.id
+  void (async () => {
+    try {
+      const settings = await loadSettingsBg()
+      if (!settings) return
+      const deck = (await loadDecks()).find((d) => d.id === msg.deckId)
+      if (!deck) return
+      const hasEmbed = deck.slides.some((s) => s.layout === 'embed')
+      const rows = hasEmbed && deck.source ? (await fetchVizData(settings, deck.source, 2000)).rows : []
+      const payload = NO_REMOTE_CODE
+        ? { spec: { kind: 'slides', slides: deck.slides }, data: rows }
+        : {
+            code: hasEmbed ? "ui.slides(container, data, (datasets && datasets['默认']) || [])" : 'ui.slides(container, data)',
+            data: deck.slides, datasets: hasEmbed ? { 默认: rows } : undefined,
+          }
+      chrome.tabs.sendMessage(tabId, { type: 'DATAVIZ_RENDER', vizId: deck.id, name: deck.name, theme: 'light', ...payload }).catch(() => {})
+    } catch { /* no overlay; the pill stays */ }
   })()
   return undefined
 })

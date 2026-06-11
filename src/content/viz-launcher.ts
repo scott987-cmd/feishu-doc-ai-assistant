@@ -5,7 +5,8 @@
  */
 import { parseFeishuContext } from '../shared/feishu/pageUrl'
 import { loadVizList } from '../shared/dataviz/store'
-import { ctxDocKey, savedVizMatchesCtx } from '../shared/dataviz/scope'
+import { loadDecks, type SavedDeck } from '../shared/ai/slidesStore'
+import { ctxDocKey, ctxScopeKey, savedVizMatchesCtx } from '../shared/dataviz/scope'
 import type { SavedViz } from '../shared/dataviz/types'
 import { isVizOpen, closeViz } from './viz-overlay'
 
@@ -33,23 +34,34 @@ function clearBar() { if (bar) { bar.remove(); bar = null } }
 const PILL_IDLE = '0.55'   // translucent at rest, so it barely obscures the document
 const PILL_HOVER = '1'     // deepens to full color on hover
 
-function pill(v: SavedViz): HTMLButtonElement {
+function makePill(label: string, title: string, onClick: () => void): HTMLButtonElement {
   const b = document.createElement('button')
   b.style.cssText =
     'display:flex;align-items:center;gap:6px;max-width:240px;padding:9px 14px;border:none;border-radius:999px;' +
     'cursor:pointer;background:#4f6bff;color:#fff;box-shadow:0 6px 24px rgba(79,107,255,.4);' +
     "font:13px/1.2 -apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;white-space:nowrap;" +
     'overflow:hidden;text-overflow:ellipsis;opacity:' + PILL_IDLE + ';transition:opacity .18s ease, box-shadow .18s ease;'
-  b.textContent = (v.kind === 'site' ? '🌐 ' : '📊 ') + v.name
-  b.title = '点击展开/收起「' + v.name + '」'
+  b.textContent = label
+  b.title = title
   // Dynamic transparency: faded while idle (doesn't block content), color deepens on hover.
   b.onmouseenter = () => { b.style.opacity = PILL_HOVER }
   b.onmouseleave = () => { b.style.opacity = PILL_IDLE }
-  b.onclick = () => {
+  b.onclick = onClick
+  return b
+}
+
+function pill(v: SavedViz): HTMLButtonElement {
+  return makePill((v.kind === 'site' ? '🌐 ' : '📊 ') + v.name, '点击展开/收起「' + v.name + '」', () => {
     if (isVizOpen(v.id)) closeViz(v.id) // collapse
     else { try { chrome.runtime.sendMessage({ type: 'DATAVIZ_OPEN_SAVED', vizId: v.id }) } catch { /* */ } }
-  }
-  return b
+  })
+}
+
+function deckPill(d: SavedDeck): HTMLButtonElement {
+  return makePill('🎞️ ' + d.name, '点击展开/收起「' + d.name + '」演示', () => {
+    if (isVizOpen(d.id)) closeViz(d.id) // collapse
+    else { try { chrome.runtime.sendMessage({ type: 'DATAVIZ_OPEN_DECK', deckId: d.id }) } catch { /* */ } }
+  })
 }
 
 type Ctx = ReturnType<typeof parseFeishuContext>
@@ -79,16 +91,22 @@ export async function refreshLauncher() {
   const matches = ctxDocKey(f)
     ? (await loadVizList()).filter((v) => savedVizMatchesCtx(v, f))
     : []
+  // Saved PPT decks live in a SEPARATE store — surface them as pills too, so图表/看板/网站/PPT
+  // all get a one-click launcher on the page (not "open the matching extension tab"). Decks are
+  // scoped by srcKey (= ctxScopeKey), matching how SlidesPanel filters its list.
+  const scopeKey = ctxScopeKey(f)
+  const decks = scopeKey ? (await loadDecks()).filter((d) => d.srcKey === scopeKey) : []
   if (myRun !== runSeq) return // a newer refresh started during the await — let it win (guards clearBar too)
-  if (!matches.length) { clearBar(); return }
+  if (!matches.length && !decks.length) { clearBar(); return }
   const c = ensureBar()
   c.innerHTML = ''
   for (const v of matches) c.appendChild(pill(v))
+  for (const d of decks) c.appendChild(deckPill(d))
 }
 
-// Saving/deleting a viz updates storage → refresh pills without a page reload.
+// Saving/deleting a viz OR a slides deck updates storage → refresh pills without a page reload.
 try {
   chrome.storage?.onChanged?.addListener((changes, area) => {
-    if (area === 'local' && changes.dataviz_v1) void refreshLauncher()
+    if (area === 'local' && (changes.dataviz_v1 || changes.slides_decks_v1)) void refreshLauncher()
   })
 } catch { /* no storage here */ }
