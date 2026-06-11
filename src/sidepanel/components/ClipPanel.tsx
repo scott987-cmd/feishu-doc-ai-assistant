@@ -274,10 +274,13 @@ export default function ClipPanel({ settings, clip, error, disabled, onClose }: 
     }
     const instruction =
       `把下面这段「网页剪藏」内容**插入目标文档**（document_id 已在系统提示中给出，直接用，不要新建）。\n` +
-      `- 内容是**表格或可整理成表格的数据**：${structureNote.trim()} 然后用 **insert_table** 插入一个真正的表格，` +
-      `data 为整理好的二维字符串数组（第一行表头，其余每行一条数据），保持行列完整。\n` +
-      `- 表格前可用 add_document_content 插入一个二级标题（来源标题）和来源链接。\n` +
-      `- 内容若是纯文章/无法成表：用 add_document_content 把它作为正文段落插入。\n` +
+      `**只用一次 add_document_content 调用**、按顺序把所有内容放进 blocks（index 用 0）——` +
+      `不要用 insert_table、也不要多次调用 add_document_content（分开/多次插入会让顺序前后颠倒、表格错位）。\n` +
+      `顺序：① 二级标题（来源标题，style:h2）② 来源链接段落 ③ 正文/表格。\n` +
+      `- 内容是**表格或可整理成表格的数据**：${structureNote.trim()} 放进一个 text 块、内容写成 **markdown 表格**` +
+      "（`| 列1 | 列2 |` 换行 `| --- | --- |` 换行 `| 值 | 值 |`，第一行表头、其余每行一条、保持原始行序与列序），" +
+      `系统会自动把它转成真正的飞书表格并保持顺序。\n` +
+      `- 纯文章/无法成表：作为正文段落（style:text）插入。\n` +
       clipFooter
     void runClip(context, instruction, undefined, () => rememberTarget('doc', token, name))
   }

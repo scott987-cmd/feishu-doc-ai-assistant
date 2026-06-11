@@ -113,6 +113,13 @@ export default function SlidesPanel({ settings, context, disabled, onBack }: Pro
 
   function cancel() { abortRef.current?.abort() }
 
+  // Clear the current draft so the user can build ANOTHER deck (saved ones stay in the list).
+  function newDraft() {
+    last.current = null
+    if (srcKey) deckCache.delete(srcKey)
+    setHasGen(false); setCanSave(false); setRequest(''); setStatus(''); setErrMsg(''); setGenChars(0); setAdjReq('')
+  }
+
   async function reshow() {
     if (!last.current || busy) return
     setErrMsg('')
@@ -189,6 +196,7 @@ export default function SlidesPanel({ settings, context, disabled, onBack }: Pro
               </button>
               {hasGen && !busy && <button className="sl-btn" onClick={reshow}>重新展示</button>}
               {hasGen && !busy && canSave && <button className="sl-btn" onClick={save}>⭐ 保存</button>}
+              {hasGen && !busy && <button className="sl-btn" onClick={newDraft}>＋ 新建一个</button>}
             </div>
 
             {hasGen && slideCount > 0 && (

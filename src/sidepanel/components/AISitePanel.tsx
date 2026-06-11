@@ -172,6 +172,14 @@ export default function AISitePanel({ settings, context, disabled, onBack }: Pro
 
   function cancel() { abortRef.current?.abort() }
 
+  // Clear the current draft so the user can build ANOTHER 网站 (saved ones stay in the list).
+  function newDraft() {
+    last.current = null
+    if (curKey) genCache.delete(curKey)
+    setHasGen(false); setCanSave(false); setRequest(''); setStatus(''); setErrMsg(''); setGenChars(0)
+    setPlanText(''); setPlanQuestion(''); setReport(null); setPushed('')
+  }
+
   async function save() {
     if (!last.current) return
     const v: SavedViz = { id: crypto.randomUUID(), name: last.current.name, source: last.current.source, code: last.current.code, spec: last.current.spec, request: last.current.request, createdAt: Date.now(), kind: 'site', multi: last.current.multi }
@@ -290,6 +298,7 @@ export default function AISitePanel({ settings, context, disabled, onBack }: Pro
           <button className="as-btn" onClick={() => generate(true)} disabled={disabled || busy || !request.trim()}>↺ 按上面文字微调（只改你说的那处）</button>
         )}
         {canSave && <button className="as-btn" onClick={save} disabled={busy}>⭐ 保存为「我的网站」</button>}
+        {hasGen && <button className="as-btn" onClick={newDraft} disabled={busy}>＋ 新建一个（保留已保存的）</button>}
 
         {hasGen && (
           <div className="as-export">

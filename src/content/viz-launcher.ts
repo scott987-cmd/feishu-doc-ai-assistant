@@ -37,7 +37,7 @@ const PILL_HOVER = '1'     // deepens to full color on hover
 function makePill(label: string, title: string, onClick: () => void): HTMLButtonElement {
   const b = document.createElement('button')
   b.style.cssText =
-    'display:flex;align-items:center;gap:6px;max-width:240px;padding:9px 14px;border:none;border-radius:999px;' +
+    'flex:0 0 auto;box-sizing:border-box;display:flex;align-items:center;gap:6px;max-width:240px;padding:9px 14px;border:none;border-radius:999px;' +
     'cursor:pointer;background:#4f6bff;color:#fff;box-shadow:0 6px 24px rgba(79,107,255,.4);' +
     "font:13px/1.2 -apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;white-space:nowrap;" +
     'overflow:hidden;text-overflow:ellipsis;opacity:' + PILL_IDLE + ';transition:opacity .18s ease, box-shadow .18s ease;'

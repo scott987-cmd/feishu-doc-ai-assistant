@@ -134,6 +134,14 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
 
   function cancel() { abortRef.current?.abort() }
 
+  // Clear the current draft so the user can build ANOTHER 小程序 (the saved ones stay in the list).
+  // Without this, after generating there was only 「重新生成」 — no way to start a fresh second one.
+  function newDraft() {
+    last.current = null
+    if (curKey) genCache.delete(curKey)
+    setHasGen(false); setCanSave(false); setRequest(''); setStatus(''); setErrMsg(''); setGenChars(0)
+  }
+
   async function save() {
     if (!last.current) return
     const v: SavedViz = {
@@ -205,6 +213,9 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
         )}
         {canSave && (
           <button className="dv-btn" onClick={save} disabled={busy}>⭐ 保存为「我的小程序」</button>
+        )}
+        {hasGen && (
+          <button className="dv-btn" onClick={newDraft} disabled={busy}>＋ 新建一个（保留已保存的）</button>
         )}
         {status && <p className="dv-hint">{status}</p>}
         {busy && (
