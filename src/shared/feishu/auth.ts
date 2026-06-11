@@ -55,7 +55,11 @@ export async function saveUserToken(b: {
   const bundle: UTokenBundle = {
     accessToken: b.accessToken,
     refreshToken: b.refreshToken,
-    expiresAt: b.expiresIn ? Date.now() + b.expiresIn * 1000 : 0,
+    // Some (esp. private/on-prem) token endpoints omit expires_in. Without a positive expiresAt
+    // the proactive "refresh 5 min before expiry" never fires (getValidUserToken gates on
+    // expiresAt > 0) — so a refresh_token would go unused and the token still dies at ~2h.
+    // Default to a conservative ~110 min so renewal stays armed; a too-early refresh is harmless.
+    expiresAt: Date.now() + (b.expiresIn || 6600) * 1000,
   }
   await storageSet(UTOKEN_KEY, await encryptField(JSON.stringify(bundle)))
 }
