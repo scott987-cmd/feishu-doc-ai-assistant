@@ -13,6 +13,7 @@ function wikiToFeishu(objType: string, objToken: string): PageContext['feishu'] 
 import { isFeishuConfigured, resolveToken, isTokenExpiredError, forceRefreshUserToken } from '../shared/feishu/auth'
 import * as API from '../shared/feishu/api'
 import { getDocumentMeta } from '../shared/feishu/docx'
+import { getSpreadsheet } from '../shared/feishu/sheets'
 import { encryptField, decryptField } from '../shared/crypto'
 import { checkNetworkAccess } from '../shared/network'
 import { BUILD_CONFIG, HAS_NETWORK_RESTRICTION, HAS_BUILTIN_CREDS, CLIP_ENABLED, HAS_ENTERPRISE_POLICY } from '../shared/config'
@@ -205,6 +206,27 @@ export default function App() {
     })()
     return () => { cancelled = true }
   }, [docId, settings])
+
+  // Spreadsheet pages: fetch the real title via API too (same reason as docx — the SPA
+  // document.title is unreliable on private/on-prem deploys). Cached under a 'sheet:' key.
+  const sheetToken = ctx.feishu?.kind === 'sheet' ? ctx.feishu.spreadsheetToken : undefined
+  useEffect(() => {
+    if (!sheetToken) return
+    const cacheKey = 'sheet:' + sheetToken
+    const cached = docTitleCacheRef.current.get(cacheKey)
+    const applyTitle = (t: string) => setCtx((c) =>
+      c.feishu?.kind === 'sheet' && c.feishu.spreadsheetToken === sheetToken ? { ...c, title: t } : c)
+    if (cached) { applyTitle(cached); return }
+    let cancelled = false
+    void (async () => {
+      try {
+        const meta = (await getSpreadsheet(await resolveToken(settings), sheetToken)) as { spreadsheet?: { title?: string } }
+        const t = meta?.spreadsheet?.title?.trim()
+        if (t && !cancelled) { docTitleCacheRef.current.set(cacheKey, t); applyTitle(t) }
+      } catch { /* keep document.title fallback */ }
+    })()
+    return () => { cancelled = true }
+  }, [sheetToken, settings])
 
   // Default the view by page type: a supported Feishu resource opens to 对话, an
   // unsupported page opens to 首页 (scenes). This only sets the DEFAULT for a fresh

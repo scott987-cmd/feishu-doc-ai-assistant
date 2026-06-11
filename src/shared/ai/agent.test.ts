@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { ChatCompletionMessageParam } from 'openai/resources'
 import type { ChatMessage, AppSettings, PageContext } from '../types'
-import { sanitizeToken, truncateToolResult, checkDestructiveConfirmation, buildApiHistory, assertApiCallAllowed, runAgent, isFileLevelDelete, describeDestructiveOp } from './agent'
+import { sanitizeToken, truncateToolResult, checkDestructiveConfirmation, buildApiHistory, assertApiCallAllowed, runAgent, isFileLevelDelete, describeDestructiveOp, isDestructiveApiCall } from './agent'
 import type { AgentCallbacks } from './agent'
 
 describe('sanitizeToken', () => {
@@ -152,6 +152,20 @@ describe('assertApiCallAllowed — feishu_api_call security gate', () => {
     expect(() => assertApiCallAllowed('/bitable/../im/v1/messages')).toThrow()
     expect(() => assertApiCallAllowed('/bitable//evil')).toThrow()
     expect(() => assertApiCallAllowed('bitable/no-slash')).toThrow(/必须以/)
+  })
+})
+
+describe('isDestructiveApiCall — raw-API deletes still hit the confirm gate', () => {
+  it('flags POST batch_delete (records/blocks) and Sheets deleteDimension/deleteRange', () => {
+    expect(isDestructiveApiCall('feishu_api_call', { method: 'POST', path: '/bitable/v1/apps/a/tables/t/records/batch_delete' })).toBe(true)
+    expect(isDestructiveApiCall('feishu_api_call', { method: 'POST', path: '/sheets/v2/spreadsheets/s/sheets_batch_update', body: { requests: [{ deleteDimension: { dimension: { majorDimension: 'ROWS' } } }] } })).toBe(true)
+    expect(isDestructiveApiCall('feishu_api_call', { method: 'DELETE', path: '/x' })).toBe(true)
+  })
+  it('does NOT flag normal creates/reads (no over-prompting)', () => {
+    expect(isDestructiveApiCall('feishu_api_call', { method: 'POST', path: '/bitable/v1/apps/a/tables/t/records/batch_create' })).toBe(false)
+    expect(isDestructiveApiCall('feishu_api_call', { method: 'POST', path: '/sheets/v2/spreadsheets/s/sheets_batch_update', body: { requests: [{ insertDimension: {} }] } })).toBe(false)
+    expect(isDestructiveApiCall('feishu_api_call', { method: 'GET', path: '/x' })).toBe(false)
+    expect(isDestructiveApiCall('list_records', {})).toBe(false)
   })
 })
 
