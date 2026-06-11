@@ -105,6 +105,10 @@ function buildPrompt(schema: VizField[], sampleRows: Record<string, string>[], r
     `function cell(){var d=document.createElement('div');d.style.minHeight='240px';container.appendChild(d);return echarts.init(d,theme);}` +
     `var c=cell();c.setOption({...})；类目轴标签多时 axisLabel:{interval:0,rotate:35~45} 防重叠、grid.bottom 留足；` +
     `数值都远大于0时数值轴 {scale:true} 避免从0留空白；图表类型只用 bar/line/pie/scatter；不在图里再放大标题（浮窗已有标题栏）。\n` +
+    `【数据绑定（最重要）】：图表的 series 数据、KPI 数值、表格行**必须在运行时用代码对 data 数组实时计算**` +
+    `（分组/求和/计数/过滤都写成对 data 的运算），**绝对禁止把算好的数值/类目写死进 setOption 或 DOM**——` +
+    `样本数据只是给你看结构，真实数据在运行时通过 data 注入；一旦写死，用户改了飞书表格、重新打开小程序就不会更新（变成死数据）。` +
+    `例：对 data 按某字段分组求和得到 {类目, 值} 数组，再 setOption；不要直接写 data:[42000,5000,…]。\n` +
     `【通用硬规则】：不要设 backgroundColor（透明）；只用真实存在的字段名、不编造数据；` +
     `**禁止 fetch / XMLHttpRequest / WebSocket / import / require / localStorage 等任何网络与 IO**；` +
     `只输出那个 JSON 对象本身，不要任何解释、前言或代码围栏。\n` +
