@@ -10,7 +10,8 @@ import { ctxDocKey, ctxScopeKey, savedVizMatchesCtx } from '../shared/dataviz/sc
 import type { SavedViz } from '../shared/dataviz/types'
 import { isVizOpen, closeViz } from './viz-overlay'
 
-let bar: HTMLDivElement | null = null
+let host: HTMLDivElement | null = null // shadow host (page-fixed anchor)
+let bar: HTMLDivElement | null = null  // flex row INSIDE the shadow root (holds the pills)
 // Monotonic guard: refreshLauncher is fired from several uncoordinated, un-debounced sites (SPA
 // nav, storage.onChanged, initial load). Without this, a fast A→B table switch can let A's slower
 // storage read resolve AFTER B's and repaint A's pills while the user is on B.
@@ -19,17 +20,21 @@ let runSeq = 0
 
 function ensureBar(): HTMLDivElement {
   if (bar) return bar
+  // Render INSIDE a Shadow DOM: the Feishu page's global CSS can't reach in, so our flex row
+  // can't be reset/overridden — without this, page styles stacked the pills on top of each other
+  // instead of laying them out in a row.
+  host = document.createElement('div')
+  host.style.cssText = 'position:fixed;left:20px;bottom:20px;z-index:2147483600;'
+  const shadow = host.attachShadow({ mode: 'open' })
   bar = document.createElement('div')
-  // Lay the pills out as a horizontal row along the BOTTOM edge (wrapping upward only if
-  // there are many). A vertical column on the left used to climb up the page and cover the
-  // document's left-side content.
+  // Horizontal row along the BOTTOM edge, wrapping upward only when there are many pills.
   bar.style.cssText =
-    'position:fixed;left:20px;bottom:20px;z-index:2147483600;display:flex;flex-direction:row;' +
-    'flex-wrap:wrap;gap:8px;align-items:flex-end;max-width:calc(100vw - 40px);'
-  document.body.appendChild(bar)
+    'display:flex;flex-direction:row;flex-wrap:wrap;gap:8px;align-items:flex-end;max-width:calc(100vw - 40px);'
+  shadow.appendChild(bar)
+  document.body.appendChild(host)
   return bar
 }
-function clearBar() { if (bar) { bar.remove(); bar = null } }
+function clearBar() { if (host) { host.remove(); host = null; bar = null } }
 
 const PILL_IDLE = '0.55'   // translucent at rest, so it barely obscures the document
 const PILL_HOVER = '1'     // deepens to full color on hover
