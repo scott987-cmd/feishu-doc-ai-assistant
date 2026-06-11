@@ -20,7 +20,8 @@
     "promo:marquee": "node scripts/promo-marquee.mjs",
     "serve:templates": "node scripts/serve-templates.mjs",
     "icons": "node scripts/generate-icons.js",
-    "prepare": "npm run icons"
+    "prepare": "npm run icons",
+    "test:render": "node scripts/render-test.mjs"
   },
   "dependencies": {
     "echarts": "^6.1.0",
