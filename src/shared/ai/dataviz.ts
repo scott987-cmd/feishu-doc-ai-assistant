@@ -98,8 +98,8 @@ function buildPrompt(schema: VizField[], sampleRows: Record<string, string>[], r
     `  • 图表看板 → 用 echarts（见下方"图表规则"）。\n` +
     `  • 交互工具/计算器/模拟器 → 在 container 里建输入控件，读 data 实时计算并展示（可用 echarts 出图）。\n` +
     `  • 报表/打印视图 → 排一份适合打印的 DOM（标题/小计/表格）；放一个"🖨 打印/导出PDF"按钮，onclick=()=>window.print()。\n` +
-    `  • 汇报幻灯片 → 在 container 里做翻页式幻灯（上一页/下一页按钮，支持左右方向键）。\n` +
     `  • 自定义视图 → 卡片墙 / 看板 / 时间线 / 甘特 等纯 DOM+SVG 视图。\n` +
+    `（注：演示幻灯片 PPT 有专门的「AI 幻灯片」功能，这里不做 PPT。）\n` +
     `【图表规则（做图表时遵守）】：默认只画一个最能回答需求的图；要多图(看板)时**绝不一个实例叠多坐标系**，` +
     `照骨架：container.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:10px;height:100%;overflow:auto';` +
     `function cell(){var d=document.createElement('div');d.style.minHeight='240px';container.appendChild(d);return echarts.init(d,theme);}` +

@@ -1,7 +1,26 @@
 import { describe, it, expect } from 'vitest'
 import type { ChatCompletionMessageParam } from 'openai/resources'
 import type { ChatMessage, AppSettings, PageContext } from '../types'
-import { sanitizeToken, truncateToolResult, checkDestructiveConfirmation, buildApiHistory, assertApiCallAllowed, runAgent, isFileLevelDelete, describeDestructiveOp, isDestructiveApiCall } from './agent'
+import { sanitizeToken, truncateToolResult, checkDestructiveConfirmation, buildApiHistory, assertApiCallAllowed, runAgent, isFileLevelDelete, describeDestructiveOp, isDestructiveApiCall, rewriteFeishuOrigins } from './agent'
+
+describe('rewriteFeishuOrigins — clip/report links always keep the tenant prefix (no recurrence)', () => {
+  const T = 'https://acme.feishu.cn' // tenant origin (tests run with base domain = feishu.cn)
+  it('rewrites a tenant-less / wrong-subdomain Feishu link to the tenant origin', () => {
+    expect(rewriteFeishuOrigins('打开 [文档](https://feishu.cn/docx/doxABC123) 看看', T))
+      .toBe('打开 [文档](https://acme.feishu.cn/docx/doxABC123) 看看')
+    expect(rewriteFeishuOrigins('https://other.feishu.cn/base/bascXYZ', T)).toBe('https://acme.feishu.cn/base/bascXYZ')
+    expect(rewriteFeishuOrigins('https://x.feishu.cn/sheets/shtA https://y.feishu.cn/wiki/wkB', T))
+      .toBe('https://acme.feishu.cn/sheets/shtA https://acme.feishu.cn/wiki/wkB')
+  })
+  it('leaves non-Feishu URLs untouched', () => {
+    expect(rewriteFeishuOrigins('see https://example.com/docx/abc and https://evil.cn/base/x', T))
+      .toBe('see https://example.com/docx/abc and https://evil.cn/base/x')
+  })
+  it('is a no-op on empty / link-free text', () => {
+    expect(rewriteFeishuOrigins('', T)).toBe('')
+    expect(rewriteFeishuOrigins('没有链接的普通文字', T)).toBe('没有链接的普通文字')
+  })
+})
 import type { AgentCallbacks } from './agent'
 
 describe('sanitizeToken', () => {

@@ -4,7 +4,7 @@ import { runDocToSlides, runTableToSlides, adjustSlide, type Slide } from '../..
 import { loadDecks, saveDeck, deleteDeck, type SavedDeck } from '../../shared/ai/slidesStore'
 import { sendVizToActiveTab } from '../../shared/dataviz/send'
 import { fetchVizData } from '../../shared/dataviz/data'
-import { ctxDocKey } from '../../shared/dataviz/scope'
+import { deckScopeKey } from '../../shared/dataviz/scope'
 import type { VizSource } from '../../shared/dataviz/types'
 import { isTokenExpiredError } from '../../shared/feishu/auth'
 import { NO_REMOTE_CODE } from '../../shared/config'
@@ -65,10 +65,9 @@ export default function SlidesPanel({ settings, context, disabled, onBack }: Pro
 
   const kind = context.feishu?.kind
   const documentId = kind === 'doc' ? context.feishu?.documentId : undefined
-  const isTable = kind === 'base' || kind === 'sheet'
   const isWiki = kind === 'wiki'
   // Cache/restore key: a doc by its id, a Base/Sheet by its doc key. Distinct namespaces, no clash.
-  const srcKey = documentId ?? (isTable ? ctxDocKey(context.feishu) : null)
+  const srcKey = deckScopeKey(context.feishu) // = documentId (doc) ｜ ctxDocKey (base/sheet) — same key the launcher matches
   const canRun = !!srcKey
   const visible = srcKey ? decks.filter((d) => d.srcKey === srcKey) : []
 

@@ -1,7 +1,7 @@
 import type { VizSource } from './types'
 
 /** Structural context (accepts both PageContext['feishu'] and parseFeishuContext()'s result). */
-type Ctx = { kind?: string; appToken?: string; spreadsheetToken?: string; tableId?: string } | null | undefined
+type Ctx = { kind?: string; appToken?: string; spreadsheetToken?: string; tableId?: string; documentId?: string } | null | undefined
 
 /**
  * "Document key" — a stable id for the Base app / Spreadsheet a viz belongs to. Used only as a
@@ -57,4 +57,15 @@ export function vizMatchesCtx(source: VizSource, f: Ctx): boolean {
 export function savedVizMatchesCtx(v: { multi?: boolean; source: VizSource }, f: Ctx): boolean {
   if (v.multi && v.source.kind === 'base') return f?.kind === 'base' && f.appToken === v.source.appToken
   return vizMatchesCtx(v.source, f)
+}
+
+/**
+ * Scope key a saved PPT DECK is bound to — a docx page keys by its documentId, a Base/Sheet by
+ * its doc key. MUST match how SlidesPanel computes `srcKey` AND how the launcher filters decks,
+ * so a deck's pill shows on exactly the page it was made on (they drifted before: the launcher
+ * used the per-table ctxScopeKey while decks were saved under documentId/ctxDocKey → no PPT pill).
+ */
+export function deckScopeKey(f: Ctx): string | null {
+  if (f?.kind === 'doc' && f.documentId) return f.documentId
+  return ctxDocKey(f)
 }

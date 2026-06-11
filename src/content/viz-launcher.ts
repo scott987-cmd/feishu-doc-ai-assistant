@@ -6,7 +6,7 @@
 import { parseFeishuContext } from '../shared/feishu/pageUrl'
 import { loadVizList } from '../shared/dataviz/store'
 import { loadDecks, type SavedDeck } from '../shared/ai/slidesStore'
-import { ctxDocKey, ctxScopeKey, savedVizMatchesCtx } from '../shared/dataviz/scope'
+import { ctxDocKey, deckScopeKey, savedVizMatchesCtx } from '../shared/dataviz/scope'
 import type { SavedViz } from '../shared/dataviz/types'
 import { isVizOpen, closeViz } from './viz-overlay'
 
@@ -99,8 +99,8 @@ export async function refreshLauncher() {
   // Saved PPT decks live in a SEPARATE store — surface them as pills too, so图表/看板/网站/PPT
   // all get a one-click launcher on the page (not "open the matching extension tab"). Decks are
   // scoped by srcKey (= ctxScopeKey), matching how SlidesPanel filters its list.
-  const scopeKey = ctxScopeKey(f)
-  const decks = scopeKey ? (await loadDecks()).filter((d) => d.srcKey === scopeKey) : []
+  const deckKey = deckScopeKey(f)
+  const decks = deckKey ? (await loadDecks()).filter((d) => d.srcKey === deckKey) : []
   if (myRun !== runSeq) return // a newer refresh started during the await — let it win (guards clearBar too)
   if (!matches.length && !decks.length) { clearBar(); return }
   const c = ensureBar()

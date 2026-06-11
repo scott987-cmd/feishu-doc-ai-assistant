@@ -322,8 +322,10 @@ export async function runAgent(
 
     const assistantMsg: ChatMessage = {
       id: crypto.randomUUID(),
+      // Normalize any hand-written Feishu link to the tenant origin (else clip/report links drop
+      // the tenant subdomain and won't open). Single output-boundary guard → no recurrence.
+      content: textAccum ? rewriteFeishuOrigins(textAccum, await resolveTenantOrigin(context)) : null,
       role: 'assistant',
-      content: textAccum || null,
       tool_calls: toolCallDefs.length > 0 ? toolCallDefs : undefined,
       createdAt: Date.now(),
     }
@@ -1049,31 +1051,52 @@ async function executeSheetTool(
 
 // ─── Document tool execution ────────────────────────────────────────────────
 
-// docx's create API returns no `url`, so build a clickable one from the current
-// Feishu origin (the tenant domain) so the assistant can give a one-click link.
+const isFeishuHost = (urlStr?: string): boolean => {
+  const d = BUILD_CONFIG.feishuBaseDomain
+  try { const h = new URL(urlStr ?? '').hostname.toLowerCase(); return h === d || h.endsWith('.' + d) } catch { return false }
+}
+
+/**
+ * Resolve the Feishu TENANT origin (e.g. https://<tenant>.kastd01.statusfeishu.cn) — the prefix
+ * every clickable doc/base/sheet link needs. Prefer the current page's origin (carries the
+ * tenant subdomain); when NOT on a Feishu page (e.g. clipping a web page) fall back to the
+ * last-seen tenant origin the content script persisted; only then to the bare base domain
+ * (which DROPS the tenant → a broken link on private/on-prem deploys).
+ */
+async function resolveTenantOrigin(context: PageContext): Promise<string> {
+  if (isFeishuHost(context.url)) { try { return new URL(context.url).origin } catch { /* fall through */ } }
+  const stored = await storageGet('_feishu_tenant_origin')
+  if (typeof stored === 'string' && isFeishuHost(stored)) return stored
+  return `https://${BUILD_CONFIG.feishuBaseDomain}`
+}
+
+/**
+ * Recurrence guard: rewrite the ORIGIN of every Feishu resource link in `text` to the tenant
+ * origin. The model often hand-writes links (clip "give a clickable link", reports, etc.) and
+ * guesses the bare base domain → tenant-less, unopenable URLs. This normalizes ALL of them in
+ * one place at the output boundary, so a single missed call site can't reintroduce the bug.
+ * Only touches hosts that ARE the base domain or a subdomain of it; foreign URLs are left alone.
+ */
+export function rewriteFeishuOrigins(text: string, tenantOrigin: string): string {
+  if (!text) return text
+  const d = BUILD_CONFIG.feishuBaseDomain
+  return text.replace(
+    /https?:\/\/([a-z0-9.-]+)(\/(?:docx|docs|base|sheets|wiki)\/[A-Za-z0-9]+)/gi,
+    (m, host: string, rest: string) => {
+      const h = host.toLowerCase()
+      return h === d || h.endsWith('.' + d) ? tenantOrigin.replace(/\/+$/, '') + rest : m
+    },
+  )
+}
+
+// docx's create API returns no `url`, so build a clickable one from the tenant origin.
 async function withDocUrl(
   r: { document?: { document_id?: string } },
   context: PageContext
 ): Promise<unknown> {
   const id = r.document?.document_id
   if (!id) return r
-  const d = BUILD_CONFIG.feishuBaseDomain
-  const isFeishuHost = (urlStr?: string): boolean => {
-    try { const h = new URL(urlStr ?? '').hostname.toLowerCase(); return h === d || h.endsWith('.' + d) } catch { return false }
-  }
-  // Prefer the CURRENT page's origin (it carries the tenant subdomain, e.g.
-  // <tenant>.kastd01.statusfeishu.cn). When NOT on a Feishu page — e.g. clipping a web page —
-  // context.url is the clipped site, so fall back to the last-seen Feishu tenant origin the
-  // content script persisted; only then to the bare base domain (which drops the tenant and
-  // yields a broken link on private/on-prem deploys).
-  let origin = `https://${d}`
-  if (isFeishuHost(context.url)) {
-    origin = new URL(context.url).origin
-  } else {
-    const stored = await storageGet('_feishu_tenant_origin')
-    if (typeof stored === 'string' && isFeishuHost(stored)) origin = stored
-  }
-  return { ...r, document: { ...r.document, url: `${origin}/docx/${id}` } }
+  return { ...r, document: { ...r.document, url: `${await resolveTenantOrigin(context)}/docx/${id}` } }
 }
 
 async function executeDocTool(
