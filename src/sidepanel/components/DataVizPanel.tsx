@@ -184,7 +184,7 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
       <button className="sc-back" onClick={onBack}>← 返回</button>
       <div className="dv-body">
         <div className="dv-title">🧩 AI 小程序</div>
-        <p className="dv-sub">用一句话把当前表做成图表 / 报表 / 看板 / 计算器 / 幻灯片，渲染成页面上的浮窗。</p>
+        <p className="dv-sub">用一句话把当前表做成图表 / 报表 / 看板 / 计算器，渲染成页面上的浮窗。（做 PPT 请用「AI 幻灯片」）</p>
 
         {isWiki && (
           <p className="dv-hint dv-hint--warn">正在解析知识库（Wiki）页面…若长时间无法识别，请直接打开多维表格 / 电子表格本体再使用。</p>
@@ -197,7 +197,7 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
           className="dv-input"
           placeholder={hasGen
             ? '只调你说的那一处，例如：把第二个图换成饼图；放大标题；左边的图加数据标签…（其它图保持不动）'
-            : '例如：按地区销量做柱状图；做一个利润计算器；把这张表做成可打印报表；做一页汇报幻灯片…'}
+            : '例如：按地区销量做柱状图；做一个利润计算器；把这张表做成可打印报表…'}
           value={request}
           onChange={(e) => setRequest(e.target.value)}
           rows={3}

@@ -228,6 +228,17 @@ export default function App() {
     return () => { cancelled = true }
   }, [sheetToken, settings])
 
+  // Belt-and-suspenders: persist the TENANT origin whenever the side panel sees a Feishu page
+  // (the content script does this too, but it may not have run yet for a freshly-reloaded build).
+  // Clip-generated doc links read this to keep the <tenant>. prefix → openable on on-prem.
+  useEffect(() => {
+    try {
+      const u = new URL(ctx.url)
+      const h = u.hostname.toLowerCase(), d = BUILD_CONFIG.feishuBaseDomain
+      if (ctx.feishu && (h === d || h.endsWith('.' + d))) chrome.storage?.local?.set({ _feishu_tenant_origin: u.origin })
+    } catch { /* no usable url */ }
+  }, [ctx.url, ctx.feishu])
+
   // Default the view by page type: a supported Feishu resource opens to 对话, an
   // unsupported page opens to 首页 (scenes). This only sets the DEFAULT for a fresh
   // session — it must never yank the user out of an active conversation (e.g. after the

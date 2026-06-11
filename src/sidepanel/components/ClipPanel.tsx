@@ -162,6 +162,9 @@ export default function ClipPanel({ settings, clip, error, disabled, onClose }: 
   }
 
   async function loadTarget() {
+    // The pasted target link carries the TENANT origin (e.g. https://<tenant>.<domain>) — capture
+    // it so a clip-generated doc link keeps the tenant prefix (else it's unopenable on on-prem).
+    if (parsed) { try { chrome.storage.local.set({ _feishu_tenant_origin: new URL(baseUrl.trim()).origin }) } catch { /* bare token, not a URL */ } }
     // wiki link wraps the real resource — resolve obj_type → base / sheet / doc.
     if (!appToken && parsed?.kind === 'wiki' && parsed.wikiToken) {
       setLoadingCtx(true)
