@@ -67,7 +67,8 @@ export default function DemoPanel({ settings, onBack }: Props) {
       } else {
         const { code, spec, warning } = await generateViz(settings, { schema: SAMPLE_DATA.schema, sampleRows: SAMPLE_DATA.rows.slice(0, 30), request: req })
         post({ code, spec, data: SAMPLE_DATA.rows })
-        if (warning) setErrMsg('⚠ ' + warning)
+        setStatus(`已渲染到下方预览。可改描述再生成。${warning ? `　⚠ ${warning}` : ''}`)
+        return
       }
       setStatus('已渲染到右侧/下方预览。可改下面的描述再生成。')
     } catch (e) {

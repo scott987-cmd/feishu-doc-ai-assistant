@@ -163,8 +163,7 @@ export default function AISitePanel({ settings, context, disabled, onBack }: Pro
       if (curKey) genCache.set(curKey, last.current) // survive tab-switch unmount → no regenerate
       setHasGen(true); setCanSave(true); setPlanText(''); setPlanQuestion('')
       if (refine) setRequest('')
-      setStatus(`已${refine ? '调整' : '生成'}「${finalName}」并展示在页面上`)
-      if (warning) setErrMsg('⚠ ' + warning)
+      setStatus(`已${refine ? '调整' : '生成'}「${finalName}」并展示在页面上${warning ? `　⚠ ${warning}` : ''}`)
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') setStatus('已取消')
       else { setErrMsg(errText(e)); setStatus('') }
@@ -212,7 +211,7 @@ export default function AISitePanel({ settings, context, disabled, onBack }: Pro
       if (NO_REMOTE_CODE && !v.spec && v.code) {
         setStatus(`「${v.name}」由旧版生成，正用当前数据重建…`)
         const vd = await fetchVizData(settings, v.source, RENDER_CAP)
-        const { spec } = await generateSite(settings, { schema: vd.schema, sampleRows: vd.rows.slice(0, SAMPLE_CAP), request: v.request || v.name })
+        const { spec, warning } = await generateSite(settings, { schema: vd.schema, sampleRows: vd.rows.slice(0, SAMPLE_CAP), request: v.request || v.name })
         // Match the normal-open guard: never enable write-back on a MULTI-sheet site (the spec
         // renders only the primary table, so an edit could target the wrong sub-table).
         const editSource = !v.multi && v.source.kind === 'base' ? v.source : undefined
@@ -220,7 +219,7 @@ export default function AISitePanel({ settings, context, disabled, onBack }: Pro
         // KEEP the original `code` — self-distribution builds still render it full-fidelity
         // (incl. multi-table); only store builds use the rebuilt spec. Never destroy the original.
         setList(onlySites(await saveViz({ ...v, spec })))
-        setStatus(`已重建并渲染「${v.name}」（已保存，下次秒开）`)
+        setStatus(`已重建并渲染「${v.name}」（已保存，下次秒开）${warning ? `　⚠ ${warning}` : ''}`)
         return
       }
       // Multi-sheet sites re-fetch ALL sub-tables; single-table sites just their one source.

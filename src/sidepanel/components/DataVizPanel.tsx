@@ -121,8 +121,9 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
       if (curKey) genCache.set(curKey, last.current) // survive tab-switch unmount → no regenerate
       setHasGen(true); setCanSave(true)
       if (refine) setRequest('') // each tweak is independent now — clear for the next one
-      setStatus(`已${refine ? '调整' : '生成'}「${finalName}」并展示在页面上`)
-      if (warning) setErrMsg('⚠ ' + warning)
+      // Append the unmatched-field warning to the (neutral) success status — NOT the red error
+      // slot — and it clears itself on the next action.
+      setStatus(`已${refine ? '调整' : '生成'}「${finalName}」并展示在页面上${warning ? `　⚠ ${warning}` : ''}`)
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') setStatus('已取消')
       else { setErrMsg(errText(e)); setStatus('') }
@@ -153,11 +154,11 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
         setStatus(`「${v.name}」由旧版生成，正用当前数据重建…`)
         // Single fetch (RENDER_CAP ⊇ SAMPLE_CAP) — slice a prefix for codegen, render the rest.
         const full = await fetchVizData(settings, v.source, RENDER_CAP)
-        const { spec } = await generateViz(settings, { schema: full.schema, sampleRows: full.rows.slice(0, SAMPLE_CAP), request: v.request || v.name })
+        const { spec, warning } = await generateViz(settings, { schema: full.schema, sampleRows: full.rows.slice(0, SAMPLE_CAP), request: v.request || v.name })
         await sendToOverlay({ spec }, full.rows, v.name)
         // KEEP original `code` (self-dist still renders it; only store builds use the spec).
         setList(onlyVizzes(await saveViz({ ...v, spec })))
-        setStatus(`已重建并渲染「${v.name}」（已保存，下次秒开）`)
+        setStatus(`已重建并渲染「${v.name}」（已保存，下次秒开）${warning ? `　⚠ ${warning}` : ''}`)
         return
       }
       const full = await fetchVizData(settings, v.source, RENDER_CAP)
