@@ -1,5 +1,24 @@
 import { describe, it, expect } from 'vitest'
-import { markdownToBlocks, buildBlock, buildTableDescendants, splitSheetToken } from './docx'
+import { markdownToBlocks, buildBlock, buildTableDescendants, splitSheetToken, markdownToSegments, hasMarkdownTable } from './docx'
+
+describe('markdownToSegments — tables become real table segments, not raw text', () => {
+  it('splits text + table + text in order', () => {
+    const md = '# 标题\n说明文字\n\n| 区域 | 销量 |\n| --- | --- |\n| 华东 | 100 |\n| 华南 | 50 |\n\n结尾段落'
+    const segs = markdownToSegments(md)
+    expect(segs.map((s) => s.kind)).toEqual(['blocks', 'table', 'blocks'])
+    const table = segs.find((s) => s.kind === 'table') as { kind: 'table'; rows: string[][] }
+    expect(table.rows).toEqual([['区域', '销量'], ['华东', '100'], ['华南', '50']])
+  })
+  it('does NOT treat a | line inside a code fence as a table', () => {
+    const md = '```\n| not | a | table |\n| --- | --- | --- |\n```'
+    const segs = markdownToSegments(md)
+    expect(segs.every((s) => s.kind === 'blocks')).toBe(true)
+  })
+  it('hasMarkdownTable detects the |row|+|---| pattern only', () => {
+    expect(hasMarkdownTable('| a | b |\n| - | - |\n| 1 | 2 |')).toBe(true)
+    expect(hasMarkdownTable('普通文字，含 | 竖线 但不是表')).toBe(false)
+  })
+})
 
 // markdownToBlocks powers create_doc_from_markdown — wrong parsing = broken docs.
 describe('markdownToBlocks', () => {

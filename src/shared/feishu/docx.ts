@@ -112,9 +112,10 @@ export async function createDocFromMarkdown(
     document?: { document_id?: string }
   }
   const docId = created.document?.document_id
-  const blocks = markdownToBlocks(markdown)
-  if (docId && blocks.length) await insertBlocks(token, docId, blocks, 0)
-  return { ...created, blocks_inserted: blocks.length }
+  // Table-aware: markdown tables become real Feishu tables, not literal `| … |` text.
+  const segs = markdownToSegments(markdown)
+  const res = docId && segs.length ? await insertSegments(token, docId, segs, 0) : { blocks_inserted: 0 }
+  return { ...created, blocks_inserted: res.blocks_inserted }
 }
 
 /** Plain-text dump of the whole document. */
@@ -226,6 +227,73 @@ export async function insertTable(token: string, documentId: string, data: strin
     { index, children_id, descendants },
   )) as { children?: Array<{ block_id: string }> }
   return { table_block_id: res.children?.[0]?.block_id ?? null, rows, cols }
+}
+
+// ─── Markdown WITH tables → real Feishu blocks + table blocks ────────────────
+// markdownToBlocks alone turns a markdown table (| a | b |) into literal text — so a clipped /
+// reported table landed as raw `| … |` lines. These split markdown into text-runs (→ insertBlocks)
+// and table-runs (→ insertTable, the descendant endpoint) and insert them in order.
+
+export type MdSegment = { kind: 'blocks'; specs: BlockSpec[] } | { kind: 'table'; rows: string[][] }
+
+const TABLE_ROW = /^\s*\|.*\|\s*$/
+const TABLE_SEP = /^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/
+const tableCells = (l: string) => l.trim().replace(/^\||\|$/g, '').split('|').map((s) => s.trim())
+/** True when `t` contains a markdown table (a |row| immediately followed by a |---| separator). */
+export function hasMarkdownTable(t: string): boolean {
+  const ls = (t || '').split('\n')
+  return ls.some((l, i) => TABLE_ROW.test(l) && i + 1 < ls.length && TABLE_SEP.test(ls[i + 1]))
+}
+
+export function markdownToSegments(md: string): MdSegment[] {
+  const lines = (md || '').replace(/\r\n/g, '\n').split('\n')
+  const segs: MdSegment[] = []
+  let buf: string[] = []
+  let inCode = false
+  const flush = () => { if (buf.length) { const specs = markdownToBlocks(buf.join('\n')); if (specs.length) segs.push({ kind: 'blocks', specs }); buf = [] } }
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i]
+    if (l.trim().startsWith('```')) { inCode = !inCode; buf.push(l); continue }
+    if (!inCode && TABLE_ROW.test(l) && i + 1 < lines.length && TABLE_SEP.test(lines[i + 1])) {
+      flush()
+      const rows = [tableCells(l)]
+      i += 2 // skip header + separator
+      while (i < lines.length && TABLE_ROW.test(lines[i]) && !TABLE_SEP.test(lines[i])) { rows.push(tableCells(lines[i])); i++ }
+      i--
+      segs.push({ kind: 'table', rows })
+    } else buf.push(l)
+  }
+  flush()
+  return segs
+}
+
+/** Insert a mixed sequence (text blocks + tables) in order, tracking the running block index. */
+export async function insertSegments(token: string, documentId: string, segments: MdSegment[], index = 0) {
+  let idx = index, inserted = 0
+  for (const seg of segments) {
+    if (seg.kind === 'blocks' && seg.specs.length) {
+      const r = await insertBlocks(token, documentId, seg.specs, idx)
+      idx += r.blocks_inserted; inserted += r.blocks_inserted
+    } else if (seg.kind === 'table' && seg.rows.length) {
+      await insertTable(token, documentId, seg.rows, idx)
+      idx += 1; inserted += 1 // a table is one top-level block
+    }
+  }
+  return { blocks_inserted: inserted }
+}
+
+/** Insert AI-supplied BlockSpec[] but expand any text block that embeds a markdown table into a
+ *  real table (the assistant sometimes stuffs a `| … |` table into a text block). */
+export async function insertContentBlocks(token: string, documentId: string, specs: BlockSpec[], index = 0) {
+  const segments: MdSegment[] = []
+  let buf: BlockSpec[] = []
+  const flush = () => { if (buf.length) { segments.push({ kind: 'blocks', specs: buf }); buf = [] } }
+  for (const s of specs) {
+    if ((!s.style || s.style === 'text') && hasMarkdownTable(s.text)) { flush(); for (const seg of markdownToSegments(s.text)) segments.push(seg) }
+    else buf.push(s)
+  }
+  flush()
+  return insertSegments(token, documentId, segments, index)
 }
 
 // ─── Embedded spreadsheet (电子表格, block_type 30) ──────────────────────────

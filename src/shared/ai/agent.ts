@@ -1117,7 +1117,10 @@ async function executeDocTool(
     case 'list_blocks':
       return Docx.listBlocks(token, doc!)
     case 'add_document_content':
-      return Docx.insertBlocks(
+      // insertContentBlocks expands any markdown table embedded in a text block into a REAL
+      // Feishu table (the assistant sometimes stuffs `| … |` into a text block instead of using
+      // insert_table) — so a clipped/written table no longer lands as raw markdown.
+      return Docx.insertContentBlocks(
         token, doc!,
         (args.blocks as BlockSpec[]) ?? [],
         (args.index as number | undefined) ?? 0
