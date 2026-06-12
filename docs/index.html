@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>飞书文档AI助手 · 完整文档（使用 / 部署 / 架构 / 安全）</title>
+<style>
+  :root{--bg:#fff;--fg:#1d2433;--mut:#5b6478;--line:#e7eaf2;--soft:#f6f8fc;--accent:#4f6bff;--ok:#1a9d6b;--warn:#c47d0a;--danger:#d4380d;--code:#0f1320;--codefg:#e6e9f5}
+  @media(prefers-color-scheme:dark){:root{--bg:#0f1320;--fg:#e6e9f5;--mut:#9aa3c7;--line:#262c46;--soft:#171c2e;--accent:#7d93ff;--code:#0b0e18;--codefg:#e6e9f5}}
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font:15px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--fg)}
+  a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+  .wrap{display:flex;max-width:1180px;margin:0 auto}
+  nav.toc{position:sticky;top:0;align-self:flex-start;height:100vh;overflow:auto;width:236px;flex:0 0 236px;padding:22px 14px;border-right:1px solid var(--line);font-size:13.5px}
+  nav.toc h1{font-size:15px;margin:0 0 2px}
+  nav.toc .sub{color:var(--mut);font-size:12px;margin-bottom:14px}
+  nav.toc a{display:block;color:var(--mut);padding:4px 10px;border-radius:7px}
+  nav.toc a:hover{background:var(--soft);text-decoration:none}
+  nav.toc a.on{color:var(--fg);background:var(--soft);font-weight:600}
+  nav.toc .g{margin:12px 10px 4px;font-size:11px;letter-spacing:.04em;color:var(--mut);text-transform:uppercase}
+  main{flex:1;min-width:0;padding:30px 38px 120px}
+  h2{font-size:23px;margin:46px 0 8px;padding-top:8px;border-top:1px solid var(--line)}
+  h2:first-child{border:0;margin-top:6px}
+  h3{font-size:17px;margin:26px 0 6px}
+  h4{font-size:14px;margin:18px 0 4px;color:var(--mut)}
+  p,li{color:var(--fg)}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.87em;background:var(--soft);padding:1px 5px;border-radius:5px;border:1px solid var(--line)}
+  pre{background:var(--code);color:var(--codefg);padding:14px 16px;border-radius:10px;overflow:auto;font-size:13px;line-height:1.55}
+  pre code{background:none;border:0;padding:0;color:inherit;font-size:13px}
+  table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:600}
+  td code{white-space:nowrap}
+  .lead{font-size:16px;color:var(--mut)}
+  .card{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:14px 0}
+  .note{border-left:3px solid var(--accent);background:var(--soft);padding:10px 16px;border-radius:0 8px 8px 0;margin:14px 0}
+  .warn{border-left:3px solid var(--warn)}
+  .danger{border-left:3px solid var(--danger)}
+  .ok{border-left:3px solid var(--ok)}
+  .pill{display:inline-block;font-size:11px;padding:1px 8px;border-radius:10px;border:1px solid var(--line);color:var(--mut);background:var(--soft)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:14px 0}
+  .grid .card{margin:0}
+  .kbd{font-size:12px;color:var(--mut)}
+  hr{border:0;border-top:1px solid var(--line);margin:30px 0}
+  .toctoggle{display:none}
+  @media(max-width:860px){nav.toc{display:none}main{padding:18px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="toc">
+  <h1>🪶 飞书文档AI助手</h1>
+  <div class="sub">完整文档 · 使用/部署/架构/安全</div>
+  <div class="g">开始</div>
+  <a href="#overview">概览</a>
+  <a href="#usage">使用</a>
+  <div class="g">部署</div>
+  <a href="#deploy-personal">个人 / 直连</a>
+  <a href="#deploy-enterprise">企业服务端套件</a>
+  <a href="#deploy-store">商店 / BYO 包</a>
+  <a href="#deploy-private">私有化 / 内网</a>
+  <a href="#env">环境变量速查</a>
+  <div class="g">深入</div>
+  <a href="#arch">架构</a>
+  <a href="#security">安全模型</a>
+  <a href="#admin">运维 · 管理台</a>
+  <a href="#validate">验证 · 测试</a>
+  <a href="#faq">FAQ</a>
+</nav>
+<main>
+
+<h2 id="overview">概览</h2>
+<p class="lead">Chrome <b>MV3</b> 扩展：在飞书 多维表格 / 电子表格 / 文档 页用自然语言操作，并把数据做成 <b>看板 / 网站 / PPT</b>，还能做<b>文档质检</b>。<b>无后端也能用</b>，全部以<b>用户本人飞书身份</b>操作。</p>
+<div class="grid">
+  <div class="card"><b>① 客户端（扩展）</b><br><span class="kbd">React 18 + TS + Vite + ECharts。装上即用；个人版零服务端。</span></div>
+  <div class="card"><b>② 企业服务端套件（可选）</b><br><span class="kbd">一个零依赖 Node 进程，挂载 换token代理 + 技能库 + 云备份 + 管理台。全部开关门控，<b>不影响商店版</b>。</span></div>
+</div>
+<h4>能力一览</h4>
+<table>
+<tr><th>能力</th><th>说明</th><th>需要服务端？</th></tr>
+<tr><td>自然语言操作多维表格/电子表格/文档</td><td>读、写、批量改、行级写回、建表/字段，全程用户身份 + 危险操作确认门</td><td>否</td></tr>
+<tr><td>看板 / AI建站 / PPT / 文档质检</td><td>把数据做成 ECharts 看板、自包含网站、可翻页 PPT；通读文档挑质量问题</td><td>否</td></tr>
+<tr><td>越用越聪明（本地经验）</td><td>成功套路在<b>本机</b>沉淀，下次自动参考</td><td>否</td></tr>
+<tr><td>企业统一下发 App ID / App Secret / LLM / 策略</td><td>密钥只在服务端，员工免配置；单一构建只内置代理地址</td><td>是（代理）</td></tr>
+<tr><td>共享技能库</td><td>多用户脱敏经验汇聚、去重、打分、晋级、主动推送</td><td>是（代理 + 可选 embedding）</td></tr>
+<tr><td>企业云备份</td><td>小程序/建站/PPT 镜像到企业自有对象存储，丢失可拉回</td><td>是（代理 + 对象存储）</td></tr>
+<tr><td>本地配置备份</td><td>导出/导入文件防个人数据丢失（<b>所有版本</b>可用）</td><td>否</td></tr>
+<tr><td>运维管理台</td><td>看板/技能审核/备份管理/配置巡检/审计</td><td>是（代理）</td></tr>
+</table>
+
+<h2 id="usage">使用</h2>
+<h3>个人 5 步上手</h3>
+<pre><code>1) git clone &amp;&amp; npm i
+2) npm run build            # 产物在 dist/
+3) chrome://extensions → 打开「开发者模式」→「加载已解压的扩展程序」→ 选 dist/
+4) 打开任意飞书多维表格/电子表格/文档页，点扩展图标开侧边栏
+5) 设置 → 填 OpenAI 兼容大模型（Base URL/Key/Model）+ 用飞书账号一键授权</code></pre>
+<div class="note ok"><b>最安全的个人姿势</b>：什么都不内置，用「飞书账号授权」（user-token）。AI 只以你本人的权限操作，绝不使用应用身份越权。</div>
+<h3>能做什么（侧边栏对话即可）</h3>
+<ul>
+<li><b>操作数据</b>：「把 A 列按月汇总」「筛掉重复行」「给这几行建任务」——批量改一次性提交、删除走确认门、可一键撤销。</li>
+<li><b>看板/小程序</b>：「按分类做个销售额柱状图」→ 浮窗渲染，可导出 PDF / 生成飞书文档 / 推送到群。</li>
+<li><b>AI 建站</b>：把当前表做成一个自包含网站。</li>
+<li><b>AI 幻灯片</b>：文档/数据一键转可翻页 PPT。</li>
+<li><b>文档质检</b>：通读整篇，挑出逻辑断点、未定义术语、前后矛盾、遗留 TODO、空小节等。</li>
+<li><b>网页剪藏</b>：把当前网页内容剪藏进多维表格。</li>
+</ul>
+
+<h2 id="deploy-personal">部署 · 个人 / 直连</h2>
+<p>三种鉴权模式，按安全性从高到低：</p>
+<table>
+<tr><th>模式</th><th>构建配置</th><th>secret 去向</th></tr>
+<tr><td><b>A. 纯 user-token（推荐）</b></td><td>什么都不内置</td><td>无 secret；用户授权拿自己的 token</td></tr>
+<tr><td><b>B. 直连·密码加密</b></td><td><code>VITE_FEISHU_APP_ID</code> + <code>VITE_FEISHU_APP_SECRET_ENC</code>（密文）</td><td>密文进包，运行时输口令解锁</td></tr>
+<tr><td><b>C. 代理模式（企业）</b></td><td><code>VITE_OAUTH_PROXY_URL</code>，三个 secret 变量<b>全部留空</b></td><td>secret 只在服务端，永不进 .crx</td></tr>
+</table>
+<pre><code># B. 生成加密 secret（按提示输入 secret + 口令）
+node scripts/encrypt-secret.mjs
+# 填 .env.local：VITE_FEISHU_APP_ID=cli_xxx  VITE_FEISHU_APP_SECRET_ENC=&lt;密文&gt;  VITE_FEISHU_APP_SECRET=（留空）
+npm run build</code></pre>
+
+<h2 id="deploy-enterprise">部署 · 企业服务端套件</h2>
+<p>一个<b>零依赖 Node 进程</b>（<code>node ≥ 18</code>）就是整套服务端：<code>docs/oauth-proxy-server.mjs</code> 在同一端口、同一进程里挂载换 token、技能库、云备份、管理台。前面套一层 nginx 即可。</p>
+<div class="note"><b>核心理念</b>：企业构建<b>只内置代理地址</b>（<code>VITE_OAUTH_PROXY_URL</code>）。App ID / App Secret / LLM Key / 策略 全部服务端下发，可随时轮换，单一构建服务任意租户。</div>
+
+<h3>① 起代理</h3>
+<pre><code>FEISHU_APP_ID=cli_xxx FEISHU_APP_SECRET=xxx \
+ALLOW_ORIGIN=chrome-extension://&lt;你的扩展ID&gt; \
+ALLOWED_REDIRECT_URIS=https://&lt;扩展ID&gt;.chromiumapp.org/ \
+FEISHU_TENANT_KEY=&lt;你企业的 tenant_key&gt; \
+node docs/oauth-proxy-server.mjs        # 默认 :8787</code></pre>
+<p>子服务按需打开（同进程挂载，无需另起）：</p>
+<pre><code># 企业统一 LLM（员工免填 key）
+LLM_BASE_URL=https://api.deepseek.com LLM_API_KEY=sk-xxx LLM_MODEL=deepseek-chat \
+# 共享技能库（建议配真 embedding）
+EMBED_URL=https://api.openai.com/v1/embeddings EMBED_KEY=sk-xxx EMBED_MODEL=text-embedding-3-small \
+SKILLS_FILE=/var/lib/feishu/skills.json \
+# 企业云备份（对象存储 S3 兼容；或本地盘 ARTIFACTS_DIR）
+S3_ENDPOINT=https://s3.ap-southeast-1.amazonaws.com S3_REGION=ap-southeast-1 \
+S3_BUCKET=my-feishu-artifacts S3_ACCESS_KEY=AKIA... S3_SECRET_KEY=... \
+ARTIFACT_ENC_KEY=&lt;32字节hex&gt; \
+# 运维管理台（设了密码才挂载 /admin）
+ADMIN_PASSWORD=&lt;高熵密码&gt; ADMIN_TOKEN_SECRET=&lt;32字节随机&gt; \
+node docs/oauth-proxy-server.mjs</code></pre>
+
+<h3>② 构建企业包</h3>
+<pre><code># .env.enterprise.local（只填代理地址 + 想开的特性开关）
+VITE_OAUTH_PROXY_URL=https://your-proxy.example.com/feishu/oauth
+VITE_OAUTH_PROXY_KEY=&lt;可选·与代理 PROXY_SHARED_KEY 一致&gt;
+VITE_APP_ID_FROM_PROXY=1     # App ID 从代理下发
+VITE_LLM_FROM_PROXY=1        # LLM 从代理下发
+VITE_ENTERPRISE_POLICY=1     # 统一策略
+VITE_SKILLS_ENABLED=1        # 共享技能库
+VITE_ARTIFACT_SYNC=1         # 企业云备份
+# 三个 secret 变量全部留空！
+
+npm run build -- --mode enterprise
+# 自检：包里有代理 URL、【无】secret</code></pre>
+<div class="note ok"><b>开关即门控</b>：每个 <code>VITE_*</code> 特性都是「标志 &amp;&amp; 有代理」双门控。<b>商店/BYO 版没有代理 → 全部折叠为死代码消除</b>，对外发版完全不受影响。</div>
+
+<h3>③ nginx（推荐内网 + 身份网关）</h3>
+<pre><code>location /feishu/oauth { proxy_pass http://127.0.0.1:8787/; proxy_set_header X-Forwarded-For $remote_addr; }
+# 管理台建议仅内网/VPN 可达 + IP_ALLOWLIST，或单独 location 前置 SSO</code></pre>
+<div class="note warn"><b>TRUST_PROXY 安全</b>：若设 <code>TRUST_PROXY=1</code>，上游反代<b>必须覆盖</b> <code>X-Forwarded-For</code>（如上 <code>$remote_addr</code>），<b>绝不能追加</b>，否则客户端可伪造 XFF 绕过限流甚至命中 IP 白名单。</div>
+
+<h2 id="deploy-store">部署 · 商店 / BYO 包</h2>
+<p>对外上架版：用户自带飞书应用（填 App ID + Secret），不内置任何凭据，剥掉 manifest <code>key</code>。</p>
+<pre><code>npm run build -- --mode store     # VITE_WEBSTORE=1：剥 key + 商店名/描述；不内置 secret
+# 校验：dist 里无 appid、无 secret、无任何企业端点串（技能/备份/app_config 全 0）</code></pre>
+<div class="note ok">商店版与企业版<b>同一份代码</b>，靠 <code>.env</code> 模式区分；企业特性在无代理时被死代码消除，<b>本地配置备份</b>等无服务端依赖的能力照常可用。</div>
+
+<h2 id="deploy-private">部署 · 私有化 / 内网（Lark / 飞书私有化）</h2>
+<p>私有化只差一个域名后缀，所有 host 从它派生：</p>
+<pre><code>VITE_FEISHU_BASE_DOMAIN=your-private-domain.com   # open.&lt;域&gt; / accounts.&lt;域&gt; / &lt;租户&gt;.&lt;域&gt; 自动派生
+# 代理侧：FEISHU_API_BASE=https://open.&lt;域&gt;/open-apis</code></pre>
+<p>详见 <code>docs/PRIVATE_DEPLOYMENT.md</code>。<code>feishuFetch</code> 会在私有化端点 <code>404</code> 时自动 <code>/vN/→v(N-1)</code> 回退。</p>
+
+<h2 id="env">环境变量速查</h2>
+<h4>客户端（构建期 <code>VITE_*</code>，写在 <code>.env.&lt;mode&gt;.local</code>）</h4>
+<table>
+<tr><th>变量</th><th>作用</th></tr>
+<tr><td><code>VITE_FEISHU_APP_ID</code></td><td>内置 App ID（企业托管模式留空，改由代理下发）</td></tr>
+<tr><td><code>VITE_FEISHU_APP_SECRET / _ENC</code></td><td>明文 / 密文 secret（代理模式留空）</td></tr>
+<tr><td><code>VITE_OAUTH_PROXY_URL</code></td><td>企业代理地址（开启所有企业特性的前提）</td></tr>
+<tr><td><code>VITE_OAUTH_PROXY_KEY</code></td><td>可选·防滥用键（随包下发，<b>弱</b>，非强密钥）</td></tr>
+<tr><td><code>VITE_APP_ID_FROM_PROXY</code></td><td>=1 从代理 <code>app_config</code> 取 App ID</td></tr>
+<tr><td><code>VITE_LLM_FROM_PROXY</code> / <code>_LOCK_MANAGED</code> / <code>_NO_PERSIST</code></td><td>企业统一 LLM / 锁定手动 / 仅内存</td></tr>
+<tr><td><code>VITE_ENTERPRISE_POLICY</code></td><td>=1 拉取并锁定企业统一策略</td></tr>
+<tr><td><code>VITE_SKILLS_ENABLED</code></td><td>=1 共享技能库</td></tr>
+<tr><td><code>VITE_ARTIFACT_SYNC</code></td><td>=1 企业云备份</td></tr>
+<tr><td><code>VITE_LLM_REDACT</code> / <code>_MAX_PAYLOAD_CHARS</code></td><td>外发 LLM 前脱敏 / 单载荷上限</td></tr>
+<tr><td><code>VITE_WEBSTORE</code> / <code>VITE_NO_REMOTE_CODE</code></td><td>商店打包(剥 key) / 无远程代码(声明式渲染)</td></tr>
+<tr><td><code>VITE_FEISHU_BASE_DOMAIN</code></td><td>私有化域名后缀</td></tr>
+</table>
+<h4>服务端（运行期，进程环境变量）</h4>
+<table>
+<tr><th>变量</th><th>子服务</th><th>作用</th></tr>
+<tr><td><code>FEISHU_APP_ID / FEISHU_APP_SECRET</code></td><td>oauth</td><td>换 token 用；secret 永不下发。App ID 也经 <code>app_config</code> 公开下发</td></tr>
+<tr><td><code>ALLOW_ORIGIN / ALLOWED_REDIRECT_URIS / ALLOWED_CLIENT_IDS</code></td><td>oauth</td><td>来源锁 / 回调白名单(fail-closed) / client_id 白名单</td></tr>
+<tr><td><code>PROXY_SHARED_KEY / IP_ALLOWLIST / TRUST_PROXY / RATE_LIMIT_PER_MIN</code></td><td>全局</td><td>防滥用键 / IP 白名单(已覆盖管理台) / 信任 XFF / 限流</td></tr>
+<tr><td><code>FEISHU_TENANT_KEY</code></td><td>llm/policy/备份</td><td><b>租户锁（必填，fail-closed）</b>：只放行本企业成员</td></tr>
+<tr><td><code>LLM_BASE_URL / LLM_API_KEY / LLM_MODEL / LLM_LIMIT_PER_HOUR</code></td><td>oauth</td><td>企业统一 LLM 下发 + 每用户配额</td></tr>
+<tr><td><code>POLICY_AUTO_CONFIRM / POLICY_LEARN / POLICY_NOTICE</code></td><td>oauth</td><td>统一策略（强制并锁定客户端开关）</td></tr>
+<tr><td><code>EMBED_URL / EMBED_KEY / EMBED_MODEL</code></td><td>skills</td><td>OpenAI 兼容 embedding（不配则内存假向量）</td></tr>
+<tr><td><code>SKILLS_FILE / SIM_MERGE / TOOL_MERGE / MIN_SOURCES / MIN_SUCCESS_RATE / PLAYBOOK_MIN / SKILLS_MAX / TENANT_KEYS</code></td><td>skills</td><td>落盘 / 去重阈值 / 晋级阈值 / 套路阈值 / 条数上限 / 多租户</td></tr>
+<tr><td><code>S3_ENDPOINT / S3_REGION / S3_BUCKET / S3_ACCESS_KEY / S3_SECRET_KEY / S3_PREFIX</code></td><td>artifacts</td><td>S3 兼容对象存储（AWS/OSS/COS/R2/MinIO）</td></tr>
+<tr><td><code>ARTIFACTS_DIR / ARTIFACT_ENC_KEY / MAX_ARTIFACT_BYTES / PUT_LIMIT_PER_HOUR</code></td><td>artifacts</td><td>本地盘后端 / 静态 AES 加密 / 单次上限 / 每用户配额</td></tr>
+<tr><td><code>ADMIN_PASSWORD / ADMIN_TOKEN_SECRET / ADMIN_SESSION_TTL_MIN / ADMIN_LOGIN_LIMIT_PER_MIN</code></td><td>admin</td><td>登录密码（设了才挂载）/ 会话签名密钥（与密码解耦）/ 会话时长 / 登录限流</td></tr>
+<tr><td><code>SKILLS_DISABLED / ARTIFACTS_DISABLED</code></td><td>—</td><td>=1 关闭对应子服务</td></tr>
+</table>
+
+<h2 id="arch">架构</h2>
+<h3>组件与数据流</h3>
+<pre><code>┌──────────────── Chrome 扩展（用户本人身份）─────────────────┐
+│  侧边栏(React) ── agent.ts ──► OpenAI 兼容大模型             │
+│       │            │ 工具调用（白名单 + 危险操作确认门）        │
+│       │            ▼                                          │
+│   content script ─ feishuReq/feishuFetch ──► 飞书开放平台 API │
+│   sandbox iframe（opaque origin · connect-src:none）渲染看板  │
+└───────┬──────────────────────────────────────────────────────┘
+        │ 仅企业构建（VITE_OAUTH_PROXY_URL）
+        ▼
+┌──────────────── 企业服务端套件（一个 Node 进程）──────────────┐
+│  oauth-proxy ── /（换token: code/refresh + llm_config/policy/  │
+│      │           app_config）  ← App Secret 只在这里           │
+│      ├─ /skills/*   技能库：去重/打分/晋级/套路（skill-proxy）  │
+│      ├─ /artifacts/* 云备份：S3兼容/FS + AES（artifact-proxy）  │
+│      └─ /admin /admin/api/*  管理台（admin-server + admin-ui） │
+│  统一前置：IP白名单 → 各子服务自带 CORS/鉴权/限流              │
+└───────────────────────────────────────────────────────────────┘
+        外部依赖（均运维配置，无 SSRF）：飞书 user_info / 你的 embedding / 你的对象存储</code></pre>
+<h3>关键约束（代码里硬编码的边界）</h3>
+<ul>
+<li><b>只用用户身份</b>：<code>auth.ts resolveToken</code> 绝不回退 tenant。</li>
+<li><b>文件级删除一律拒绝</b>；内容删除走确认门（<code>DESTRUCTIVE_TOOLS</code>）。</li>
+<li><b>通用 API 白名单</b>：禁 im/通讯录/权限/所有权。</li>
+<li><b>出站只走</b> <code>feishuReq/feishuFetch</code>；大模型走 <code>assertSafeBaseUrl</code>。</li>
+<li><b>沙箱隔离</b>：生成代码在 opaque origin + <code>connect-src:'none'</code>。</li>
+<li><b>secret 不进明文包</b>；<b>写操作不自动重试</b>。</li>
+<li><b>企业特性双门控</b>：<code>HAS_* = flag &amp;&amp; 有代理</code> → 商店版死代码消除。</li>
+</ul>
+<p>深结构见 <code>ARCHITECTURE.md</code>。</p>
+
+<h2 id="security">安全模型</h2>
+<h3>客户端</h3>
+<ul>
+<li><b>身份闸门</b>：AI 始终以<b>用户本人</b>飞书身份操作，绝不回退应用/租户身份越权。</li>
+<li><b>破坏性操作</b>：文件级删除硬阻断；内容删除/通用写入走<b>确认门</b>（可一键撤销）。</li>
+<li><b>出站守卫</b>：飞书只走 <code>feishuReq/feishuFetch</code>；大模型 Base URL 经 <code>assertSafeBaseUrl</code> + 可选 host 白名单。</li>
+<li><b>沙箱</b>：LLM 生成的渲染代码在 opaque origin、<code>connect-src:'none'</code>、无 <code>allow-same-origin</code>。</li>
+<li><b>商店版隔离</b>：无代理 → 企业特性全部死代码消除，不外发任何东西。</li>
+</ul>
+<h3>服务端</h3>
+<ul>
+<li><b>secret 不下发</b>：App Secret / LLM Key / 对象存储密钥只在服务端；token 透传不解析不落盘不打印。</li>
+<li><b>租户锁 fail-closed</b>：<code>FEISHU_TENANT_KEY</code> 未设则拒绝下发一切；回调白名单未设则拒绝换 code。</li>
+<li><b>App ID 经 <code>app_config</code> 无 token 下发</b>：App ID 本就是公开值（OAuth URL 里可见），格式校验后缓存，secret 仍只在服务端。</li>
+<li><b>技能库只收脱敏数据</b>：仅 LLM 蒸馏的一句话经验 + 工具名 + 匿名安装 id；客户端<b>无条件 PII 脱敏</b>，且 match 查询用去标识经验、<b>绝不发原始任务文本</b>。</li>
+<li><b>云备份按 open_id 隔离</b>：存储路径由服务端校验出的 open_id 生成、客户端不可指定；可选静态 AES。</li>
+</ul>
+<h3>管理台</h3>
+<ul>
+<li>设了 <code>ADMIN_PASSWORD</code> 才挂载；登录换 <b>HMAC 签名会话</b>（密钥与登录密码<b>解耦</b>，重启即吊销）。</li>
+<li><b>纳入 IP 白名单</b>（在所有子服务分发之前把关）；建议仅内网/VPN 可达。</li>
+<li>防点击劫持（<code>X-Frame-Options: DENY</code> + CSP <code>frame-ancestors none</code>）；同源校验；登录限流。</li>
+</ul>
+<div class="note">完整威胁矩阵、应急流程、历史审计项见 <code>SECURITY_AUDIT.md</code>。本仓库经过两轮代码审查 + 一轮安全审查，所有中危及以上风险已整改。</div>
+
+<h2 id="admin">运维 · 管理台</h2>
+<p>设 <code>ADMIN_PASSWORD</code> 启动代理后，浏览器开 <code>https://&lt;你的代理&gt;/admin</code> 登录。统一管理：</p>
+<table>
+<tr><th>页签</th><th>能做什么</th></tr>
+<tr><td>总览</td><td>各模块健康、技能数/已晋级、备份后端、最近活动</td></tr>
+<tr><td>技能库</td><td>浏览脱敏技能、分数/热度、<b>删除</b>、<b>强制晋级/降级</b></td></tr>
+<tr><td>备份</td><td>按 租户/用户 open_id/类型 列出对象、<b>删除</b>（合规清理）</td></tr>
+<tr><td>配置</td><td>当前生效配置（密钥已脱敏）</td></tr>
+<tr><td>审计</td><td>近 500 条事件（换 token / app_config / llm_config / 技能 / 备份 / 管理操作）</td></tr>
+</table>
+<div class="note warn">管理台能删备份、改技能——务必 <b>仅内网/VPN 可达 + IP 白名单</b>，用高熵 <code>ADMIN_PASSWORD</code>，并设独立的 <code>ADMIN_TOKEN_SECRET</code>。</div>
+
+<h2 id="validate">验证 · 测试</h2>
+<p>每次改完都跑（迭代循环）：</p>
+<pre><code>npm run typecheck        # 必须 0 错
+npm test                 # 单元测试全绿（~460 用例）
+npm run build            # 必须成功
+npm run test:ui          # 动了侧边栏 UI 再跑（11 项冒烟）</code></pre>
+<p>服务端 + 客户端能力用<b>合成数据</b>一键复验（无需真飞书 / 真对象存储）：</p>
+<pre><code>npm run validate:server  # 起假飞书 + spawn 真代理，跑 29 条端到端断言
+                         #（技能去重/打分/晋级/匹配/套路、备份往返/隔离/AES、各 grant、管理台审核/审计）
+# 看板/PPT/质检 的纯逻辑由 src/shared/features-validate.test.ts 用合成销售数据校验（含手算期望）</code></pre>
+
+<h2 id="faq">FAQ</h2>
+<div class="card"><b>个人用，必须自建服务端吗？</b><br>不用。个人版零服务端，用「飞书账号授权」即可。服务端只为企业统一下发凭据/技能库/云备份/管理台。</div>
+<div class="card"><b>商店版会不会带上企业代理代码？</b><br>不会。企业特性双门控，无代理时被 Vite 死代码消除；构建后 dist 里技能/备份/<code>app_config</code> 端点串全为 0、无 appid。</div>
+<div class="card"><b>技能库会泄露我的数据吗？</b><br>只外发 LLM 蒸馏的一句话经验 + 工具名 + 匿名 id，且无条件 PII 脱敏；匹配查询用去标识经验，绝不发原始任务文本。备份则是你<b>自己的</b>产物进<b>你公司自己的</b>对象存储。</div>
+<div class="card"><b>更多</b><br>见 <code>docs/FAQ.md</code> · <code>docs/USER_GUIDE.md</code> · <code>docs/PRIVATE_DEPLOYMENT.md</code> · <code>docs/STORE_PUBLISHING.md</code>。</div>
+
+<hr>
+<p class="kbd">本页为离线单文件文档（零依赖）。源与更多细节：<code>README.md</code> · <code>ARCHITECTURE.md</code> · <code>SECURITY_AUDIT.md</code> · <code>docs/DEPLOYMENT.md</code>。</p>
+</main>
+</div>
+<script>
+// 滚动高亮当前章节
+const links=[...document.querySelectorAll('nav.toc a')]
+const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]))
+const obs=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(l=>l.classList.remove('on'));const a=map.get(e.target.id);if(a)a.classList.add('on')}})},{rootMargin:'-10% 0px -80% 0px'})
+document.querySelectorAll('main h2[id]').forEach(h=>obs.observe(h))
+</script>
+</body>
+</html>

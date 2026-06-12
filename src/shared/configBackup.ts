@@ -10,6 +10,7 @@
  */
 import { encryptField, decryptField } from './crypto'
 import { BUILD_CONFIG } from './config'
+import { assertSafeBaseUrl } from './providers'
 
 const MARKER = 'feishu-ai-assistant'
 const MSG_PREFIX = 'session_msgs_v1::'
@@ -32,12 +33,18 @@ const getAll = (): Promise<Record<string, unknown>> =>
 const setAll = (items: Record<string, unknown>): Promise<void> =>
   new Promise((r) => { try { chrome.storage.local.set(items, () => r()) } catch { r() } })
 
-/** Union two arrays of `{id}` by id (incoming fills what local lacks), newest-first, capped. Pure. */
+/** Union two arrays of `{id}` by id, newest-first, capped — but NEVER drops a local item: incoming
+ *  only fills the free room up to `cap`, so a full local list keeps all its entries. Pure. */
 export function mergeById<T extends { id: string; createdAt?: number }>(local: T[], incoming: T[], cap: number): T[] {
   const have = new Set(local.map((x) => x.id))
+  const room = Math.max(0, cap - local.length)
+  if (!room) return local
   const add = incoming.filter((x) => x && typeof x.id === 'string' && !have.has(x.id))
+    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+    .slice(0, room)
   if (!add.length) return local
-  return [...local, ...add].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)).slice(0, cap)
+  // union ≤ cap → sort is presentation-only, drops nothing local
+  return [...local, ...add].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
 }
 
 /** Build a portable backup object from local storage. `exportedAt` is passed in by the caller. */
@@ -103,16 +110,27 @@ export async function applyBackup(file: BackupFile): Promise<ImportSummary> {
   if (d.settings && typeof d.settings === 'object') {
     const cur = (all['settings_v2'] || {}) as Record<string, unknown>
     const ns = d.settings as Record<string, unknown>
+    // flag/enum fields: only `undefined` falls back (false is a meaningful value to restore).
     const pick = (k: string) => (ns[k] !== undefined ? ns[k] : cur[k])
+    // string fields: an EMPTY imported string falls back to current — don't wipe good local config
+    // (e.g. an old/hand-edited backup with feishuOwnerOpenId:'' must not clobber a valid local id).
+    const pickStr = (k: string) => (typeof ns[k] === 'string' && (ns[k] as string).trim() ? ns[k] : cur[k])
     const next: Record<string, unknown> = {
       ...cur,
-      openaiBaseUrl: pick('openaiBaseUrl'), openaiModel: pick('openaiModel'),
-      templateRegistryUrl: pick('templateRegistryUrl'), feishuOwnerOpenId: pick('feishuOwnerOpenId'),
+      openaiBaseUrl: pickStr('openaiBaseUrl'), openaiModel: pickStr('openaiModel'),
+      templateRegistryUrl: pickStr('templateRegistryUrl'), feishuOwnerOpenId: pickStr('feishuOwnerOpenId'),
       learnFromHistory: pick('learnFromHistory'), voiceInput: pick('voiceInput'),
       autoConfirm: pick('autoConfirm'), llmSource: pick('llmSource'),
     }
     if (typeof ns.openaiApiKey === 'string' && ns.openaiApiKey) next.openaiApiKey = await encryptField(ns.openaiApiKey)
     if (typeof ns.feishuAccessToken === 'string' && ns.feishuAccessToken) next.feishuAccessToken = await encryptField(ns.feishuAccessToken)
+    // A backup is untrusted input. Don't let an imported LLM base URL bypass the enterprise host
+    // allowlist (would exfil the conversation + API key to an attacker host) — validate it; on failure
+    // keep the current value. On unpinned builds this still enforces https (same as manual entry).
+    if (typeof next.openaiBaseUrl === 'string' && next.openaiBaseUrl && next.openaiBaseUrl !== cur.openaiBaseUrl) {
+      try { assertSafeBaseUrl(next.openaiBaseUrl as string, BUILD_CONFIG.openaiAllowedHosts) }
+      catch { next.openaiBaseUrl = cur.openaiBaseUrl }
+    }
     writes['settings_v2'] = next
     summary.settings = true
   }

@@ -24,6 +24,7 @@ export default function SkillSuggest({
   useEffect(() => {
     if (!show || loadedKind.current === resourceKind) return
     loadedKind.current = resourceKind
+    setDismissed(false) // 换了资源/会话(类型变化) → 重新允许提示，否则一次关闭会永久压制后续所有资源
     let alive = true
     void preloadSkills(resourceKind).then((s) => { if (alive) setSkills(s) })
     return () => { alive = false }

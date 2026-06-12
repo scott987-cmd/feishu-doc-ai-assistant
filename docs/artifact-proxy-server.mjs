@@ -97,12 +97,15 @@ function proxyKeyOk(req) {
 }
 
 // 校验 user_access_token 属于本企业，返回 { ok, openId?, tenantKey?, status?, error? }。带 5min 缓存，避免每次备份都打飞书。
-const _verifyCache = new Map() // token → { openId, tenantKey, exp }
+// 缓存键用 token 的 sha256（不存原始 token）——避免用户访问令牌以明文长驻内存（堆/核心转储泄露面）。
+const _verifyCache = new Map() // sha256(token) → { openId, tenantKey, exp }
+const tokKey = (uat) => crypto.createHash('sha256').update(uat).digest('hex')
 async function verifyMember(uat) {
   if (!FEISHU_TENANT_KEY) return { ok: false, status: 500, error: 'tenant_lock_required' }
   if (!uat) return { ok: false, status: 401, error: 'unauthorized' }
   const now = Date.now()
-  const hit = _verifyCache.get(uat)
+  const k = tokKey(uat)
+  const hit = _verifyCache.get(k)
   if (hit && hit.exp > now) return { ok: true, openId: hit.openId, tenantKey: hit.tenantKey }
   try {
     const ui = await fetch(`${API_BASE}/authen/v1/user_info`, { headers: { Authorization: `Bearer ${uat}` } })
@@ -110,7 +113,7 @@ async function verifyMember(uat) {
     if (uj.code !== 0 || !uj.data) return { ok: false, status: 401, error: 'invalid_token' }
     if (uj.data.tenant_key !== FEISHU_TENANT_KEY) return { ok: false, status: 403, error: 'not_in_tenant' }
     if (_verifyCache.size > 5000) _verifyCache.clear()
-    _verifyCache.set(uat, { openId: uj.data.open_id, tenantKey: uj.data.tenant_key, exp: now + 5 * 60000 })
+    _verifyCache.set(k, { openId: uj.data.open_id, tenantKey: uj.data.tenant_key, exp: now + 5 * 60000 })
     return { ok: true, openId: uj.data.open_id, tenantKey: uj.data.tenant_key }
   } catch { return { ok: false, status: 502, error: 'verify_failed' } }
 }

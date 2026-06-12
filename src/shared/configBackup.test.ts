@@ -39,6 +39,21 @@ describe('mergeById (pure)', () => {
     const incoming = Array.from({ length: 80 }, (_, i) => ({ id: `s${i}`, createdAt: i }))
     expect(mergeById(local, incoming, 50)).toHaveLength(50)
   })
+  it('NEVER drops a local item: full local + all-newer cloud → keeps every local, adds none', () => {
+    const local = Array.from({ length: 50 }, (_, i) => ({ id: 'L' + i, createdAt: i }))
+    const incoming = Array.from({ length: 10 }, (_, i) => ({ id: 'C' + i, createdAt: 1000 + i })) // all newer
+    const out = mergeById(local, incoming, 50)
+    expect(out).toHaveLength(50)
+    for (const l of local) expect(out.some((x) => x.id === l.id)).toBe(true) // every local survives the cap
+  })
+  it('fills only the free room with newest cloud, still keeping all local', () => {
+    const local = [{ id: 'L0', createdAt: 1 }, { id: 'L1', createdAt: 2 }]
+    const incoming = Array.from({ length: 60 }, (_, i) => ({ id: 'C' + i, createdAt: 100 + i }))
+    const out = mergeById(local, incoming, 50)
+    expect(out).toHaveLength(50)
+    expect(out.some((x) => x.id === 'L0')).toBe(true)
+    expect(out.some((x) => x.id === 'L1')).toBe(true)
+  })
 })
 
 describe('buildBackup — secret handling', () => {

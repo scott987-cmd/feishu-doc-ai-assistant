@@ -22,7 +22,8 @@
     "serve:templates": "node scripts/serve-templates.mjs",
     "icons": "node scripts/generate-icons.js",
     "prepare": "npm run icons",
-    "test:render": "node scripts/render-test.mjs"
+    "test:render": "node scripts/render-test.mjs",
+    "docs:html": "node scripts/build-docs.mjs"
   },
   "dependencies": {
     "echarts": "^6.1.0",

@@ -17,8 +17,8 @@ import { HAS_BUILTIN_CREDS, BUILD_CONFIG } from '../config'
 import { assertSafeBaseUrl } from '../providers'
 import { resolveLlmConfig } from './llmConfig'
 import { redactSensitive } from './redact'
-import { loadRecipes, recordRecipe, relevantRecipes, formatRecipes } from './recipes'
-import { matchSkills, formatSkills, type Skill } from './skills'
+import { loadRecipes, recordRecipe, relevantRecipes, formatRecipes, type Recipe } from './recipes'
+import { matchSkills, formatSkills, preloadSkills, type Skill } from './skills'
 import type { BaseCtx } from '../feishu/context'
 import { ctxToPrompt } from '../feishu/context'
 import { generateViz } from './dataviz'
@@ -292,15 +292,21 @@ export async function runAgent(
   // unless enterprise+proxy, so the fallback never fires on the store/BYO build.
   let matchedSkills: Skill[] = []
   if (learn && lastUserText) {
+    let recipes: Recipe[] = []
     try {
-      const hints = formatRecipes(relevantRecipes(await loadRecipes(), lastUserText, resourceKind))
+      recipes = relevantRecipes(await loadRecipes(), lastUserText, resourceKind)
+      const hints = formatRecipes(recipes)
       if (hints) systemPrompt += '\n\n' + hints
     } catch { /* recall is best-effort */ }
     // Community skills from the shared server — no-op unless enterprise+proxy (store unaffected).
-    // De-identified: only the redacted intent + resource kind leave; server returns scored skills.
-    // Kept in `matchedSkills` so we can RE-SURFACE them at a failure point (Phase 4 fallback).
+    // PRIVACY: NEVER send the raw task text to the proxy. Match on a DE-IDENTIFIED query — the top
+    // locally-distilled lesson (data-free) when we have one; otherwise fall back to kind-based preload
+    // (no user text leaves at all). Kept in `matchedSkills` to RE-SURFACE on failure (Phase 4).
     try {
-      matchedSkills = await matchSkills({ resourceKind, intent: lastUserText })
+      const lessonQuery = recipes.find((r) => r.lesson?.trim())?.lesson ?? ''
+      matchedSkills = lessonQuery
+        ? await matchSkills({ resourceKind, intent: lessonQuery })
+        : await preloadSkills(resourceKind)
       const skillHints = formatSkills(matchedSkills)
       if (skillHints) systemPrompt += '\n\n' + skillHints
     } catch { /* best-effort */ }

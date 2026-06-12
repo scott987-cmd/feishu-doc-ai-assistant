@@ -31,10 +31,21 @@ async function pushKind(kind: ArtifactKind, items: unknown[]): Promise<void> {
   })
 }
 
-// 合并多次快速保存：3s 防抖，只发最后一版整组。
-const DEBOUNCE_MS = 3000
+// 合并多次快速保存：短防抖，只发最后一版整组。
+const DEBOUNCE_MS = 1500
 const timers = new Map<ArtifactKind, ReturnType<typeof setTimeout>>()
 const pending = new Map<ArtifactKind, unknown[]>()
+// 每个 kind 串行化推送：pushKind 是 async（取 token + fetch），若两个窗口的推送并发，较早的「大镜像」
+// 可能晚于较晚的「删后小镜像」落到服务端，把已删项复活。串成一条链保证后发后到、最后一版生效。
+const pushChain = new Map<ArtifactKind, Promise<void>>()
+function flushKind(kind: ArtifactKind): void {
+  const t = timers.get(kind); if (t) { clearTimeout(t); timers.delete(kind) }
+  if (!pending.has(kind)) return
+  const latest = pending.get(kind) ?? []
+  pending.delete(kind)
+  const prev = pushChain.get(kind) ?? Promise.resolve()
+  pushChain.set(kind, prev.then(() => pushKind(kind, latest)).catch(() => { /* best-effort; never block the user */ }))
+}
 
 /** 本地保存成功后调用：防抖把该分组整组备份到企业云。no-op off。 */
 export function scheduleBackup(kind: ArtifactKind, items: unknown[]): void {
@@ -42,12 +53,17 @@ export function scheduleBackup(kind: ArtifactKind, items: unknown[]): void {
   pending.set(kind, items)
   const t = timers.get(kind)
   if (t) clearTimeout(t)
-  timers.set(kind, setTimeout(() => {
-    timers.delete(kind)
-    const latest = pending.get(kind) ?? []
-    pending.delete(kind)
-    void pushKind(kind, latest).catch(() => { /* best-effort; never block the user */ })
-  }, DEBOUNCE_MS))
+  timers.set(kind, setTimeout(() => flushKind(kind), DEBOUNCE_MS))
+}
+
+// MV3：侧边栏页面可能在防抖窗口内被关闭/隐藏，setTimeout 随之丢失 → 那次保存永远没备份上去。
+// 页面隐藏时立刻把待发的镜像 flush 掉（请求通常仍会被浏览器发出），把丢失窗口降到最小。best-effort。
+// 必须门控在 HAS_ARTIFACT_SYNC 内：否则这个【模块级】监听会让 flushKind→pushKind 一直可达，破坏 store
+// 构建的死代码消除（/artifacts/put 串会残留进包）。关时整块折叠消除，store 版彻底无痕。
+if (HAS_ARTIFACT_SYNC && typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') for (const k of [...pending.keys()]) flushKind(k)
+  })
 }
 
 /** 从企业云拉取该分组整组。失败/未授权/未开 → []。 */
@@ -66,8 +82,9 @@ export async function restoreArtifacts<T = unknown>(kind: ArtifactKind): Promise
 }
 
 /**
- * 恢复：把云端该分组按 id 并集合并进本地——【只补不覆盖】本地（本地为主，永不因云端而删/改本地条目），
- * 合并后按 createdAt 取最新 50 条（与本地存储上限一致）。返回新增条数。精准服务「本地丢了→拉回」。
+ * 恢复：把云端该分组按 id 并集合并进本地——【只补不覆盖】本地（本地为主，永不因云端而删/改本地条目）。
+ * 关键：保留【全部】本地条目，仅用云端独有项填补到 50 上限的剩余空位（云端取最新的若干），所以
+ * 即便云端项多于剩余空位，被丢弃的也只会是云端项、绝不会是本地项。返回新增条数。
  */
 export async function restoreAndMerge<T extends { id: string; createdAt?: number }>(
   kind: ArtifactKind,
@@ -79,9 +96,13 @@ export async function restoreAndMerge<T extends { id: string; createdAt?: number
   if (!cloud.length) return 0
   const local = await loadLocal()
   const have = new Set(local.map((x) => x.id))
+  const room = Math.max(0, 50 - local.length)
+  if (!room) return 0 // 本地已满 → 不丢任何本地项（也无空位补云端）
   const add = cloud.filter((x) => x && x.id && !have.has(x.id))
+    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+    .slice(0, room)
   if (!add.length) return 0
-  const merged = [...local, ...add].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)).slice(0, 50)
-  await replaceLocal(merged)
+  // union ≤ 50（add 已按剩余空位截断）→ 排序只为展示新→旧，不会丢任何本地项
+  await replaceLocal([...local, ...add].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)))
   return add.length
 }

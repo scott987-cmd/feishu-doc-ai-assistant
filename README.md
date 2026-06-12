@@ -81,6 +81,13 @@
 - **文档总结** 📝：通读当前文档，按你的要求生成总结（摘要 / 要点 / 待办…），可复制。
   **总结要求（prompt）可直接编辑、本机持久化**——飞书原生 AI 速览是固定的，这里你说了算。
 - **三种部署**：个人 / 企业 SaaS / 私有化（on-prem），全部构建时配置切换。
+- **企业服务端套件** 🏢（可选·一个零依赖 Node 进程）：在换 token 代理上同进程挂载 ——
+  **统一下发 App ID / App Secret / LLM / 策略**（员工免配置、密钥只在服务端、可轮换）、
+  **共享技能库**（多用户脱敏经验汇聚·去重·打分·晋级·主动推送）、
+  **企业云备份**（小程序/建站/PPT 镜像到企业自有对象存储、按 open_id 隔离·可选 AES、丢失可拉回）、
+  **运维管理台**（`/admin`：看板 / 技能审核 / 备份管理 / 配置巡检 / 审计）。
+  全部 `HAS_* = 开关 && 有代理` **双门控**，商店版无代理 → **死代码消除、发版零影响**。详见 [`docs/index.html`](docs/index.html)。
+- **本地备份与恢复** 💾（所有版本）：把配置 + 保存的小程序/建站/PPT + 本地经验 + 会话**导出成文件**，换设备/重装后导入恢复，防个人数据丢失（密钥默认不导出，可勾选）。
 
 ---
 
@@ -160,8 +167,15 @@ openssl rsa -in my-extension-key.pem -pubout -outform DER | openssl base64 -A
 
 ## 文档导航
 
+> 📖 **完整文档（离线单页 HTML，零依赖）**：[`docs/index.html`](docs/index.html) —— 使用 / 部署 / 架构 / 安全 一站读完，浏览器直接打开。
+>
+> 🌐 **在线文档站**：本仓库所有 Markdown 已可一键生成静态站并**免费托管在 GitHub Pages**——
+> `npm run docs:html`（零依赖，产物在 `site/`）本地预览；推送到 `main` 由 [`.github/workflows/pages.yml`](.github/workflows/pages.yml) 自动构建发布。
+> 一次性开启：仓库 **Settings → Pages → Source = "GitHub Actions"**，之后访问 `https://<用户名>.github.io/<仓库名>/`。
+
 | 文档 | 内容 |
 |---|---|
+| [`docs/index.html`](docs/index.html) | **完整文档站**（单文件 HTML）：概览 / 使用 / 部署（个人·企业套件·商店·私有化）/ 架构 / 安全 / 管理台 / 验证 / FAQ |
 | [`docs/QUICKSTART.md`](docs/QUICKSTART.md) | **个人快速部署**：配飞书应用权限 → 填配置 → `npm run pack` 一键打包 → 加载使用（5 步） |
 | [`docs/STORE_PUBLISHING.md`](docs/STORE_PUBLISHING.md) | **上架 Chrome 商店**：零凭据公开版构建 + 用户自带应用首配 + 上架清单 + 审核风险规避 |
 | [`PRIVACY.md`](PRIVACY.md) | **隐私政策**（中英）：上架必填的隐私权 URL，可直接托管使用 |
@@ -175,6 +189,9 @@ openssl rsa -in my-extension-key.pem -pubout -outform DER | openssl base64 -A
 | [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md) | 安全设计逐条审计 + 攻击场景 + 修复（含 App Secret/OAuth 图解） |
 | [`docs/enterprise/DEPLOY.md`](docs/enterprise/DEPLOY.md) | 企业内部分发（.crx + Chrome 策略强制安装，含 macOS `.mobileconfig`） |
 | [`docs/oauth-proxy/`](docs/oauth-proxy/) · [`docs/oauth-proxy-server.mjs`](docs/oauth-proxy-server.mjs) | OAuth 代理：自托管 Node（Docker/nginx）+ Cloudflare 版，secret 不进包 |
+| [`docs/skill-proxy-server.mjs`](docs/skill-proxy-server.mjs) · [`docs/artifact-proxy-server.mjs`](docs/artifact-proxy-server.mjs) | 企业服务端套件：共享技能库 / 企业云备份（与 oauth 代理同进程挂载，零依赖） |
+| [`docs/admin-server.mjs`](docs/admin-server.mjs) · [`docs/admin-ui.html`](docs/admin-ui.html) | 运维管理台：单页 + 签名会话鉴权（看板/技能审核/备份管理/配置/审计） |
+| [`docs/sim/validate-server.mjs`](docs/sim/validate-server.mjs) | 合成数据服务端验证器（`npm run validate:server`，无需真飞书） |
 | [`.env.example`](.env.example) | 全部构建时配置项 |
 | [`CHANGELOG.md`](CHANGELOG.md) | 版本更新日志 |
 
