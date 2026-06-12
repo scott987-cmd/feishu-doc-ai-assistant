@@ -33,8 +33,12 @@ export default function UndoBar({ settings }: { settings: AppSettings }) {
     if (!undo || busy) return
     setBusy(true)
     try {
+      const hasRecords = undo.ops.some((o) => o.kind === 'records')
       const n = await restoreDeleteUndo(await resolveToken(settings), undo)
-      await clearDeleteUndo(); setUndo(null); flash(`已恢复 ${n} 项，正在刷新页面…`)
+      // Bitable batch_create can only APPEND — restored records reappear at the END of the table
+      // (Feishu has no API to re-insert a record at its original row position).
+      await clearDeleteUndo(); setUndo(null)
+      flash(`已恢复 ${n} 项${hasRecords ? '（多维表格记录会重建在表末尾）' : ''}，正在刷新页面…`)
       reloadActiveTab() // the Feishu page caches — reload so the restored rows actually show
     } catch (e) {
       flash('恢复失败：' + (e instanceof Error ? e.message : String(e)))

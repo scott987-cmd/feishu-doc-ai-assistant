@@ -61,7 +61,7 @@ describe('delete undo', () => {
 
   it('MERGES consecutive deletes into ONE batch (multi-call delete is undone as a whole)', async () => {
     await saveDeleteUndo({ kind: 'records', appToken: 'app', tableId: 'tbl', records: [{ fields: { x: 1 } }] })
-    await saveDeleteUndo({ kind: 'sheetRows', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 0, values: [['标题']] })
+    await saveDeleteUndo({ kind: 'sheetRows', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 0, count: 1, values: [['标题']] })
     const u = await loadDeleteUndo()
     expect(u?.ops).toHaveLength(2)            // both deletes kept (no clobber)
     expect(u?.label).toBe('删除 1 条记录、1 行')
@@ -76,13 +76,13 @@ describe('delete undo', () => {
     mockListSheets.mockResolvedValue({ sheets: [{ sheet_id: 'sh1', grid_properties: { column_count: 3 } }] })
     mockReadRange.mockResolvedValue({ valueRange: { values: [['a', 'b', 'c'], ['d', 'e', 'f']] } })
     const u = await captureSheetRows('t', 'ss', 'sh1', 5, 2)
-    expect(u).toMatchObject({ kind: 'sheetRows', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 5, values: [['a', 'b', 'c'], ['d', 'e', 'f']] })
+    expect(u).toMatchObject({ kind: 'sheetRows', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 5, count: 2, values: [['a', 'b', 'c'], ['d', 'e', 'f']] })
     expect(mockReadRange).toHaveBeenCalledWith('t', 'ss', 'sh1!A6:C7') // rows 6-7 (0-based 5..6), cols A-C
   })
 
   it('restore re-inserts the rows and writes the captured values back', async () => {
     mockInsertDim.mockResolvedValue({}); mockWriteRange.mockResolvedValue({})
-    const n = await restoreDeleteUndo('tok', { ops: [{ kind: 'sheetRows', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 5, values: [['a', 'b'], ['c', 'd']] }] })
+    const n = await restoreDeleteUndo('tok', { ops: [{ kind: 'sheetRows', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 5, count: 2, values: [['a', 'b'], ['c', 'd']] }] })
     expect(n).toBe(2)
     expect(mockInsertDim).toHaveBeenCalledWith('tok', 'ss', 'sh1', 'ROWS', 5, 2)
     expect(mockWriteRange).toHaveBeenCalledWith('tok', 'ss', 'sh1!A6:B7', [['a', 'b'], ['c', 'd']])
@@ -99,12 +99,19 @@ describe('delete undo', () => {
     mockInsertDim.mockResolvedValue({}); mockWriteRange.mockResolvedValue({})
     // ops in delete order: header row (idx0) then a later data row (idx0 after the shift)
     const n = await restoreDeleteUndo('tok', { ops: [
-      { kind: 'sheetRows', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 0, values: [['标题']] },
-      { kind: 'sheetRows', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 0, values: [['数据']] },
+      { kind: 'sheetRows', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 0, count: 1, values: [['标题']] },
+      { kind: 'sheetRows', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 0, count: 1, values: [['数据']] },
     ] })
     expect(n).toBe(2)
     // reverse order: the SECOND op (数据) is re-inserted FIRST, then the header
     expect(mockWriteRange.mock.calls[0][3]).toEqual([['数据']])
     expect(mockWriteRange.mock.calls[1][3]).toEqual([['标题']])
+  })
+
+  it('re-inserts the FULL deleted count even when trailing rows were blank (count > values)', async () => {
+    mockInsertDim.mockResolvedValue({}); mockWriteRange.mockResolvedValue({})
+    const n = await restoreDeleteUndo('tok', { ops: [{ kind: 'sheetRows', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 2, count: 5, values: [['a'], ['b']] }] })
+    expect(n).toBe(5)
+    expect(mockInsertDim).toHaveBeenCalledWith('tok', 'ss', 'sh1', 'ROWS', 2, 5) // 5 rows back, not just the 2 with data
   })
 })

@@ -22,7 +22,9 @@ const SHEET_ROW_CAP = 200
 
 export type UndoOp =
   | { kind: 'records'; appToken: string; tableId: string; records: Array<{ fields: Record<string, unknown> }> }
-  | { kind: 'sheetRows'; spreadsheetToken: string; sheetId: string; startIndex: number; values: unknown[][] }
+  // `count` = how many rows were DELETED (may exceed values.length when trailing rows were blank);
+  // restore must re-insert exactly `count` rows so the delete is fully reversed.
+  | { kind: 'sheetRows'; spreadsheetToken: string; sheetId: string; startIndex: number; count: number; values: unknown[][] }
 interface UndoBatch { at: number; ops: UndoOp[] }
 /** What the UI gets: the batch + a human label. */
 export interface UndoView { at: number; label: string; ops: UndoOp[] }
@@ -112,7 +114,7 @@ export async function captureSheetRows(
     const res = (await Sheets.readRange(token, spreadsheetToken, range)) as { valueRange?: { values?: unknown[][] } }
     const values = res.valueRange?.values ?? []
     if (!values.length) return null
-    return { kind: 'sheetRows', spreadsheetToken, sheetId, startIndex, values }
+    return { kind: 'sheetRows', spreadsheetToken, sheetId, startIndex, count, values }
   } catch { return null }
 }
 
@@ -154,10 +156,13 @@ export async function restoreDeleteUndo(token: string, view: { ops: UndoOp[] }):
   for (const op of [...view.ops].reverse()) {
     if (opEmpty(op)) continue
     if (op.kind === 'sheetRows') {
-      await Sheets.insertDimension(token, op.spreadsheetToken, op.sheetId, 'ROWS', op.startIndex, op.values.length)
+      // Re-insert the FULL deleted count (so an over-delete is fully reversed), then write the
+      // captured values into the top rows (trailing blanks stay blank).
+      const rows = Math.max(op.count || op.values.length, op.values.length)
+      await Sheets.insertDimension(token, op.spreadsheetToken, op.sheetId, 'ROWS', op.startIndex, rows)
       const range = `${op.sheetId}!A${op.startIndex + 1}:${colLetter(Math.max(1, ...op.values.map((r) => r.length)))}${op.startIndex + op.values.length}`
       await Sheets.writeRange(token, op.spreadsheetToken, range, op.values)
-      n += op.values.length
+      n += rows
     } else {
       await API.batchCreateRecords(token, op.appToken, op.tableId, op.records)
       n += op.records.length
