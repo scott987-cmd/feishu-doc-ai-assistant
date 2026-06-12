@@ -28,3 +28,6 @@ harness*.txt
 # raw screen-recording sources (commit only the compressed mp4 under docs/media/)
 *.mov
 .build-no
+
+# generated docs site (built by scripts/build-docs.mjs / GitHub Pages CI)
+site/

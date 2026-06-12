@@ -168,6 +168,10 @@ openssl rsa -in my-extension-key.pem -pubout -outform DER | openssl base64 -A
 ## 文档导航
 
 > 📖 **完整文档（离线单页 HTML，零依赖）**：[`docs/index.html`](docs/index.html) —— 使用 / 部署 / 架构 / 安全 一站读完，浏览器直接打开。
+>
+> 🌐 **在线文档站**：本仓库所有 Markdown 已可一键生成静态站并**免费托管在 GitHub Pages**——
+> `npm run docs:html`（零依赖，产物在 `site/`）本地预览；推送到 `main` 由 [`.github/workflows/pages.yml`](.github/workflows/pages.yml) 自动构建发布。
+> 一次性开启：仓库 **Settings → Pages → Source = "GitHub Actions"**，之后访问 `https://<用户名>.github.io/<仓库名>/`。
 
 | 文档 | 内容 |
 |---|---|

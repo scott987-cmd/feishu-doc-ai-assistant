@@ -1,0 +1,51 @@
+name: Deploy docs to GitHub Pages
+
+# 免费托管文档站：每次 push 到 main（动了文档/构建器）就自动重建 site/ 并发布到 GitHub Pages。
+# 一次性开启：仓库 Settings → Pages → Build and deployment → Source = "GitHub Actions"。
+# 公开仓库的 Pages 免费。站点地址：https://<用户名>.github.io/<仓库名>/
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**.md'
+      - 'docs/**'
+      - 'scripts/build-docs.mjs'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同时只跑一个发布，新推送取消进行中的旧发布
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # 构建器零依赖 → 无需 npm install，直接跑
+      - name: Build docs site
+        run: node scripts/build-docs.mjs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
