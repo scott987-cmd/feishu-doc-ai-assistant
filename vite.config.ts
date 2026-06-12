@@ -3,6 +3,7 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import webExtension from 'vite-plugin-web-extension'
 import { resolve } from 'path'
+import { readFileSync, writeFileSync, existsSync } from 'fs'
 
 const originOf = (u: string): string => {
   try { return new URL(u).origin } catch { return '' }
@@ -93,6 +94,17 @@ export default defineConfig(({ command, mode }) => {
           // deployment's base domain (mirrors host_permissions/content_scripts above).
           const war = manifest.web_accessible_resources as Array<{ matches: string[] }> | undefined
           if (war?.[0]) war[0].matches = [feishuMatch]
+          // Auto-bump a build counter (gitignored .build-no) so the version VISIBLY changes on
+          // every real build/pack — the Settings page shows it to confirm a new build is loaded.
+          if (command === 'build') {
+            try {
+              const f = '.build-no'
+              const n = (existsSync(f) ? parseInt(readFileSync(f, 'utf8'), 10) || 0 : 0) + 1
+              writeFileSync(f, String(n))
+              const base = String(manifest.version || '1.0.0').split('.').slice(0, 3).join('.')
+              manifest.version = `${base}.${n}` // e.g. 1.0.4.37 — Chrome allows a 4th component
+            } catch { /* keep the static version on any fs error */ }
+          }
           return manifest
         },
       }),

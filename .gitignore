@@ -27,3 +27,4 @@ harness*.txt
 
 # raw screen-recording sources (commit only the compressed mp4 under docs/media/)
 *.mov
+.build-no

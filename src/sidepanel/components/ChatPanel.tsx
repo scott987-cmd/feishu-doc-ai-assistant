@@ -10,6 +10,7 @@ import { fetchVizData } from '../../shared/dataviz/data'
 import { sendVizToActiveTab } from '../../shared/dataviz/send'
 import type { VizSource } from '../../shared/dataviz/types'
 import MessageList from './MessageList'
+import UndoBar from './UndoBar'
 import InputBar from './InputBar'
 import type { InputBarHandle } from './InputBar'
 import BaseContextBadge from './BaseContextBadge'
@@ -323,6 +324,10 @@ export default function ChatPanel({
           </button>
         </div>
       )}
+
+      {/* One-click 撤销 for the assistant's last record deletion — shown right here in the
+          conversation flow (under the delete), reading the undo the agent stashed. */}
+      <UndoBar settings={settings} />
 
       {/* Field picker — Feishu Base grids are canvas-rendered (no DOM text to select), so
           we list the current table's fields from the structure we already read. Click a

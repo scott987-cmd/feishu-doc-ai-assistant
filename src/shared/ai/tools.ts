@@ -448,8 +448,9 @@ export const FEISHU_TOOLS: ChatCompletionTool[] = [
     function: {
       name: 'delete_record',
       description:
-        '⚠️ 破坏性操作·不可撤销。' +
-        '调用前必须告知用户将删除的记录关键内容，并获得明确确认后才可调用。',
+        '⚠️ 破坏性操作。删除后对话里会出现「↩ 撤销删除」按钮可一键恢复（重建该记录，10 分钟内有效）。' +
+        '调用前仍必须告知用户将删除的记录关键内容，并获得明确确认后才可调用。' +
+        '若用户想恢复，引导其点对话中的「↩ 撤销删除」，切勿建议用 Ctrl+Z（API 删除无法用前端撤销）。',
       parameters: {
         type: 'object',
         required: ['app_token', 'table_id', 'record_id'],
@@ -466,9 +467,9 @@ export const FEISHU_TOOLS: ChatCompletionTool[] = [
     function: {
       name: 'batch_delete_records',
       description:
-        '⚠️ 批量破坏性操作·不可撤销。' +
-        '调用前必须告知用户将删除的记录数量和筛选条件，并获得明确确认后才可调用。' +
-        '请先用 search_records 获取 ID 列表。',
+        '⚠️ 批量破坏性操作。删除后对话里会出现「↩ 撤销删除」按钮可一键恢复（重建这些记录，10 分钟内有效）。' +
+        '调用前仍必须告知用户将删除的记录数量和筛选条件，并获得明确确认后才可调用。' +
+        '请先用 search_records 获取 ID 列表。若用户想恢复，引导其点「↩ 撤销删除」，切勿建议 Ctrl+Z。',
       parameters: {
         type: 'object',
         required: ['app_token', 'table_id', 'record_ids'],

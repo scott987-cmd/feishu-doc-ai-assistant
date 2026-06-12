@@ -52,8 +52,8 @@ export default function UndoBar({ settings }: { settings: AppSettings }) {
 }
 
 const bar: React.CSSProperties = {
-  display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px',
-  background: '#fff7e6', color: '#874d00', fontSize: 12, borderBottom: '1px solid #ffe7ba',
+  display: 'flex', alignItems: 'center', gap: 8, margin: '8px 12px', padding: '8px 12px',
+  background: '#fff7e6', color: '#874d00', fontSize: 12, border: '1px solid #ffe7ba', borderRadius: 8,
 }
 const btn: React.CSSProperties = {
   border: 'none', background: '#4f6bff', color: '#fff', borderRadius: 6, padding: '3px 10px', cursor: 'pointer', fontSize: 12,
