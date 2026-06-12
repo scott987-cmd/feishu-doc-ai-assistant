@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>飞书AI助手 · 企业代理管理台</title>
+<style>
+  :root { --bg:#0f1320; --panel:#171c2e; --panel2:#1e2440; --line:#2a3252; --text:#e6e9f5; --sub:#9aa3c7; --accent:#5b7cff; --danger:#ff5c6c; --ok:#3ecf8e; --warn:#f5b048; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); }
+  a { color:var(--accent); }
+  button { font:inherit; cursor:pointer; border:1px solid var(--line); background:var(--panel2); color:var(--text); border-radius:7px; padding:6px 12px; }
+  button:hover { border-color:var(--accent); }
+  button.primary { background:var(--accent); border-color:transparent; color:#fff; }
+  button.danger { color:var(--danger); border-color:#43314a; }
+  button.danger:hover { background:var(--danger); color:#fff; border-color:transparent; }
+  input { font:inherit; background:var(--panel); border:1px solid var(--line); color:var(--text); border-radius:7px; padding:8px 10px; }
+  /* login */
+  #login { max-width:360px; margin:14vh auto; padding:28px; background:var(--panel); border:1px solid var(--line); border-radius:14px; }
+  #login h1 { font-size:17px; margin:0 0 4px; }
+  #login p { color:var(--sub); margin:0 0 18px; font-size:12.5px; }
+  #login input { width:100%; margin-bottom:12px; }
+  #login button { width:100%; }
+  .err { color:var(--danger); font-size:12.5px; min-height:18px; margin-top:8px; }
+  /* app */
+  header { display:flex; align-items:center; gap:14px; padding:12px 20px; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; }
+  header .brand { font-weight:600; }
+  header .sp { flex:1; }
+  nav { display:flex; gap:6px; padding:12px 20px 0; flex-wrap:wrap; }
+  nav button { background:transparent; border:1px solid transparent; color:var(--sub); }
+  nav button.on { color:var(--text); border-color:var(--line); background:var(--panel); }
+  main { padding:18px 20px 60px; max-width:1180px; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; margin-bottom:20px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+  .card .k { color:var(--sub); font-size:12px; }
+  .card .v { font-size:22px; font-weight:600; margin-top:4px; }
+  .card .v small { font-size:12px; color:var(--sub); font-weight:400; }
+  table { width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  th, td { text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); font-size:13px; vertical-align:top; }
+  th { color:var(--sub); font-weight:500; background:var(--panel2); position:sticky; top:0; }
+  tr:last-child td { border-bottom:none; }
+  td.mono, .mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
+  .tag { display:inline-block; padding:1px 7px; border-radius:10px; font-size:11px; border:1px solid var(--line); }
+  .tag.ok { color:var(--ok); border-color:#1f4a3a; }
+  .tag.mut { color:var(--sub); }
+  .tag.warn { color:var(--warn); border-color:#4a3a1f; }
+  .sub { color:var(--sub); }
+  .row-actions { display:flex; gap:6px; }
+  .muted { color:var(--sub); padding:24px; text-align:center; }
+  .toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--panel2); border:1px solid var(--line); padding:10px 16px; border-radius:8px; box-shadow:0 8px 30px #0008; }
+  h2.t { font-size:15px; margin:0 0 12px; }
+  .bar { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  pre { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; overflow:auto; font-size:12px; }
+</style>
+</head>
+<body>
+<div id="login">
+  <h1>企业代理管理台</h1>
+  <p>飞书AI助手 · OAuth/技能库/云备份 统一管理</p>
+  <input id="pw" type="password" placeholder="管理员密码 (ADMIN_PASSWORD)" autofocus>
+  <button class="primary" onclick="doLogin()">登录</button>
+  <div class="err" id="loginErr"></div>
+</div>
+
+<div id="app" style="display:none">
+  <header>
+    <span class="brand">🛠 代理管理台</span>
+    <span class="sp"></span>
+    <span class="sub" id="clock"></span>
+    <button onclick="logout()">退出</button>
+  </header>
+  <nav id="nav"></nav>
+  <main id="view"></main>
+</div>
+<div id="toast" class="toast" style="display:none"></div>
+
+<script>
+const ADMIN = location.pathname.replace(/\/+$/,'') || '/admin'   // 自身路径，兼容反代前缀
+const API = (p) => ADMIN + '/api' + p
+let TOKEN = localStorage.getItem('admintok') || ''
+const TABS = [['overview','总览'],['skills','技能库'],['artifacts','备份'],['config','配置'],['audit','审计']]
+let tab = 'overview'
+
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',2200) }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])) }
+function tsFmt(t){ if(!t) return '-'; try{ return new Date(t).toLocaleString() }catch{ return t } }
+function kib(n){ if(n==null) return '-'; if(n<1024) return n+' B'; if(n<1048576) return (n/1024).toFixed(1)+' KB'; return (n/1048576).toFixed(2)+' MB' }
+
+async function api(p, opts){
+  const r = await fetch(API(p), { ...opts, headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN, ...(opts&&opts.headers) } })
+  if (r.status === 401){ logout(); throw new Error('登录已过期') }
+  return r.json()
+}
+
+async function doLogin(){
+  const pw = document.getElementById('pw').value
+  const err = document.getElementById('loginErr'); err.textContent=''
+  try {
+    const r = await fetch(API('/login'), { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ password: pw }) })
+    const j = await r.json()
+    if (!r.ok || !j.token){ err.textContent = j.error==='rate_limited' ? '尝试过多，请稍后再试' : '密码错误'; return }
+    TOKEN = j.token; localStorage.setItem('admintok', TOKEN); enterApp()
+  } catch(e){ err.textContent = '无法连接服务端' }
+}
+function logout(){ TOKEN=''; localStorage.removeItem('admintok'); document.getElementById('app').style.display='none'; document.getElementById('login').style.display='block' }
+function enterApp(){
+  document.getElementById('login').style.display='none'; document.getElementById('app').style.display='block'
+  document.getElementById('nav').innerHTML = TABS.map(([id,label])=>`<button data-t="${id}" class="${id===tab?'on':''}" onclick="go('${id}')">${label}</button>`).join('')
+  render()
+}
+function go(t){ tab=t; document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.t===t)); render() }
+
+async function render(){
+  const v = document.getElementById('view'); v.innerHTML = '<div class="muted">加载中…</div>'
+  try {
+    if (tab==='overview') return renderOverview(v)
+    if (tab==='skills') return renderSkills(v)
+    if (tab==='artifacts') return renderArtifacts(v)
+    if (tab==='config') return renderConfig(v)
+    if (tab==='audit') return renderAudit(v)
+  } catch(e){ v.innerHTML = '<div class="muted">加载失败：'+esc(e.message)+'</div>' }
+}
+
+async function renderOverview(v){
+  const d = await api('/overview')
+  const sk = d.skills||{}, ar = d.artifacts||{}
+  const cards = [
+    ['技能总数', sk.total ?? '-'],
+    ['已晋级技能', (sk.promoted ?? '-')+'', sk.total?`/ ${sk.total}`:''],
+    ['技能存储', sk.backend ?? '-'],
+    ['备份后端', ar.backend ?? '-'],
+    ['静态加密', ar.enc ? '开' : '关'],
+    ['租户锁', ar.tenantLock ? '开' : '未设'],
+  ]
+  v.innerHTML = `<div class="cards">${cards.map(c=>`<div class="card"><div class="k">${c[0]}</div><div class="v">${esc(c[1])} <small>${esc(c[2]||'')}</small></div></div>`).join('')}</div>
+    <h2 class="t">最近活动</h2>${auditTable(d.audit||[])}`
+}
+
+function auditTable(rows){
+  if(!rows.length) return '<div class="muted">暂无活动</div>'
+  return `<table><tr><th>时间</th><th>模块</th><th>动作</th><th>详情</th><th>IP</th></tr>${rows.map(r=>`<tr>
+    <td class="mono">${tsFmt(r.ts)}</td><td>${esc(r.module)}</td><td>${esc(r.action)}</td>
+    <td class="mono sub">${esc(JSON.stringify(r.detail||{}))}</td><td class="mono sub">${esc(r.ip||'-')}</td></tr>`).join('')}</table>`
+}
+
+async function renderSkills(v){
+  const d = await api('/skills'); const rows = d.skills||[]
+  v.innerHTML = `<div class="bar"><h2 class="t" style="margin:0">技能库（${rows.length}）</h2><span class="sub">脱敏经验 · 按分数排序 · 可删除/强制晋级降级</span></div>` +
+    (rows.length? `<table><tr><th>意图 / 经验</th><th>类型</th><th>工具链</th><th>分数</th><th>热度</th><th>状态</th><th></th></tr>${rows.map(s=>skillRow(s)).join('')}</table>` : '<div class="muted">还没有沉淀技能</div>')
+}
+function skillRow(s){
+  const status = s.forced==='promoted' ? '<span class="tag ok">强制晋级</span>' : s.forced==='demoted' ? '<span class="tag warn">强制降级</span>' : (s.promoted? '<span class="tag ok">已晋级</span>':'<span class="tag mut">候选</span>')
+  return `<tr>
+    <td><b>${esc(s.intent)}</b><div class="sub">${esc(s.lesson)}</div></td>
+    <td>${esc(s.resourceKind)}</td>
+    <td class="mono sub">${esc((s.toolSequence||[]).join(' → '))}</td>
+    <td>${esc(s.score)}</td>
+    <td class="sub">${s.sources}人 · ✓${s.successes}/↶${s.undones}</td>
+    <td>${status}</td>
+    <td><div class="row-actions">
+      <button onclick="forceSkill('${s.skillId}','${s.forced==='promoted'?'':'promoted'}')">${s.forced==='promoted'?'取消':'晋级'}</button>
+      <button onclick="forceSkill('${s.skillId}','${s.forced==='demoted'?'':'demoted'}')">${s.forced==='demoted'?'取消':'降级'}</button>
+      <button class="danger" onclick="delSkill('${s.skillId}')">删除</button>
+    </div></td></tr>`
+}
+async function forceSkill(id, force){ await api('/skills/force',{method:'POST',body:JSON.stringify({skillId:id,force:force||null})}); toast('已更新'); render() }
+async function delSkill(id){ if(!confirm('删除这条技能？不可恢复。')) return; await api('/skills/delete',{method:'POST',body:JSON.stringify({skillId:id})}); toast('已删除'); render() }
+
+async function renderArtifacts(v){
+  const d = await api('/artifacts'); const rows = d.artifacts||[]
+  v.innerHTML = `<div class="bar"><h2 class="t" style="margin:0">云备份对象（${rows.length}）</h2><span class="sub">按租户 / 用户 open_id / 类型；删除用于合规清理</span></div>` +
+    (rows.length? `<table><tr><th>租户</th><th>用户 open_id</th><th>类型</th><th>大小</th><th>更新时间</th><th></th></tr>${rows.map(a=>`<tr>
+      <td class="mono">${esc(a.tenant)}</td><td class="mono">${esc(a.openId)}</td><td>${esc(a.kind)}</td>
+      <td>${kib(a.size)}</td><td class="mono sub">${tsFmt(a.mtime)}</td>
+      <td><button class="danger" onclick="delArtifact('${esc(a.key)}')">删除</button></td></tr>`).join('')}</table>` : '<div class="muted">还没有备份对象</div>')
+}
+async function delArtifact(key){ if(!confirm('删除该用户该类型的云备份？此后他在新设备将无法从云端恢复这类产物。')) return; await api('/artifacts/delete',{method:'POST',body:JSON.stringify({key})}); toast('已删除'); render() }
+
+async function renderConfig(v){
+  const d = await api('/config')
+  v.innerHTML = `<h2 class="t">当前生效配置（密钥已脱敏）</h2><pre>${esc(JSON.stringify(d,null,2))}</pre>`
+}
+async function renderAudit(v){
+  const d = await api('/audit')
+  v.innerHTML = `<div class="bar"><h2 class="t" style="margin:0">审计日志（最近 ${(d.audit||[]).length}）</h2><button onclick="render()">刷新</button></div>` + auditTable(d.audit||[])
+}
+
+setInterval(()=>{ document.getElementById('clock').textContent = new Date().toLocaleTimeString() }, 1000)
+document.getElementById('pw').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin() })
+if (TOKEN) enterApp()
+</script>
+</body>
+</html>

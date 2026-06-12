@@ -37,6 +37,23 @@ export interface Skill {
 }
 
 const base = (): string => BUILD_CONFIG.oauthProxyUrl.replace(/\/+$/, '')
+
+// Anonymous, per-install random id — lets the server count DISTINCT contributors (heat) without
+// any link to the user's identity. Generated once, stored locally; never derived from open_id/PII.
+const SRC_KEY = '_skill_src_v1'
+let _src: string | null = null
+async function srcId(): Promise<string> {
+  if (_src) return _src
+  return new Promise((resolve) => {
+    try {
+      chrome.storage.local.get([SRC_KEY], (r) => {
+        let v = r?.[SRC_KEY] as string | undefined
+        if (!v) { v = crypto.randomUUID().replace(/-/g, '').slice(0, 16); chrome.storage.local.set({ [SRC_KEY]: v }) }
+        _src = v; resolve(v)
+      })
+    } catch { resolve('') }
+  })
+}
 const headers = (): Record<string, string> => ({
   'Content-Type': 'application/json',
   ...(BUILD_CONFIG.oauthProxyKey ? { 'X-Proxy-Key': BUILD_CONFIG.oauthProxyKey } : {}),
@@ -56,6 +73,7 @@ export async function reportSkill(obs: SkillObservation): Promise<void> {
       body: JSON.stringify({
         resourceKind: obs.resourceKind, intent: cleanIntent(obs.intent),
         toolSequence: obs.toolSequence.slice(0, 24), outcome: obs.outcome,
+        src: await srcId(),
       }),
     })
   } catch { /* best-effort; never block the turn */ }

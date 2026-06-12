@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:ui": "node scripts/ui-smoke.mjs",
+    "validate:server": "node docs/sim/validate-server.mjs",
     "screenshots": "node scripts/capture-screenshots.mjs",
     "screenshots:store": "node scripts/store-screenshots.mjs",
     "promo": "node scripts/promo-tile.mjs",

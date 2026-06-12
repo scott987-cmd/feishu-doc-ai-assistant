@@ -117,3 +117,54 @@
   transition: background .15s, color .15s, border-color .15s;
 }
 .field-chip:hover { background: var(--color-accent, #5b7cff); color: #fff; border-color: transparent; }
+
+/* 主动推送：社区高分做法 chip 行（新会话时显示） */
+.skill-suggest {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 2px;
+}
+.skill-suggest-lead {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.skill-suggest-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.skill-suggest-chips::-webkit-scrollbar { height: 4px; }
+.skill-chip {
+  flex-shrink: 0;
+  max-width: 200px;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-family: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.skill-chip:hover { background: var(--color-accent, #5b7cff); color: #fff; border-color: transparent; }
+.skill-chip--playbook { border-color: var(--color-accent, #5b7cff); color: var(--color-accent, #5b7cff); }
+.skill-suggest-x {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  opacity: .6;
+}
+.skill-suggest-x:hover { opacity: 1; }

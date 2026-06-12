@@ -84,8 +84,11 @@ async function loadUserToken(): Promise<UTokenBundle | null> {
  * Return a usable user_access_token, refreshing it via the stored refresh_token when
  * within 5 min of expiry. Prefers the OAuth bundle; falls back to a manually-pasted
  * settings token (which can't be refreshed). Returns null when neither exists.
+ * `settings` is optional: omit it (e.g. from the storage-layer cloud backup) to use the
+ * OAuth bundle ONLY — the manual-paste fallback needs settings and isn't used on the
+ * enterprise (proxy) builds where backup runs.
  */
-export async function getValidUserToken(settings: AppSettings): Promise<string | null> {
+export async function getValidUserToken(settings?: AppSettings): Promise<string | null> {
   const bundle = await loadUserToken()
   if (bundle) {
     const expiringSoon = bundle.expiresAt > 0 && Date.now() > bundle.expiresAt - 5 * 60_000
@@ -99,7 +102,7 @@ export async function getValidUserToken(settings: AppSettings): Promise<string |
     }
     return bundle.accessToken
   }
-  return settings.feishuAccessToken?.trim() || null
+  return settings?.feishuAccessToken?.trim() || null
 }
 
 /**

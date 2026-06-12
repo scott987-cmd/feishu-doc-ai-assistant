@@ -1,6 +1,7 @@
 import type { AppSettings } from '../types'
 import { BUILD_CONFIG, HAS_MANAGED_LLM } from '../config'
 import { getValidUserToken } from '../feishu/auth'
+import { getEffectiveAppId } from '../feishu/managedAppId'
 import { encryptField, decryptField } from '../crypto'
 import { storageGet, storageSet } from '../storage'
 
@@ -31,7 +32,7 @@ export async function fetchManagedLlmConfig(settings: AppSettings): Promise<LlmC
   const res = await fetch(BUILD_CONFIG.oauthProxyUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...(BUILD_CONFIG.oauthProxyKey ? { 'X-Proxy-Key': BUILD_CONFIG.oauthProxyKey } : {}) },
-    body: JSON.stringify({ grant_type: 'llm_config', user_access_token: token, client_id: BUILD_CONFIG.feishuAppId }),
+    body: JSON.stringify({ grant_type: 'llm_config', user_access_token: token, client_id: await getEffectiveAppId() }),
   })
   const j = (await res.json().catch(() => ({}))) as { base_url?: string; api_key?: string; model?: string; error?: string }
   if (!res.ok || !j.base_url || !j.api_key) {

@@ -45,6 +45,11 @@ export const BUILD_CONFIG = {
    *  shipping/asking it per-user — the proxy only hands it to verified members of your Feishu tenant,
    *  so the company key never lives in the bundle. Personal builds leave this off (users self-config). */
   llmFromProxy: (import.meta.env.VITE_LLM_FROM_PROXY ?? '') === '1',
+  /** Enterprise: fetch the App ID from the proxy (grant_type 'app_config') instead of baking it in,
+   *  so a single enterprise build (only the proxy URL is baked) serves any tenant and the App ID can
+   *  rotate server-side. The App ID is PUBLIC (it appears in every OAuth URL) so the proxy serves it
+   *  WITHOUT a token; the App Secret stays server-side as before. Needs a proxy → store/BYO off. */
+  appIdFromProxy: (import.meta.env.VITE_APP_ID_FROM_PROXY ?? '') === '1',
   /** Enterprise hardening: forbid the per-user "switch to manual LLM" override — lock to the managed
    *  (proxy) config. Default off = the switch is offered (enterprise CAN still configure manually). */
   llmLockManaged: (import.meta.env.VITE_LLM_LOCK_MANAGED ?? '') === '1',
@@ -58,6 +63,11 @@ export const BUILD_CONFIG = {
    *  pull community high-score skills. OFF by default; needs a proxy. Store/BYO builds have no
    *  proxy (force-cleared above) → always off, never any extra network calls. */
   skillsEnabled: (import.meta.env.VITE_SKILLS_ENABLED ?? '') === '1',
+  /** Enterprise CLOUD BACKUP of generated artifacts (mini-programs / sites / decks): mirror the
+   *  user's own saved outputs to the enterprise's OWN private object storage via the proxy, so a
+   *  lost/cleared/reinstalled device can pull them back. OFF by default; needs a proxy. Store/BYO
+   *  builds have no proxy (force-cleared above) → always off, never any extra network calls. */
+  artifactSync: (import.meta.env.VITE_ARTIFACT_SYNC ?? '') === '1',
   /** Redact likely-sensitive values (CN phone / email / ID / bank card) from data BEFORE it's sent
    *  to the LLM. Only affects the copy sent to the model — never the source Feishu data. */
   llmRedact: (import.meta.env.VITE_LLM_REDACT ?? '') === '1',
@@ -91,11 +101,18 @@ export const BUILD_CONFIG = {
     (import.meta.env.VITE_NO_REMOTE_CODE ?? '') === 'true',
 } as const
 
-/** True when an App ID is configured AND we can mint a user token — a baked-in secret
- *  (direct), a password-encrypted secret (direct, after unlock), or an OAuth proxy. */
+/** Enterprise managed-App-ID mode: the App ID itself comes from the proxy (not baked). Double-gated:
+ *  needs the flag AND a proxy → store/BYO (no proxy) is always false. Implies the proxy also holds the
+ *  App Secret, so OAuth is fully doable without anything tenant-specific baked but the proxy URL. */
+export const HAS_MANAGED_APP_ID = BUILD_CONFIG.appIdFromProxy && !!BUILD_CONFIG.oauthProxyUrl
+
+/** True when an App ID is configured AND we can mint a user token — a baked-in secret (direct),
+ *  a password-encrypted secret (direct, after unlock), an OAuth proxy, OR the App ID is served by
+ *  the proxy (managed-App-ID: the proxy provides both App ID and the secret-side token exchange). */
 export const HAS_BUILTIN_CREDS =
-  !!(BUILD_CONFIG.feishuAppId &&
+  !!((BUILD_CONFIG.feishuAppId &&
     (BUILD_CONFIG.feishuAppSecret || BUILD_CONFIG.appSecretEnc || BUILD_CONFIG.oauthProxyUrl))
+    || (BUILD_CONFIG.appIdFromProxy && BUILD_CONFIG.oauthProxyUrl))
 
 /** True when a PLAINTEXT client_secret is baked in (direct OAuth, no password/proxy). */
 export const HAS_APP_SECRET = !!BUILD_CONFIG.feishuAppSecret
@@ -115,6 +132,12 @@ export const HAS_ENTERPRISE_POLICY = BUILD_CONFIG.enterprisePolicy && !!BUILD_CO
 /** Shared skill library available (opted in AND a proxy to serve it). Double-gated: the store/BYO
  *  build has no proxy → always false → all skill code no-ops, store release totally unaffected. */
 export const HAS_SKILLS = BUILD_CONFIG.skillsEnabled && !!BUILD_CONFIG.oauthProxyUrl
+
+/** Enterprise cloud backup/restore of generated artifacts available (opted in AND a proxy to serve
+ *  it). Double-gated: the store/BYO build has no proxy → always false → all backup code no-ops and
+ *  is dead-code-eliminated, store release totally unaffected. The backed-up content goes ONLY to the
+ *  enterprise's own object storage, read-gated by Feishu tenant-member auth (see artifactSync.ts). */
+export const HAS_ARTIFACT_SYNC = BUILD_CONFIG.artifactSync && !!BUILD_CONFIG.oauthProxyUrl
 
 /** Web Clipper feature flag (see BUILD_CONFIG.clipEnabled). */
 export const CLIP_ENABLED = BUILD_CONFIG.clipEnabled

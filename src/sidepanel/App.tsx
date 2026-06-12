@@ -20,6 +20,7 @@ import { checkNetworkAccess } from '../shared/network'
 import { BUILD_CONFIG, HAS_NETWORK_RESTRICTION, HAS_BUILTIN_CREDS, CLIP_ENABLED, HAS_ENTERPRISE_POLICY } from '../shared/config'
 import { usingManagedLlm } from '../shared/ai/llmConfig'
 import { fetchPolicy, loadPolicy, applyPolicy, FAILCLOSED_POLICY } from '../shared/enterprisePolicy'
+import { autoRestoreOnceOnEmpty } from './cloudRestore'
 import { deriveAccent, DEFAULT_ACCENT, ACCENT_VAR_NAMES } from '../shared/theme'
 import { parseFeishuContext, cleanDocTitle } from '../shared/feishu/pageUrl'
 import type { ClipCapture } from '../shared/clip/types'
@@ -125,6 +126,10 @@ export default function App() {
   const [authExpired, setAuthExpired] = useState(false)
   // Re-authorizing (new token saved) clears the expired state.
   useEffect(() => { setAuthExpired(false) }, [settings.feishuAccessToken])
+
+  // Enterprise cloud backup: on a fresh/cleared/reinstalled device (local empty), pull the user's
+  // own saved artifacts back from the company cloud — ONCE per install. Total no-op off proxy.
+  useEffect(() => { void autoRestoreOnceOnEmpty() }, [])
 
   // Set context, but if it's an already-resolved wiki, substitute the cached real
   // resource — so refreshCtx (tab events) doesn't keep flipping wiki↔doc, which
