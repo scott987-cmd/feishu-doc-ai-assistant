@@ -45,6 +45,11 @@
   hr{border:0;border-top:1px solid var(--line);margin:30px 0}
   .toctoggle{display:none}
   @media(max-width:860px){nav.toc{display:none}main{padding:18px}}
+  /* 手绘风格架构图（零依赖：SVG 位移滤镜做抖动线条 + 便签盒；整块当作"纸上手绘"，明暗主题一致可读） */
+  .sketch{background:#fbf7ee;border:1px solid #e6dcc3;border-radius:14px;padding:16px 10px 8px;margin:20px 0;overflow-x:auto;background-image:radial-gradient(#ece2cb 1.1px,transparent 1.1px);background-size:22px 22px}
+  .sketch svg{display:block;width:100%;height:auto;max-width:840px;margin:0 auto;font-family:"Comic Sans MS","Segoe Print","Bradley Hand","Chalkboard SE","PingFang SC","Microsoft YaHei",cursive}
+  .sketch .cap{max-width:760px;margin:8px auto 2px;color:#8a7d5f;font-size:12.5px;line-height:1.6;text-align:center}
+  .sk-lbl{fill:#2b2f3a;font-weight:700}.sk-sub{fill:#5b5640}.sk-edge{fill:#7a6f55;font-size:12px}.sk-zone{fill:#9c8f6e;font-size:12px;font-weight:700;letter-spacing:.04em}
 </style>
 </head>
 <body>
@@ -211,25 +216,78 @@ npm run build -- --mode enterprise
 </table>
 
 <h2 id="arch">架构</h2>
-<h3>组件与数据流</h3>
-<pre><code>┌──────────────── Chrome 扩展（用户本人身份）─────────────────┐
-│  侧边栏(React) ── agent.ts ──► OpenAI 兼容大模型             │
-│       │            │ 工具调用（白名单 + 危险操作确认门）        │
-│       │            ▼                                          │
-│   content script ─ feishuReq/feishuFetch ──► 飞书开放平台 API │
-│   sandbox iframe（opaque origin · connect-src:none）渲染看板  │
-└───────┬──────────────────────────────────────────────────────┘
-        │ 仅企业构建（VITE_OAUTH_PROXY_URL）
-        ▼
-┌──────────────── 企业服务端套件（一个 Node 进程）──────────────┐
-│  oauth-proxy ── /（换token: code/refresh + llm_config/policy/  │
-│      │           app_config）  ← App Secret 只在这里           │
-│      ├─ /skills/*   技能库：去重/打分/晋级/套路（skill-proxy）  │
-│      ├─ /artifacts/* 云备份：S3兼容/FS + AES（artifact-proxy）  │
-│      └─ /admin /admin/api/*  管理台（admin-server + admin-ui） │
-│  统一前置：IP白名单 → 各子服务自带 CORS/鉴权/限流              │
-└───────────────────────────────────────────────────────────────┘
-        外部依赖（均运维配置，无 SSRF）：飞书 user_info / 你的 embedding / 你的对象存储</code></pre>
+
+<!-- 手绘图共享定义：抖动滤镜 + 箭头 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<filter id="hd"><feTurbulence type="fractalNoise" baseFrequency="0.014" numOctaves="2" seed="8" result="t"/><feDisplacementMap in="SourceGraphic" in2="t" scale="2.3" xChannelSelector="R" yChannelSelector="G"/></filter>
+<marker id="ah" viewBox="0 0 12 12" refX="8.5" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1.5 1.5 L10 6 L1.5 10.5" fill="none" stroke="#2b2f3a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></marker>
+</defs></svg>
+
+<h3>① 你说一句话，数据怎么流（个人版·无后端）</h3>
+<div class="sketch">
+<svg viewBox="0 0 800 320" role="img" aria-label="系统数据流：你 → 侧边栏 → AI Agent → 大模型 / 飞书API / 沙箱">
+  <g filter="url(#hd)" stroke="#2b2f3a" stroke-width="2.2" stroke-linecap="round">
+    <rect x="100" y="112" width="140" height="74" rx="13" fill="#d0ebff"/>
+    <rect x="300" y="100" width="150" height="98" rx="13" fill="#fff3bf"/>
+    <rect x="540" y="22"  width="248" height="64" rx="13" fill="#ffe8cc"/>
+    <rect x="540" y="118" width="248" height="64" rx="13" fill="#d3f9d8"/>
+    <rect x="540" y="214" width="248" height="84" rx="13" fill="#e5dbff"/>
+    <path d="M70 149 L100 148" fill="none" marker-end="url(#ah)"/>
+    <path d="M240 149 L300 149" fill="none" marker-end="url(#ah)"/>
+    <path d="M450 126 C500 104 512 72 540 56" fill="none" marker-end="url(#ah)"/>
+    <path d="M450 149 L540 150" fill="none" marker-end="url(#ah)"/>
+    <path d="M450 172 C500 198 512 232 540 250" fill="none" marker-end="url(#ah)"/>
+  </g>
+  <g text-anchor="middle">
+    <text x="55" y="140" font-size="24">🧑</text><text x="55" y="162" class="sk-sub" font-size="12">你</text>
+    <text x="170" y="146" class="sk-lbl" font-size="15">侧边栏</text><text x="170" y="166" class="sk-sub" font-size="12">React UI</text>
+    <text x="375" y="144" class="sk-lbl" font-size="15">AI Agent</text><text x="375" y="165" class="sk-sub" font-size="11.5">🛡 白名单 + 确认门</text>
+    <text x="664" y="48" class="sk-lbl" font-size="15">大模型（OpenAI 兼容）</text><text x="664" y="68" class="sk-sub" font-size="11.5">你自配端点，绝不内置</text>
+    <text x="664" y="145" class="sk-lbl" font-size="15">飞书开放平台 API</text><text x="664" y="165" class="sk-sub" font-size="11.5">🔑 以你本人身份操作</text>
+    <text x="664" y="244" class="sk-lbl" font-size="15">沙箱 iframe 渲染看板</text><text x="664" y="264" class="sk-sub" font-size="11.5">connect-src:none</text><text x="664" y="282" class="sk-sub" font-size="11.5">🔒 拿了数据也发不出去</text>
+    <text x="500" y="86" class="sk-edge" text-anchor="start">意图理解</text>
+    <text x="500" y="218" class="sk-edge" text-anchor="start">渲染</text>
+  </g>
+</svg>
+<div class="cap">你说一句 → AI 规划并调用工具（先过<b>白名单 + 危险操作确认门</b>）→ 以你本人飞书身份执行。<b>个人版没有任何后端</b>。</div>
+</div>
+
+<h3>② 企业服务端套件 —— 一个 Node 进程</h3>
+<div class="sketch">
+<svg viewBox="0 0 820 432" role="img" aria-label="企业服务端套件：一个 Node 进程挂载 oauth/技能库/云备份/管理台，外接飞书/embedding/对象存储">
+  <g filter="url(#hd)" stroke="#2b2f3a" stroke-width="2.2" stroke-linecap="round">
+    <rect x="22" y="150" width="150" height="84" rx="13" fill="#d0ebff"/>
+    <rect x="208" y="20" width="372" height="392" rx="16" fill="#ffffff" stroke-dasharray="2 7"/>
+    <rect x="228" y="64" width="332" height="40" rx="11" fill="#eceae3"/>
+    <rect x="228" y="120" width="332" height="66" rx="12" fill="#fff3bf"/>
+    <rect x="228" y="202" width="158" height="62" rx="12" fill="#d3f9d8"/>
+    <rect x="402" y="202" width="158" height="62" rx="12" fill="#d0ebff"/>
+    <rect x="228" y="282" width="332" height="58" rx="12" fill="#e5dbff"/>
+    <rect x="624" y="120" width="176" height="56" rx="12" fill="#ffe3e3"/>
+    <rect x="624" y="206" width="176" height="56" rx="12" fill="#ffe8cc"/>
+    <rect x="624" y="284" width="176" height="56" rx="12" fill="#d3f9d8"/>
+    <path d="M172 188 L208 200" fill="none" marker-end="url(#ah)"/>
+    <path d="M560 150 L624 148" fill="none" marker-end="url(#ah)"/>
+    <path d="M386 232 L624 234" fill="none" marker-end="url(#ah)"/>
+    <path d="M560 312 L624 312" fill="none" marker-end="url(#ah)"/>
+  </g>
+  <g text-anchor="middle">
+    <text x="97" y="186" class="sk-lbl" font-size="14">企业构建</text><text x="97" y="206" class="sk-sub" font-size="11.5">只内置代理地址</text>
+    <text x="394" y="14" class="sk-zone" text-anchor="middle">一个 Node 进程 · 零依赖 · 同源挂载</text>
+    <text x="394" y="89" class="sk-sub" font-size="12.5">① IP 白名单（已含管理台）→ ② 各自 CORS / 鉴权 / 限流</text>
+    <text x="394" y="146" class="sk-lbl" font-size="14.5">OAuth 代理：换 token + app_config / llm / policy</text><text x="394" y="170" class="sk-sub" font-size="11.5">🔒 App Secret / LLM Key 只在这里，永不下发</text>
+    <text x="307" y="228" class="sk-lbl" font-size="14">/skills 技能库</text><text x="307" y="248" class="sk-sub" font-size="11">去重·打分·晋级</text>
+    <text x="481" y="228" class="sk-lbl" font-size="14">/artifacts 云备份</text><text x="481" y="248" class="sk-sub" font-size="11">S3兼容 + AES</text>
+    <text x="394" y="308" class="sk-lbl" font-size="14">/admin 管理台</text><text x="394" y="328" class="sk-sub" font-size="11">看板·技能审核·备份管理·审计</text>
+    <text x="712" y="144" class="sk-lbl" font-size="13.5">飞书 user_info</text><text x="712" y="163" class="sk-sub" font-size="11">校验租户成员</text>
+    <text x="712" y="230" class="sk-lbl" font-size="13.5">你的 embedding</text><text x="712" y="249" class="sk-sub" font-size="11">OpenAI 兼容</text>
+    <text x="712" y="308" class="sk-lbl" font-size="13.5">你的对象存储桶</text><text x="712" y="327" class="sk-sub" font-size="11">S3/OSS/COS/R2</text>
+    <text x="190" y="178" class="sk-edge" text-anchor="middle">单一 URL</text>
+  </g>
+</svg>
+<div class="cap">换 token、App ID、LLM、策略、技能库、云备份、管理台<b>全在一个进程</b>；密钥只在服务端、可轮换。外接依赖均<b>运维配置</b>（无 SSRF）。<b>商店版没有代理 → 整套死代码消除</b>。</div>
+</div>
+
 <h3>关键约束（代码里硬编码的边界）</h3>
 <ul>
 <li><b>只用用户身份</b>：<code>auth.ts resolveToken</code> 绝不回退 tenant。</li>
@@ -243,6 +301,62 @@ npm run build -- --mode enterprise
 <p>深结构见 <code>ARCHITECTURE.md</code>。</p>
 
 <h2 id="security">安全模型</h2>
+
+<h3>换 token 的安全流程（代理模式：secret 永不进扩展包）</h3>
+<div class="sketch">
+<svg viewBox="0 0 820 270" role="img" aria-label="OAuth 安全流程：扩展 → 飞书同意页(闸门) → 你的代理(注入secret) → 飞书token → 回扩展">
+  <g filter="url(#hd)" stroke="#2b2f3a" stroke-width="2.2" stroke-linecap="round">
+    <rect x="18" y="74" width="152" height="92" rx="13" fill="#d0ebff"/>
+    <rect x="212" y="60" width="198" height="116" rx="14" fill="#ffe8cc"/>
+    <rect x="452" y="74" width="170" height="92" rx="13" fill="#fff3bf"/>
+    <rect x="664" y="74" width="138" height="92" rx="13" fill="#d3f9d8"/>
+    <path d="M170 104 L212 104" fill="none" marker-end="url(#ah)"/>
+    <path d="M410 142 L452 126" fill="none" marker-end="url(#ah)"/>
+    <path d="M622 116 L664 116" fill="none" marker-end="url(#ah)"/>
+    <path d="M730 166 C730 232 180 236 96 168" fill="none" marker-end="url(#ah)"/>
+  </g>
+  <g text-anchor="middle">
+    <text x="94" y="108" class="sk-lbl" font-size="14">浏览器扩展</text><text x="94" y="128" class="sk-sub" font-size="11">client_id + redirect</text><text x="94" y="146" class="sk-sub" font-size="11">无 secret</text>
+    <text x="311" y="100" class="sk-lbl" font-size="15">飞书 OAuth 同意页</text><text x="311" y="124" class="sk-sub" font-size="12">🚪 谁能授权的真正闸门</text><text x="311" y="146" class="sk-sub" font-size="11">可用范围 + 用户同意</text>
+    <text x="537" y="104" class="sk-lbl" font-size="14">你的自托管代理</text><text x="537" y="126" class="sk-sub" font-size="11">🔒 注入 secret（不下发）</text><text x="537" y="144" class="sk-sub" font-size="11">redirect 白名单</text>
+    <text x="733" y="112" class="sk-lbl" font-size="13.5">飞书 token</text><text x="733" y="131" class="sk-sub" font-size="11">接口</text>
+    <text x="191" y="96" class="sk-edge" text-anchor="middle">①授权</text>
+    <text x="432" y="118" class="sk-edge" text-anchor="start">②code</text>
+    <text x="643" y="108" class="sk-edge" text-anchor="middle">③+secret</text>
+    <text x="410" y="226" class="sk-edge" text-anchor="middle">④ user token 原样透传回扩展 → 之后扩展直连飞书，代理不经手任何数据</text>
+  </g>
+</svg>
+<div class="cap"><b>App Secret 只在你的服务器</b>，扩展包里一字节不带；代理只做防滥用，<b>不解析 / 不落盘 / 不打印</b> token。「谁能授权」由飞书后台<b>可用范围</b> + 用户同意决定。</div>
+</div>
+
+<h3>出去了什么 · 信任边界</h3>
+<div class="sketch">
+<svg viewBox="0 0 820 404" role="img" aria-label="数据外发与信任边界：设备/扩展向 飞书/大模型/技能库/云备份/本地备份 各发什么">
+  <g filter="url(#hd)" stroke="#2b2f3a" stroke-width="2.2" stroke-linecap="round">
+    <rect x="26" y="146" width="180" height="116" rx="14" fill="#d0ebff"/>
+    <rect x="470" y="18" width="332" height="60" rx="12" fill="#d3f9d8"/>
+    <rect x="470" y="94" width="332" height="60" rx="12" fill="#ffe8cc"/>
+    <rect x="470" y="170" width="332" height="62" rx="12" fill="#fff3bf"/>
+    <rect x="470" y="248" width="332" height="62" rx="12" fill="#e5dbff"/>
+    <rect x="470" y="326" width="332" height="58" rx="12" fill="#eceae3"/>
+    <path d="M206 196 C330 130 380 70 470 50" fill="none" marker-end="url(#ah)"/>
+    <path d="M206 200 C330 170 380 134 470 124" fill="none" marker-end="url(#ah)"/>
+    <path d="M206 204 L470 200" fill="none" marker-end="url(#ah)"/>
+    <path d="M206 208 C330 240 380 250 470 278" fill="none" marker-end="url(#ah)"/>
+    <path d="M206 214 C330 300 380 326 470 354" fill="none" marker-end="url(#ah)"/>
+  </g>
+  <g text-anchor="middle">
+    <text x="116" y="190" class="sk-lbl" font-size="14.5">你的设备 · 扩展</text><text x="116" y="214" class="sk-sub" font-size="11.5">🔒 沙箱：生成代码</text><text x="116" y="232" class="sk-sub" font-size="11.5">无网络出站</text>
+    <text x="486" y="44" class="sk-lbl" font-size="13.5" text-anchor="start">飞书</text><text x="540" y="44" class="sk-sub" font-size="12" text-anchor="start">：以你本人身份操作（不越权）</text>
+    <text x="486" y="120" class="sk-lbl" font-size="13.5" text-anchor="start">大模型</text><text x="566" y="120" class="sk-sub" font-size="12" text-anchor="start">：你自配的端点（可 host 白名单）</text>
+    <text x="486" y="196" class="sk-lbl" font-size="13.5" text-anchor="start">技能库〔企业〕</text><text x="486" y="216" class="sk-sub" font-size="11.5" text-anchor="start">：仅 LLM 蒸馏经验 + 工具名（无条件脱敏，绝不发原文）</text>
+    <text x="486" y="274" class="sk-lbl" font-size="13.5" text-anchor="start">云备份〔企业〕</text><text x="486" y="294" class="sk-sub" font-size="11.5" text-anchor="start">：你公司自有对象存储 · 按 open_id 隔离 · 可选 AES</text>
+    <text x="486" y="352" class="sk-lbl" font-size="13.5" text-anchor="start">本地备份</text><text x="566" y="352" class="sk-sub" font-size="12" text-anchor="start">：导出文件到你本机（默认不含密钥）</text>
+  </g>
+</svg>
+<div class="cap">每条出站都是「<b>谁配的、去哪、发什么</b>」明确可控；生成代码在沙箱里<b>发不出去</b>。<b>商店版无代理 → 技能库 / 云备份 / 托管项整套死代码消除</b>，什么都不外发。</div>
+</div>
+
 <h3>客户端</h3>
 <ul>
 <li><b>身份闸门</b>：AI 始终以<b>用户本人</b>飞书身份操作，绝不回退应用/租户身份越权。</li>
