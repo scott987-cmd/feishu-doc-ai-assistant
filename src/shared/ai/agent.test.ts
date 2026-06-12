@@ -258,6 +258,9 @@ describe('describeDestructiveOp — confirm-card summary (button confirm)', () =
     // The tool deletes the half-open range [start_index, end_index) — count = end - start.
     expect(describeDestructiveOp('delete_document_blocks', { start_index: 2, end_index: 4 })).toMatch(/2 个内容块/)
     expect(describeDestructiveOp('dedupe_records', {})).toMatch(/去重/)
+    // delete_dimension shows the EXACT 1-based range so the user catches a wrong delete (e.g. header)
+    expect(describeDestructiveOp('delete_dimension', { dimension: 'ROWS', start_index: 0, count: 2 })).toBe('删除电子表格第 1–2 行（共 2 行）')
+    expect(describeDestructiveOp('delete_dimension', { dimension: 'COLUMNS', start_index: 3, count: 1 })).toBe('删除电子表格第 4–4 列（共 1 列）')
   })
   it('describes a generic write API call with its method + path', () => {
     expect(describeDestructiveOp('feishu_api_call', { method: 'PATCH', path: '/docx/v1/x' })).toMatch(/PATCH.*\/docx\/v1\/x/)

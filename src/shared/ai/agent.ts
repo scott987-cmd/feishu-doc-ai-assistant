@@ -155,8 +155,15 @@ export function describeDestructiveOp(name: string, args: Record<string, unknown
       return `批量删除 ${len('record_ids') ?? '若干'} 条记录`
     case 'delete_field':
       return `删除字段「${String(args.field_name ?? args.field_id ?? '')}」（含该列全部数据）`
-    case 'delete_dimension':
-      return '删除电子表格的若干行/列'
+    case 'delete_dimension': {
+      // Show the EXACT 1-based range on the confirm card so the user catches a wrong delete
+      // (e.g. "删除第 1–2 行" makes it obvious row 1 = the header is about to go).
+      const dim = String(args.dimension ?? '').toUpperCase() === 'COLUMNS' ? '列' : '行'
+      const s = Number(args.start_index), c = Number(args.count)
+      return Number.isFinite(s) && Number.isFinite(c) && c > 0
+        ? `删除电子表格第 ${s + 1}–${s + c} ${dim}（共 ${c} ${dim}）`
+        : `删除电子表格的若干${dim}`
+    }
     case 'delete_document_blocks': {
       // The tool deletes the range [start_index, end_index); there is no `block_ids` arg, so the
       // count must come from the indices (otherwise the confirm card always reads「若干」).
@@ -1344,6 +1351,11 @@ function buildSystemPrompt(ctx: PageContext, s: AppSettings, baseCtx?: BaseCtx):
 - \`batch_delete_records\`：先说明将删除的记录数量和筛选条件
 - \`delete_document_blocks\`：先说明将删除的内容块位置/内容
 - \`dedupe_records\`：先用 \`dry_run=true\` 预览重复组数和将删除的记录数并告知用户，再发起真正删除（同样弹按钮确认）
+
+**按"索引"删除前，必须先读、再删（防删错/删表头）：**
+- 电子表格删行/列（\`delete_dimension\`）、文档删块（\`delete_document_blocks\`）是**按位置索引**删的——**先 \`read_range\` / \`list_blocks\` / \`get_document_content\` 看清当前内容，确认要删的确切 0 基索引与数量，再删**；**绝不凭印象猜行号**。
+- 电子表格**第 1 行通常是表头（start_index=0）**，未经用户明确要求**不要删表头**；用户说"删第 N 行"= \`start_index=N-1\`、\`count=1\`。
+- 多维表格删记录走 \`record_id\`（先 \`search_records\` 拿到精确 ID），本就不靠行号。
 
 若工具结果是 \`_cancelled\`（用户点了「取消」），停止该删除，改为询问用户下一步，不要重试。
 
