@@ -11,6 +11,8 @@ import { sendVizToActiveTab } from '../../shared/dataviz/send'
 import type { VizSource } from '../../shared/dataviz/types'
 import MessageList from './MessageList'
 import UndoBar from './UndoBar'
+import { loadDeleteUndo } from '../../shared/feishu/undo'
+import { reloadActiveTab } from '../tabReload'
 import InputBar from './InputBar'
 import type { InputBarHandle } from './InputBar'
 import BaseContextBadge from './BaseContextBadge'
@@ -220,6 +222,9 @@ export default function ChatPanel({
         requestConfirmation,
         askUser,
       }, baseCtx ?? undefined, ac.signal)
+      // A deletion this turn left the Feishu page stale (it caches) — reload it so the result
+      // shows without a manual refresh. Gated on a fresh undo stash so non-delete turns don't reload.
+      void loadDeleteUndo().then((u) => { if (u && Date.now() - u.at < 15000) reloadActiveTab() })
     } catch (err) {
       // Cancelled turn (unmount / superseded by a new send) — not a real error.
       const aborted = ac.signal.aborted || (err instanceof Error && err.name === 'AbortError')

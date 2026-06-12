@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { AppSettings } from '../../shared/types'
-import { loadDeleteUndo, clearDeleteUndo, restoreDeleteUndo, type DeleteUndo } from '../../shared/feishu/undo'
+import { loadDeleteUndo, clearDeleteUndo, restoreDeleteUndo, type UndoView } from '../../shared/feishu/undo'
 import { resolveToken } from '../../shared/feishu/auth'
+import { reloadActiveTab } from '../tabReload'
 
 /**
  * A slim "↩ 撤销删除" bar shown after the assistant deletes records. It reads the undo entry the
@@ -9,7 +10,7 @@ import { resolveToken } from '../../shared/feishu/auth'
  * — so operating on important tables feels safe (there's a one-click 后悔药).
  */
 export default function UndoBar({ settings }: { settings: AppSettings }) {
-  const [undo, setUndo] = useState<DeleteUndo | null>(null)
+  const [undo, setUndo] = useState<UndoView | null>(null)
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState('')
   const noteTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -33,7 +34,8 @@ export default function UndoBar({ settings }: { settings: AppSettings }) {
     setBusy(true)
     try {
       const n = await restoreDeleteUndo(await resolveToken(settings), undo)
-      await clearDeleteUndo(); setUndo(null); flash(`已恢复 ${n} 条记录`)
+      await clearDeleteUndo(); setUndo(null); flash(`已恢复 ${n} 项，正在刷新页面…`)
+      reloadActiveTab() // the Feishu page caches — reload so the restored rows actually show
     } catch (e) {
       flash('恢复失败：' + (e instanceof Error ? e.message : String(e)))
     } finally { setBusy(false) }

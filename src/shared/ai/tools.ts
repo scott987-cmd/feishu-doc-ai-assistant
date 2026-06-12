@@ -931,7 +931,10 @@ export const FEISHU_TOOLS: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'delete_dimension',
-      description: '⚠️ 破坏性操作·不可撤销。删除工作表中 [start_index, start_index+count) 的行或列及其数据。调用前需告知用户并获确认。',
+      description: '⚠️ 破坏性操作。删除工作表中 [start_index, start_index+count) 的行或列及其数据。' +
+        '删「行(ROWS)」时可在对话「↩ 撤销删除」一键恢复(插回原位+写回值)，删列暂不支持撤销。' +
+        'start_index 是 0 基：第 1 行(通常是表头)= 0、"第 N 行" = N-1。**未经用户明确要求，不要删表头行**，' +
+        '删某一行时 count 通常为 1。调用前告知用户并获确认。',
       parameters: {
         type: 'object',
         required: ['spreadsheet_token', 'sheet_id', 'dimension', 'start_index', 'count'],

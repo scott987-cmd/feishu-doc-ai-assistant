@@ -49,18 +49,26 @@ describe('delete undo', () => {
     expect(await captureRecords('t', 'app', 'tbl', ['r1'])).toEqual([{ fields: { 备注: '你好世界' } }])
   })
 
-  it('save + load round-trips; empty capture stores nothing', async () => {
-    await saveDeleteUndo({ appToken: 'app', tableId: 'tbl', label: '删除 2 条记录', records: [{ fields: { x: 1 } }, { fields: { x: 2 } }] })
+  it('save + load round-trips with a computed batch label; empty op stores nothing', async () => {
+    await saveDeleteUndo({ kind: 'records', appToken: 'app', tableId: 'tbl', records: [{ fields: { x: 1 } }, { fields: { x: 2 } }] })
     const u = await loadDeleteUndo()
     expect(u?.label).toBe('删除 2 条记录')
-    expect(u && u.kind !== 'sheetRows' ? u.records : []).toHaveLength(2)
+    expect(u?.ops).toHaveLength(1)
     await clearDeleteUndo()
-    await saveDeleteUndo({ appToken: 'app', tableId: 'tbl', label: 'x', records: [] })
+    await saveDeleteUndo({ kind: 'records', appToken: 'app', tableId: 'tbl', records: [] })
     expect(await loadDeleteUndo()).toBeNull()
   })
 
-  it('ignores an expired undo (older than TTL)', async () => {
-    mem['_last_delete_undo_v1'] = { at: Date.now() - UNDO_TTL_MS - 1000, appToken: 'a', tableId: 't', label: 'old', records: [{ fields: { x: 1 } }] }
+  it('MERGES consecutive deletes into ONE batch (multi-call delete is undone as a whole)', async () => {
+    await saveDeleteUndo({ kind: 'records', appToken: 'app', tableId: 'tbl', records: [{ fields: { x: 1 } }] })
+    await saveDeleteUndo({ kind: 'sheetRows', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 0, values: [['标题']] })
+    const u = await loadDeleteUndo()
+    expect(u?.ops).toHaveLength(2)            // both deletes kept (no clobber)
+    expect(u?.label).toBe('删除 1 条记录、1 行')
+  })
+
+  it('ignores an expired batch (older than TTL)', async () => {
+    mem['_last_delete_undo_v1'] = { at: Date.now() - UNDO_TTL_MS - 1000, ops: [{ kind: 'records', appToken: 'a', tableId: 't', records: [{ fields: { x: 1 } }] }] }
     expect(await loadDeleteUndo()).toBeNull()
   })
 
@@ -74,7 +82,7 @@ describe('delete undo', () => {
 
   it('restore re-inserts the rows and writes the captured values back', async () => {
     mockInsertDim.mockResolvedValue({}); mockWriteRange.mockResolvedValue({})
-    const n = await restoreDeleteUndo('tok', { kind: 'sheetRows', at: Date.now(), label: '', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 5, values: [['a', 'b'], ['c', 'd']] })
+    const n = await restoreDeleteUndo('tok', { ops: [{ kind: 'sheetRows', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 5, values: [['a', 'b'], ['c', 'd']] }] })
     expect(n).toBe(2)
     expect(mockInsertDim).toHaveBeenCalledWith('tok', 'ss', 'sh1', 'ROWS', 5, 2)
     expect(mockWriteRange).toHaveBeenCalledWith('tok', 'ss', 'sh1!A6:B7', [['a', 'b'], ['c', 'd']])
@@ -82,8 +90,21 @@ describe('delete undo', () => {
 
   it('restore re-creates the captured records and returns the count', async () => {
     mockCreate.mockResolvedValue({})
-    const n = await restoreDeleteUndo('tok', { at: Date.now(), appToken: 'app', tableId: 'tbl', label: '', records: [{ fields: { x: 1 } }, { fields: { x: 2 } }] })
+    const n = await restoreDeleteUndo('tok', { ops: [{ kind: 'records', appToken: 'app', tableId: 'tbl', records: [{ fields: { x: 1 } }, { fields: { x: 2 } }] }] })
     expect(n).toBe(2)
     expect(mockCreate).toHaveBeenCalledWith('tok', 'app', 'tbl', [{ fields: { x: 1 } }, { fields: { x: 2 } }])
+  })
+
+  it('restores a BATCH in REVERSE order (last deleted re-inserted first → indices reconstruct)', async () => {
+    mockInsertDim.mockResolvedValue({}); mockWriteRange.mockResolvedValue({})
+    // ops in delete order: header row (idx0) then a later data row (idx0 after the shift)
+    const n = await restoreDeleteUndo('tok', { ops: [
+      { kind: 'sheetRows', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 0, values: [['标题']] },
+      { kind: 'sheetRows', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 0, values: [['数据']] },
+    ] })
+    expect(n).toBe(2)
+    // reverse order: the SECOND op (数据) is re-inserted FIRST, then the header
+    expect(mockWriteRange.mock.calls[0][3]).toEqual([['数据']])
+    expect(mockWriteRange.mock.calls[1][3]).toEqual([['标题']])
   })
 })

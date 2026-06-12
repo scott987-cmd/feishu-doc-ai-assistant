@@ -808,7 +808,7 @@ export async function executeTool(
       // Capture the row BEFORE deleting so the UI can offer a one-click 撤销 (re-create).
       const captured = await captureRecords(token, app!, tableId!, [recordId!])
       const r = await API.deleteRecord(token, app!, tableId!, recordId!)
-      await saveDeleteUndo({ appToken: app!, tableId: tableId!, label: '删除 1 条记录', records: captured })
+      await saveDeleteUndo({ kind: 'records', appToken: app!, tableId: tableId!, records: captured })
       return r
     }
 
@@ -816,7 +816,7 @@ export async function executeTool(
       const ids = (args.record_ids as string[]) ?? []
       const captured = await captureRecords(token, app!, tableId!, ids)
       const r = await API.batchDeleteRecords(token, app!, tableId!, ids)
-      await saveDeleteUndo({ appToken: app!, tableId: tableId!, label: `删除 ${ids.length} 条记录`, records: captured })
+      await saveDeleteUndo({ kind: 'records', appToken: app!, tableId: tableId!, records: captured })
       return r
     }
 

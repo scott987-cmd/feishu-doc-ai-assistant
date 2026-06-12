@@ -1,43 +1,31 @@
 /**
  * Undo for deletions — the "后悔药". Before a delete runs we CAPTURE the data; after it succeeds we
- * stash ONE undo entry; a one-click "撤销" re-creates it. Two kinds (one shared bar/storage):
+ * append ONE op to the current undo BATCH; a one-click "撤销" replays the whole batch in REVERSE.
+ * Batching matters: the assistant often deletes in SEVERAL calls (e.g. a header row then a data
+ * row) — a single-slot undo would keep only the last, losing the rest. Two op kinds (one bar):
  *   • records  — bitable records → batch_create (record_ids change; computed/auto fields recompute)
- *   • sheetRows — spreadsheet ROW deletes → insert the rows back + write the captured values
- * Field/table/sheet-FILE deletions and doc-block deletions are NOT covered (doc edits are
- * recoverable via Feishu's 版本历史; we tell the user that instead).
+ *   • sheetRows — spreadsheet ROW deletes → insert the rows back AT THEIR ORIGINAL INDEX + write values
+ * Restoring REVERSE order makes the recorded (at-delete-time) sheet indices reconstruct correctly.
+ * Field/table/sheet-FILE deletions and doc-block deletions are NOT covered (docs → 版本历史).
  */
 import { storageGet, storageSet } from '../storage'
 import * as API from './api'
 import * as Sheets from './sheets'
 
 const KEY = '_last_delete_undo_v1'
-/** How long an undo stays offered (older entries are ignored — avoids a stale "撤销" much later). */
+/** How long an undo stays offered (older batches are ignored — avoids a stale "撤销" much later). */
 export const UNDO_TTL_MS = 10 * 60 * 1000
+/** Consecutive deletes within this window merge into ONE undoable batch (same logical operation). */
+const BATCH_WINDOW_MS = 2 * 60 * 1000
 /** Cap how many sheet rows we capture — a huge delete shouldn't bloat storage / a slow restore. */
 const SHEET_ROW_CAP = 200
 
-export interface RecordsUndo {
-  kind?: 'records' // optional → back-compat with entries stored before sheetRows existed
-  at: number
-  label: string
-  appToken: string
-  tableId: string
-  records: Array<{ fields: Record<string, unknown> }>
-}
-export interface SheetRowsUndo {
-  kind: 'sheetRows'
-  at: number
-  label: string
-  spreadsheetToken: string
-  sheetId: string
-  startIndex: number // 0-based row index where the deleted rows began
-  values: unknown[][]
-}
-export type DeleteUndo = RecordsUndo | SheetRowsUndo
-// Plain Omit<union, K> collapses to the COMMON keys only; distribute it so member-specific
-// fields (appToken/records vs spreadsheetToken/values) survive.
-type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never
-type NewUndo = DistributiveOmit<DeleteUndo, 'at'>
+export type UndoOp =
+  | { kind: 'records'; appToken: string; tableId: string; records: Array<{ fields: Record<string, unknown> }> }
+  | { kind: 'sheetRows'; spreadsheetToken: string; sheetId: string; startIndex: number; values: unknown[][] }
+interface UndoBatch { at: number; ops: UndoOp[] }
+/** What the UI gets: the batch + a human label. */
+export interface UndoView { at: number; label: string; ops: UndoOp[] }
 
 /** A1 column letter for a 1-based column count (1→A, 27→AA). */
 function colLetter(n: number): string {
@@ -115,7 +103,7 @@ export async function captureRecords(
  *  (re-insert the rows + write the values back). ROWS only; never throws (no undo on failure). */
 export async function captureSheetRows(
   token: string, spreadsheetToken: string, sheetId: string, startIndex: number, count: number,
-): Promise<Omit<SheetRowsUndo, 'at'> | null> {
+): Promise<Extract<UndoOp, { kind: 'sheetRows' }> | null> {
   if (!sheetId || count <= 0 || count > SHEET_ROW_CAP) return null
   try {
     const meta = (await Sheets.listSheets(token, spreadsheetToken)) as { sheets?: Array<{ sheet_id?: string; grid_properties?: { column_count?: number } }> }
@@ -124,37 +112,56 @@ export async function captureSheetRows(
     const res = (await Sheets.readRange(token, spreadsheetToken, range)) as { valueRange?: { values?: unknown[][] } }
     const values = res.valueRange?.values ?? []
     if (!values.length) return null
-    return { kind: 'sheetRows', label: `删除 ${count} 行`, spreadsheetToken, sheetId, startIndex, values }
+    return { kind: 'sheetRows', spreadsheetToken, sheetId, startIndex, values }
   } catch { return null }
 }
 
-export async function saveDeleteUndo(u: NewUndo): Promise<void> {
-  const empty = u.kind === 'sheetRows' ? !u.values.length : !u.records.length
-  if (empty) return // nothing captured → no undo to offer
-  await storageSet(KEY, { ...u, at: Date.now() })
+const opEmpty = (op: UndoOp): boolean => (op.kind === 'sheetRows' ? !op.values.length : !op.records.length)
+
+/** Append a deletion op to the current undo batch (merging consecutive deletes within the window),
+ *  so a multi-call delete is undone as a whole. */
+export async function saveDeleteUndo(op: UndoOp): Promise<void> {
+  if (opEmpty(op)) return
+  const cur = (await storageGet(KEY)) as UndoBatch | null
+  const recent = cur && typeof cur === 'object' && Array.isArray(cur.ops) && Date.now() - cur.at < BATCH_WINDOW_MS
+  const batch: UndoBatch = recent ? { at: Date.now(), ops: [...cur!.ops, op] } : { at: Date.now(), ops: [op] }
+  await storageSet(KEY, batch)
 }
 
-export async function loadDeleteUndo(): Promise<DeleteUndo | null> {
+function undoLabel(ops: UndoOp[]): string {
+  let recs = 0, rows = 0
+  for (const op of ops) op.kind === 'sheetRows' ? (rows += op.values.length) : (recs += op.records.length)
+  const parts: string[] = []
+  if (recs) parts.push(`${recs} 条记录`)
+  if (rows) parts.push(`${rows} 行`)
+  return '删除 ' + (parts.join('、') || '内容')
+}
+
+export async function loadDeleteUndo(): Promise<UndoView | null> {
   const v = await storageGet(KEY)
   if (!v || typeof v !== 'object') return null
-  const u = v as DeleteUndo
-  if (Date.now() - u.at > UNDO_TTL_MS) return null
-  if (u.kind === 'sheetRows') return Array.isArray(u.values) && u.values.length ? u : null
-  return Array.isArray(u.records) && u.records.length ? u : null
+  const b = v as UndoBatch
+  if (!Array.isArray(b.ops) || !b.ops.length || Date.now() - b.at > UNDO_TTL_MS) return null
+  return { at: b.at, ops: b.ops, label: undoLabel(b.ops) }
 }
 
 export async function clearDeleteUndo(): Promise<void> { await storageSet(KEY, null) }
 
-/** Re-create what was deleted. Returns how many records/rows were restored. */
-export async function restoreDeleteUndo(token: string, u: DeleteUndo): Promise<number> {
-  if (u.kind === 'sheetRows') {
-    if (!u.values.length) return 0
-    await Sheets.insertDimension(token, u.spreadsheetToken, u.sheetId, 'ROWS', u.startIndex, u.values.length)
-    const range = `${u.sheetId}!A${u.startIndex + 1}:${colLetter(Math.max(1, ...u.values.map((r) => r.length)))}${u.startIndex + u.values.length}`
-    await Sheets.writeRange(token, u.spreadsheetToken, range, u.values)
-    return u.values.length
+/** Replay the batch in REVERSE order (last delete undone first → sheet indices reconstruct
+ *  correctly). Returns how many records/rows were restored. */
+export async function restoreDeleteUndo(token: string, view: { ops: UndoOp[] }): Promise<number> {
+  let n = 0
+  for (const op of [...view.ops].reverse()) {
+    if (opEmpty(op)) continue
+    if (op.kind === 'sheetRows') {
+      await Sheets.insertDimension(token, op.spreadsheetToken, op.sheetId, 'ROWS', op.startIndex, op.values.length)
+      const range = `${op.sheetId}!A${op.startIndex + 1}:${colLetter(Math.max(1, ...op.values.map((r) => r.length)))}${op.startIndex + op.values.length}`
+      await Sheets.writeRange(token, op.spreadsheetToken, range, op.values)
+      n += op.values.length
+    } else {
+      await API.batchCreateRecords(token, op.appToken, op.tableId, op.records)
+      n += op.records.length
+    }
   }
-  if (!u.records.length) return 0
-  await API.batchCreateRecords(token, u.appToken, u.tableId, u.records)
-  return u.records.length
+  return n
 }
