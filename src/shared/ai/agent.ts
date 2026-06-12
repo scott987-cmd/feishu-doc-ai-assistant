@@ -114,9 +114,11 @@ export function isDestructiveApiCall(name: string, args: Record<string, unknown>
   const path = String(args.path ?? '')
   if (method === 'DELETE') return true // (also file-level-blocked, but content DELETE if it ever isn't)
   if (method === 'POST') {
-    if (/(delete|trash|remove)/i.test(path)) return true // batch_delete, move_to_trash, …
+    if (/(batch_delete|\/delete|delete_|trash|move_to_trash)/i.test(path)) return true // delete endpoints
+    // Body check is narrow ON PURPOSE — a Sheets batch_update delete request. NOT a generic
+    // /"delete.../ (that false-flagged benign payloads with a field/key named e.g. "deleted").
     const body = JSON.stringify(args.body ?? args.payload ?? args.data ?? {})
-    if (/"delete[A-Za-z]*"|deleteDimension|deleteRange|deleteSheet/i.test(body)) return true // sheets_batch_update delete reqs
+    if (/"(deleteDimension|deleteRange|deleteSheet)"/i.test(body)) return true
   }
   return false
 }

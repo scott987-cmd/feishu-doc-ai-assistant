@@ -114,4 +114,29 @@ describe('delete undo', () => {
     expect(n).toBe(5)
     expect(mockInsertDim).toHaveBeenCalledWith('tok', 'ss', 'sh1', 'ROWS', 2, 5) // 5 rows back, not just the 2 with data
   })
+
+  it('drops a record whose every field is read-only (would otherwise create {fields:{}})', async () => {
+    mockGet.mockResolvedValue({ records: [{ record_id: 'r1', fields: { 公式: 1 } }, { record_id: 'r2', fields: { 名称: 'B' } }] })
+    mockFields.mockResolvedValue({ items: [{ field_name: '公式', type: 20 }, { field_name: '名称', type: 1 }] })
+    expect(await captureRecords('t', 'app', 'tbl', ['r1', 'r2'])).toEqual([{ fields: { 名称: 'B' } }]) // r1 dropped
+  })
+
+  it('pads ragged captured rows to a rectangular matrix (so writeRange does not misalign)', async () => {
+    mockListSheets.mockResolvedValue({ sheets: [{ sheet_id: 'sh1', grid_properties: { column_count: 3 } }] })
+    mockReadRange.mockResolvedValue({ valueRange: { values: [['a', 'b', 'c'], ['d']] } }) // ragged
+    const u = await captureSheetRows('t', 'ss', 'sh1', 0, 2)
+    expect(u?.values).toEqual([['a', 'b', 'c'], ['d', '', '']]) // shorter row padded to width 3
+  })
+
+  it('CHECKPOINTS a partial restore: a mid-batch failure leaves only the un-restored ops (no re-click dup)', async () => {
+    mockInsertDim.mockResolvedValue({}); mockWriteRange.mockResolvedValue({})
+    mockCreate.mockRejectedValue(new Error('boom')) // the records op will throw
+    // reverse order restores the sheetRows op FIRST (succeeds), then records (throws)
+    await expect(restoreDeleteUndo('tok', { ops: [
+      { kind: 'records', appToken: 'app', tableId: 'tbl', records: [{ fields: { x: 1 } }] },
+      { kind: 'sheetRows', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 0, count: 1, values: [['a']] },
+    ] })).rejects.toThrow('boom')
+    const left = await loadDeleteUndo()
+    expect(left?.ops).toEqual([{ kind: 'records', appToken: 'app', tableId: 'tbl', records: [{ fields: { x: 1 } }] }]) // sheetRows dropped, records kept
+  })
 })

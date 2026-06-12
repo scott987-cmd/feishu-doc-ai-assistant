@@ -173,6 +173,10 @@ export default function ChatPanel({
     // the tool result — instead of all rounds appending to the first bubble.
     let streamId: string | null = null
 
+    // Snapshot the undo stash timestamp BEFORE the turn — we reload the Feishu page only if a delete
+    // THIS turn advanced it (vs the old 15s-recency guess that fired on follow-up non-delete turns).
+    const undoAtBefore = (await loadDeleteUndo())?.at ?? 0
+
     try {
       await runAgent(allMessages, settings, context, {
         onChunk(chunk) {
@@ -222,9 +226,9 @@ export default function ChatPanel({
         requestConfirmation,
         askUser,
       }, baseCtx ?? undefined, ac.signal)
-      // A deletion this turn left the Feishu page stale (it caches) — reload it so the result
-      // shows without a manual refresh. Gated on a fresh undo stash so non-delete turns don't reload.
-      void loadDeleteUndo().then((u) => { if (u && Date.now() - u.at < 15000) reloadActiveTab() })
+      // A deletion this turn left the Feishu page stale (it caches) — reload it so the result shows
+      // without a manual refresh. Only when the undo stash advanced THIS turn (a delete happened).
+      void loadDeleteUndo().then((u) => { if (u && u.at !== undoAtBefore) reloadActiveTab() })
     } catch (err) {
       // Cancelled turn (unmount / superseded by a new send) — not a real error.
       const aborted = ac.signal.aborted || (err instanceof Error && err.name === 'AbortError')

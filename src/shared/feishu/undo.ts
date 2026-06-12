@@ -36,13 +36,6 @@ function colLetter(n: number): string {
   return s
 }
 
-/**
- * Convert a field's batch_get READ value into the batch_create WRITE format, or return `undefined`
- * to DROP the field (read-only, or a complex type whose write format we can't reconstruct). Without
- * this the restore's batch_create was rejected (the READ shape ≠ WRITE shape for user/attachment/
- * link fields), which made "↩ 撤销" silently fail. Simple types (text/number/select/date/checkbox/
- * phone/url/…) round-trip unchanged.
- */
 /** Flatten a Feishu rich-text READ value to a plain string. Text fields come back from batch_get
  *  as a segment array [{type:'text', text:'…'}] (or a {text} object), but batch_create expects a
  *  plain string → otherwise it fails with code 1254060 TextFieldConvFail. */
@@ -53,6 +46,13 @@ function richTextToString(v: unknown): unknown {
   return v
 }
 
+/**
+ * Convert a field's batch_get READ value into the batch_create WRITE format, or return `undefined`
+ * to DROP the field (read-only, or a complex type whose write format we can't reconstruct). Without
+ * this the restore's batch_create was rejected (the READ shape ≠ WRITE shape for user/attachment/
+ * link fields), which made "↩ 撤销" silently fail. Simple types (text/number/select/date/checkbox/
+ * phone/url/…) round-trip unchanged.
+ */
 function toWriteValue(type: number | undefined, v: unknown): unknown {
   if (v == null) return undefined
   switch (type) {
@@ -97,7 +97,7 @@ export async function captureRecords(
         if (wv != null && !(Array.isArray(wv) && wv.length === 0)) fields[k] = wv
       }
       return { fields }
-    })
+    }).filter((r) => Object.keys(r.fields).length) // drop all-read-only records → batch_create would reject {fields:{}}
   } catch { return [] }
 }
 
@@ -112,8 +112,12 @@ export async function captureSheetRows(
     const cols = Math.min(Math.max(1, meta.sheets?.find((s) => s.sheet_id === sheetId)?.grid_properties?.column_count ?? 26), 200)
     const range = `${sheetId}!A${startIndex + 1}:${colLetter(cols)}${startIndex + count}`
     const res = (await Sheets.readRange(token, spreadsheetToken, range)) as { valueRange?: { values?: unknown[][] } }
-    const values = res.valueRange?.values ?? []
-    if (!values.length) return null
+    const raw = res.valueRange?.values ?? []
+    if (!raw.length) return null
+    // readRange omits trailing blanks per row → ragged rows. writeRange needs a RECTANGULAR matrix,
+    // so pad every row to the widest row (blank cells) — else restore's writeRange misaligns/rejects.
+    const width = Math.max(1, ...raw.map((r) => r.length))
+    const values = raw.map((r) => { const row = r.slice(); while (row.length < width) row.push(''); return row })
     return { kind: 'sheetRows', spreadsheetToken, sheetId, startIndex, count, values }
   } catch { return null }
 }
@@ -150,23 +154,35 @@ export async function loadDeleteUndo(): Promise<UndoView | null> {
 export async function clearDeleteUndo(): Promise<void> { await storageSet(KEY, null) }
 
 /** Replay the batch in REVERSE order (last delete undone first → sheet indices reconstruct
- *  correctly). Returns how many records/rows were restored. */
+ *  correctly). Returns how many records/rows were restored. CHECKPOINTED: each op is dropped from
+ *  the stored batch as it succeeds, so if a later op throws (token expiry, rejected record) the
+ *  already-restored ops are NOT replayed on a retry — re-clicking 撤销 never duplicates them. */
 export async function restoreDeleteUndo(token: string, view: { ops: UndoOp[] }): Promise<number> {
   let n = 0
-  for (const op of [...view.ops].reverse()) {
-    if (opEmpty(op)) continue
-    if (op.kind === 'sheetRows') {
-      // Re-insert the FULL deleted count (so an over-delete is fully reversed), then write the
-      // captured values into the top rows (trailing blanks stay blank).
-      const rows = Math.max(op.count || op.values.length, op.values.length)
-      await Sheets.insertDimension(token, op.spreadsheetToken, op.sheetId, 'ROWS', op.startIndex, rows)
-      const range = `${op.sheetId}!A${op.startIndex + 1}:${colLetter(Math.max(1, ...op.values.map((r) => r.length)))}${op.startIndex + op.values.length}`
-      await Sheets.writeRange(token, op.spreadsheetToken, range, op.values)
-      n += rows
-    } else {
-      await API.batchCreateRecords(token, op.appToken, op.tableId, op.records)
-      n += op.records.length
+  const remaining = [...view.ops] // pop from the end as we go (reverse order)
+  try {
+    for (let i = view.ops.length - 1; i >= 0; i--) {
+      const op = view.ops[i]
+      if (!opEmpty(op)) {
+        if (op.kind === 'sheetRows') {
+          // Re-insert the FULL deleted count (over-delete fully reversed), then write the values.
+          const rows = Math.max(op.count || op.values.length, op.values.length)
+          await Sheets.insertDimension(token, op.spreadsheetToken, op.sheetId, 'ROWS', op.startIndex, rows)
+          const range = `${op.sheetId}!A${op.startIndex + 1}:${colLetter(Math.max(1, ...op.values.map((r) => r.length)))}${op.startIndex + op.values.length}`
+          await Sheets.writeRange(token, op.spreadsheetToken, range, op.values)
+          n += rows
+        } else {
+          await API.batchCreateRecords(token, op.appToken, op.tableId, op.records)
+          n += op.records.length
+        }
+      }
+      remaining.pop() // this op is done → drop it from the retry set
     }
+    return n
+  } catch (e) {
+    // Persist only the un-restored ops so a retry doesn't re-create what already succeeded.
+    if (remaining.length) await storageSet(KEY, { at: Date.now(), ops: remaining } as UndoBatch)
+    else await storageSet(KEY, null)
+    throw e
   }
-  return n
 }
