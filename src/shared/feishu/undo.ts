@@ -29,11 +29,23 @@ export interface DeleteUndo {
  * link fields), which made "↩ 撤销" silently fail. Simple types (text/number/select/date/checkbox/
  * phone/url/…) round-trip unchanged.
  */
+/** Flatten a Feishu rich-text READ value to a plain string. Text fields come back from batch_get
+ *  as a segment array [{type:'text', text:'…'}] (or a {text} object), but batch_create expects a
+ *  plain string → otherwise it fails with code 1254060 TextFieldConvFail. */
+function richTextToString(v: unknown): unknown {
+  if (typeof v === 'string') return v
+  if (Array.isArray(v)) return v.map((s) => (typeof s === 'string' ? s : String((s as { text?: unknown })?.text ?? ''))).join('')
+  if (v && typeof v === 'object' && 'text' in v) return String((v as { text?: unknown }).text ?? '')
+  return v
+}
+
 function toWriteValue(type: number | undefined, v: unknown): unknown {
   if (v == null) return undefined
   switch (type) {
     case 19: case 20: case 1001: case 1002: case 1003: case 1004: case 1005:
       return undefined // computed/auto — never writable
+    case 1: case 13: case 15: // Text / Phone / URL — read may be a rich-text array → plain string
+      return richTextToString(v)
     case 11: // User: read [{id,name,…}] → write [{id}]
       return Array.isArray(v) ? v.map((u) => ({ id: (u as { id?: string })?.id })).filter((u) => u.id) : undefined
     case 17: // Attachment: read [{file_token,name,…}] → write [{file_token}]
@@ -41,7 +53,11 @@ function toWriteValue(type: number | undefined, v: unknown): unknown {
     case 18: case 21: case 22: case 23: // Link / Location / GroupChat — write format uncertain → drop (partial restore)
       return undefined
     default:
-      return v // text/number/single+multi select/date/checkbox/phone/url/email/rating/… round-trip
+      // Other types (number / single+multi select / date / checkbox / rating / …) round-trip, BUT a
+      // value that arrived as a rich-text segment array must still be flattened or it fails as text.
+      return Array.isArray(v) && v.length && typeof v[0] === 'object' && v[0] !== null && 'text' in (v[0] as object)
+        ? richTextToString(v)
+        : v
   }
 }
 

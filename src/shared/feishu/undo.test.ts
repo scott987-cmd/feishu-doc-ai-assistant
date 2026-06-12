@@ -36,6 +36,12 @@ describe('delete undo', () => {
     expect(await captureRecords('t', 'app', 'tbl', ['r1'])).toEqual([{ fields: { 名称: 'A', 负责人: [{ id: 'ou_1' }] } }])
   })
 
+  it('flattens a rich-text text field (segment array) to a plain string (fixes 1254060 TextFieldConvFail)', async () => {
+    mockGet.mockResolvedValue({ records: [{ record_id: 'r1', fields: { 备注: [{ type: 'text', text: '你好' }, { type: 'text', text: '世界' }] } }] })
+    mockFields.mockResolvedValue({ items: [{ field_name: '备注', type: 1 }] })
+    expect(await captureRecords('t', 'app', 'tbl', ['r1'])).toEqual([{ fields: { 备注: '你好世界' } }])
+  })
+
   it('save + load round-trips; empty capture stores nothing', async () => {
     await saveDeleteUndo({ appToken: 'app', tableId: 'tbl', label: '删除 2 条记录', records: [{ fields: { x: 1 } }, { fields: { x: 2 } }] })
     const u = await loadDeleteUndo()
