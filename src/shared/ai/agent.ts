@@ -223,6 +223,12 @@ const DOC_TOOLS = new Set([
   'create_document', 'create_doc_from_markdown', 'get_document_content', 'list_blocks',
   'add_document_content', 'insert_table', 'insert_sheet', 'delete_document_blocks',
 ])
+// Pure READ tools — side-effect-free, so when the model batches several in one round they can run
+// CONCURRENTLY instead of one-after-another (cuts wall-time for "read A and B and C" patterns).
+const READ_ONLY_TOOLS = new Set([
+  'get_app_info', 'list_tables', 'list_fields', 'list_records', 'search_records', 'list_views',
+  'list_dashboards', 'get_spreadsheet', 'list_sheets', 'read_range', 'get_document_content', 'list_blocks',
+])
 // Cross-cutting tools exposed on EVERY page (incl. the "create a new X" entry points) so the user
 // can always ask a question, escape-hatch a raw API call, render a viz, or create a fresh resource.
 const CORE_TOOLS = new Set([
@@ -372,6 +378,19 @@ export async function runAgent(
       tool_calls: rawToolCalls,
     })
 
+    // If this whole round is independent READS, kick them off CONCURRENTLY now; the loop below then
+    // just awaits the already-running promises (in order, preserving message sequencing + callbacks).
+    const preReads = new Map<string, Promise<unknown>>()
+    if (rawToolCalls.length > 1 && rawToolCalls.every((c) => READ_ONLY_TOOLS.has(c.function.name))) {
+      for (const c of rawToolCalls) {
+        let a: Record<string, unknown> = {}
+        try { a = JSON.parse(c.function.arguments) as Record<string, unknown> } catch { /* malformed */ }
+        const p = runToolWithFallback(c.function.name, a, context, settings)
+        p.catch(() => {}) // mark handled now; the real await + error handling happens in the loop
+        preReads.set(c.id, p)
+      }
+    }
+
     for (const tc of rawToolCalls) {
       totalToolCalls++
 
@@ -472,7 +491,8 @@ export async function runAgent(
             data = await runToolWithFallback(tc.function.name, args, context, settings)
           }
         } else {
-          data = await runToolWithFallback(tc.function.name, args, context, settings)
+          // Use the concurrently-started read if we kicked one off above; else run it now.
+          data = await (preReads.get(tc.id) ?? runToolWithFallback(tc.function.name, args, context, settings))
         }
         // Remember successful create-once results so an exact repeat is deduped.
         // (Reached only when the call succeeded — a thrown error skips to catch.)
