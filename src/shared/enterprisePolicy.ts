@@ -1,6 +1,7 @@
 import type { AppSettings } from './types'
 import { BUILD_CONFIG, HAS_ENTERPRISE_POLICY } from './config'
 import { getValidUserToken } from './feishu/auth'
+import { getEffectiveAppId } from './feishu/managedAppId'
 import { encryptField, decryptField } from './crypto'
 import { storageGet, storageSet } from './storage'
 
@@ -27,7 +28,7 @@ export async function fetchPolicy(settings: AppSettings): Promise<EnterprisePoli
     const res = await fetch(BUILD_CONFIG.oauthProxyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(BUILD_CONFIG.oauthProxyKey ? { 'X-Proxy-Key': BUILD_CONFIG.oauthProxyKey } : {}) },
-      body: JSON.stringify({ grant_type: 'policy', user_access_token: token, client_id: BUILD_CONFIG.feishuAppId }),
+      body: JSON.stringify({ grant_type: 'policy', user_access_token: token, client_id: await getEffectiveAppId() }),
     })
     const j = (await res.json().catch(() => ({}))) as { policy?: Record<string, unknown> }
     if (!res.ok || !j.policy) return null

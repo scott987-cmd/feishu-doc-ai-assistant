@@ -10,15 +10,10 @@
  *     to that proxy, which holds the secret server-side; nothing secret ships here.
  * Hosts (api / authorize) are configurable for private (on-prem) deployments.
  */
-import { BUILD_CONFIG, FEISHU_API_BASE, FEISHU_AUTHORIZE_URL } from '../config'
+import { BUILD_CONFIG, FEISHU_API_BASE, FEISHU_AUTHORIZE_URL, HAS_MANAGED_APP_ID } from '../config'
 import { getClientSecret } from './appSecret'
-import { getUserAppId, hasUserAppCreds } from './userAppCreds'
-
-/** The App ID to use: the build-baked one, else the one the user entered in Settings
- *  (public / store "bring your own app" build). */
-async function getEffectiveAppId(): Promise<string> {
-  return BUILD_CONFIG.feishuAppId || (await getUserAppId())
-}
+import { hasUserAppCreds } from './userAppCreds'
+import { getEffectiveAppId } from './managedAppId'
 
 const AUTHORIZE = FEISHU_AUTHORIZE_URL
 const TOKEN = `${FEISHU_API_BASE}/authen/v2/oauth/token`
@@ -68,6 +63,9 @@ async function canDoOAuth(): Promise<boolean> {
   if (BUILD_CONFIG.feishuAppId) {
     return !!BUILD_CONFIG.feishuAppSecret || !!BUILD_CONFIG.appSecretEnc || !!BUILD_CONFIG.oauthProxyUrl
   }
+  // Managed-App-ID build: the proxy provides the App ID (app_config) AND holds the secret (token
+  // exchange) — OAuth is fully doable with nothing tenant-specific baked but the proxy URL.
+  if (HAS_MANAGED_APP_ID) return true
   return await hasUserAppCreds()
 }
 

@@ -3,7 +3,7 @@ import type { AppSettings, ChatMessage, PageContext } from '../../shared/types'
 import type { BaseCtx } from '../../shared/feishu/context'
 import { fetchBaseCtx } from '../../shared/feishu/context'
 import { resolveToken } from '../../shared/feishu/auth'
-import { WEB_SPEECH_ALLOWED } from '../../shared/config'
+import { WEB_SPEECH_ALLOWED, HAS_BUILTIN_CREDS } from '../../shared/config'
 import { runAgent } from '../../shared/ai/agent'
 import type { ConfirmRequest, ConfirmChoice, AskUserRequest } from '../../shared/ai/agent'
 import { fetchVizData } from '../../shared/dataviz/data'
@@ -18,6 +18,7 @@ import type { InputBarHandle } from './InputBar'
 import BaseContextBadge from './BaseContextBadge'
 import ConfirmDialog from './ConfirmDialog'
 import ChoiceDialog from './ChoiceDialog'
+import SkillSuggest from './SkillSuggest'
 import './ChatPanel.css'
 
 interface Props {
@@ -106,7 +107,7 @@ export default function ChatPanel({
   async function loadBaseCtx() {
     const appToken = context.feishu?.appToken
     if (!appToken) return
-    if (!settings.feishuAccessToken && !import.meta.env.VITE_FEISHU_APP_ID) return
+    if (!settings.feishuAccessToken && !HAS_BUILTIN_CREDS) return
 
     latestReqApp.current = appToken
     setCtxLoading(true)
@@ -362,6 +363,14 @@ export default function ChatPanel({
           </div>
         )
       })()}
+
+      {/* 主动推送：新会话时把社区高分做法做成 chip，点一下填进输入框（复核后再发）。
+          enterprise+proxy 才会有数据；store/BYO 无 proxy → 永远空 → 不渲染。 */}
+      <SkillSuggest
+        resourceKind={context.feishu?.kind ?? 'general'}
+        show={!disabled && !streaming && messages.length === 0}
+        onPick={(t) => inputRef.current?.insert(t)}
+      />
 
       <InputBar
         ref={inputRef}

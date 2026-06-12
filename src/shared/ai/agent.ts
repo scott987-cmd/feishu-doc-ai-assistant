@@ -18,7 +18,7 @@ import { assertSafeBaseUrl } from '../providers'
 import { resolveLlmConfig } from './llmConfig'
 import { redactSensitive } from './redact'
 import { loadRecipes, recordRecipe, relevantRecipes, formatRecipes } from './recipes'
-import { matchSkills, formatSkills } from './skills'
+import { matchSkills, formatSkills, type Skill } from './skills'
 import type { BaseCtx } from '../feishu/context'
 import { ctxToPrompt } from '../feishu/context'
 import { generateViz } from './dataviz'
@@ -288,6 +288,9 @@ export async function runAgent(
   const learn = settings.learnFromHistory !== false
   const resourceKind = context.feishu?.kind ?? 'general'
   const lastUserText = [...history].reverse().find((m) => m.role === 'user')?.content ?? ''
+  // Community skills matched at turn start — re-surfaced once at a failure point (Phase 4). Empty
+  // unless enterprise+proxy, so the fallback never fires on the store/BYO build.
+  let matchedSkills: Skill[] = []
   if (learn && lastUserText) {
     try {
       const hints = formatRecipes(relevantRecipes(await loadRecipes(), lastUserText, resourceKind))
@@ -295,8 +298,10 @@ export async function runAgent(
     } catch { /* recall is best-effort */ }
     // Community skills from the shared server — no-op unless enterprise+proxy (store unaffected).
     // De-identified: only the redacted intent + resource kind leave; server returns scored skills.
+    // Kept in `matchedSkills` so we can RE-SURFACE them at a failure point (Phase 4 fallback).
     try {
-      const skillHints = formatSkills(await matchSkills({ resourceKind, intent: lastUserText }))
+      matchedSkills = await matchSkills({ resourceKind, intent: lastUserText })
+      const skillHints = formatSkills(matchedSkills)
       if (skillHints) systemPrompt += '\n\n' + skillHints
     } catch { /* best-effort */ }
   }
@@ -311,6 +316,8 @@ export async function runAgent(
   const executedCreates = new Map<string, unknown>()
   // Tool names that succeeded this turn (in order) — captured as a recipe on success.
   const succeededTools: string[] = []
+  // Phase 4 fallback: re-surface community skills ONCE, at the first failing round, to nudge a retry.
+  let skillFallbackTried = false
 
   // Agentic loop — runs until no more tool calls or hard limit reached
   for (;;) {
@@ -405,6 +412,7 @@ export async function runAgent(
       }
     }
 
+    let roundHadError = false
     for (const tc of rawToolCalls) {
       totalToolCalls++
 
@@ -528,6 +536,7 @@ export async function runAgent(
       callbacks.onToolEnd(tc.id, result, isError)
       // Record only real, successful operations (ask_user is interactive, not an op).
       if (!isError && tc.function.name !== 'ask_user') succeededTools.push(tc.function.name)
+      if (isError) roundHadError = true
 
       const toolMsg: ChatMessage = {
         id: crypto.randomUUID(),
@@ -540,6 +549,19 @@ export async function runAgent(
       callbacks.onToolMessage(toolMsg)
 
       msgs.push({ role: 'tool', content: result, tool_call_id: tc.id })
+    }
+
+    // Phase 4 — failure fallback: a tool just errored. Re-surface the community's high-score
+    // skills (matched at turn start) as a fresh nudge right at the failure point, so the model
+    // retries with what worked for others instead of blindly repeating. Once per turn; reuses the
+    // turn-start match (no extra network, no new outbound data); empty off proxy → never fires.
+    if (roundHadError && !skillFallbackTried && matchedSkills.length) {
+      skillFallbackTried = true
+      const hint = formatSkills(matchedSkills)
+      if (hint) msgs.push({
+        role: 'system',
+        content: '【上一步出错了——下面是社区里很多人这样做成功的做法，换个思路再试一次；务必按当前真实数据/字段名校准、先读后写，别照搬名称与值】\n' + hint,
+      })
     }
   }
 

@@ -28,6 +28,13 @@
  *                            设了就只放行这些来源 IP —— 适合"公司固定出口 IP / 内网 / VPN"
  *   TRUST_PROXY              置 1 才信任 X-Forwarded-For（仅当本服务确实在你自己的反向代理后面时）
  *   RATE_LIMIT_PER_MIN       每 IP 每分钟上限，默认 30
+ *   ── 同进程挂载的子服务（各自还有自己的 env，见对应 .mjs 文件头）──
+ *   SKILLS_DISABLED=1        关闭共享技能库（/skills/*）。技能库 env 见 skill-proxy-server.mjs
+ *   ARTIFACTS_DISABLED=1     关闭企业云备份（/artifacts/*）。备份 env 见 artifact-proxy-server.mjs
+ *   ADMIN_PASSWORD           运维管理台密码——设了就挂载 /admin（单页 UI + /admin/api/*）。
+ *                            不设=管理台彻底关闭。另见 ADMIN_SESSION_TTL_MIN（默认480=8h）/
+ *                            ADMIN_LOGIN_LIMIT_PER_MIN（默认10）。详见 admin-server.mjs。
+ *                            浏览器打开 https://<你的代理>/admin 登录即可统一管理技能库/备份/配置/审计。
  *
  * ── 企业级部署（无 Cloudflare）─────────────────────────────────────────────────
  *   推荐"内网 + 身份网关"，"谁能调代理 = 谁是公司员工"由企业 IdP 把关，代理只做防滥用：
@@ -41,6 +48,22 @@ import http from 'node:http'
 import crypto from 'node:crypto'
 
 const env = process.env
+
+// ── 可选·共享技能库（企业版）：单进程同源挂载 /skills/* ───────────────────────────
+// 客户端把 /skills/* 打到同一个 VITE_OAUTH_PROXY_URL 上，所以这里直接挂载技能模块即可。
+// 开关：SKILLS_DISABLED=1 关闭（默认开）。文件缺失/加载失败都不影响换 token 主流程。
+let handleSkillHttp = null, skillMod = null
+if (env.SKILLS_DISABLED !== '1') {
+  try { skillMod = await import('./skill-proxy-server.mjs'); skillMod.load(); handleSkillHttp = skillMod.handleSkillHttp } catch (e) { console.warn('⚠ 技能库未挂载：', e?.message || e) }
+}
+// ── 可选·企业云备份（产物 → 对象存储）：同进程同源挂载 /artifacts/* ──────────────────
+// 开关：ARTIFACTS_DISABLED=1 关闭（默认开）。需 FEISHU_TENANT_KEY 才会真正放行（fail-closed）。
+let handleArtifactHttp = null, artifactMod = null
+if (env.ARTIFACTS_DISABLED !== '1') {
+  try { artifactMod = await import('./artifact-proxy-server.mjs'); handleArtifactHttp = artifactMod.handleArtifactHttp } catch (e) { console.warn('⚠ 云备份未挂载：', e?.message || e) }
+}
+// 管理台审计接收器 + 句柄（仅 ADMIN_PASSWORD 已设时挂载，见下方常量定义后的挂载块）。
+let handleAdminHttp = null, recordAudit = () => {}
 const must = (k) => { const v = env[k]; if (!v) { console.error(`✗ 缺少环境变量 ${k}`); process.exit(1) } return v }
 const APP_ID = must('FEISHU_APP_ID')
 const APP_SECRET = must('FEISHU_APP_SECRET')
@@ -151,15 +174,46 @@ async function verifyTenantMember(uat) {
     return { ok: true, data: uj.data }
   } catch { return { ok: false, status: 502, error: 'verify_failed' } }
 }
-// 结构化审计（不含任何 token/code/secret/敏感内容）。
+// 结构化审计（不含任何 token/code/secret/敏感内容）。也送进管理台审计环（若已挂载）。
 function audit(ip, action, openId, status) {
   console.log(`[audit] ${new Date().toISOString()} ip=${ip} action=${action} user=${openId || '-'} status=${status}`)
+  try { recordAudit({ module: 'oauth', action, detail: { user: openId || '-', status }, ip }) } catch { /* ignore */ }
+}
+
+// ── 可选·管理台（运维 UI）：ADMIN_PASSWORD 已设才挂载 /admin + /admin/api/* ──────────
+// 当前生效配置快照（密钥脱敏），供管理台「配置巡检」。App ID 是公开值可显示；secret/key 一律打码。
+const _mask = (s) => (s ? '****' + String(s).slice(-4) : '')
+function configSnapshot() {
+  return {
+    oauth: { app_id: APP_ID, app_secret: _mask(APP_SECRET), api_base: API_BASE, allow_origin: ALLOW_ORIGIN, tenant_lock: !!FEISHU_TENANT_KEY, shared_key: !!SHARED_KEY, redirect_allowlist: ALLOWED_REDIRECT_URIS.size, ip_allowlist: IP_ALLOWLIST.length, rate_limit_per_min: RATE_LIMIT },
+    managed_llm: { enabled: !!(LLM_API_KEY && LLM_BASE_URL && LLM_MODEL), base_url: LLM_BASE_URL, model: LLM_MODEL, api_key: _mask(LLM_API_KEY), tenant_lock: !!FEISHU_TENANT_KEY, per_user_per_hour: LLM_LIMIT_PER_HOUR },
+    policy: POLICY,
+    features: { skills: !!skillMod, artifacts: !!artifactMod, managed_app_id: 'app_config 端点已内置' },
+  }
+}
+if (env.ADMIN_PASSWORD) {
+  try {
+    const adminMod = await import('./admin-server.mjs')
+    recordAudit = adminMod.recordAudit
+    adminMod.setModules({ skills: skillMod, artifacts: artifactMod, configSnapshot })
+    skillMod?.setAuditSink?.(recordAudit)
+    artifactMod?.setAuditSink?.(recordAudit)
+    handleAdminHttp = adminMod.handleAdminHttp
+    console.log('✓ 管理台已挂载 → /admin')
+  } catch (e) { console.warn('⚠ 管理台未挂载：', e?.message || e) }
 }
 
 // ── 服务 ─────────────────────────────────────────────────────────────────────
 const server = http.createServer((req, res) => {
   const origin = req.headers.origin || ''
   const h = cors(origin)
+
+  // 管理台（若启用）：/admin* 必须最先匹配，否则 /admin/api/skills/* 会被技能模块的 '/skills/' 抢走。
+  if (handleAdminHttp) { try { if (handleAdminHttp(req, res)) return } catch (e) { console.error('[admin] http error:', e?.message || e) } }
+  // 共享技能库（若启用）：/skills/* 由技能模块自带 CORS/鉴权/限流处理，处理了就直接返回。
+  if (handleSkillHttp) { try { if (handleSkillHttp(req, res)) return } catch (e) { console.error('[skills] http error:', e?.message || e) } }
+  // 企业云备份（若启用）：/artifacts/* 由云备份模块自带 CORS/鉴权/租户校验处理。
+  if (handleArtifactHttp) { try { if (handleArtifactHttp(req, res)) return } catch (e) { console.error('[artifacts] http error:', e?.message || e) } }
 
   if (req.method === 'OPTIONS') { res.writeHead(204, h); return res.end() }
   if (req.method === 'GET' && req.url === '/healthz') return send(res, 200, { ok: true }, h)
@@ -191,6 +245,14 @@ const server = http.createServer((req, res) => {
       if (userOverLimit(v.data.open_id)) { audit(ip, 'llm_config', v.data.open_id, 429); return send(res, 429, { error: 'quota_exceeded' }, h) }
       audit(ip, 'llm_config', v.data.open_id, 200)
       return send(res, 200, { base_url: LLM_BASE_URL, api_key: LLM_API_KEY, model: LLM_MODEL }, h)
+    }
+
+    // ── 企业版：下发 App ID（公开值，OAuth URL 里本就可见）——无需 token，仅过共享密钥/来源/IP/限流。
+    // 让企业构建不必打包 App ID：单一构建只内置代理地址即可服务任意租户，App ID 可服务端轮换。
+    if (grant_type === 'app_config') {
+      console.log(`[proxy] ${new Date().toISOString()} ip=${ip} grant=app_config status=200`)
+      recordAudit({ module: 'oauth', action: 'app_config', detail: { status: 200 }, ip })
+      return send(res, 200, { app_id: APP_ID }, h)
     }
 
     // ── 企业版：下发统一策略（强制并锁定客户端开关），同样仅限本企业成员 ──────────────
@@ -227,6 +289,7 @@ const server = http.createServer((req, res) => {
       res.end(text)
       // 仅记录"发生了一次换 token"，不含任何 token / code / secret
       console.log(`[proxy] ${new Date().toISOString()} ip=${ip} grant=${grant_type} status=${upstream.status}`)
+      recordAudit({ module: 'oauth', action: `token:${grant_type}`, detail: { status: upstream.status }, ip })
     } catch (e) {
       send(res, 502, { error: 'upstream_unreachable' }, h)
       console.error(`[proxy] upstream error: ${e instanceof Error ? e.message : e}`)

@@ -1,5 +1,6 @@
 import type { Slide } from './slides'
 import type { VizSource } from '../dataviz/types'
+import { scheduleBackup } from '../artifactSync'
 
 /**
  * Saved slide decks (AI 幻灯片 / PPT). Local-only, like saved vizzes — so a generated PPT can be
@@ -39,14 +40,20 @@ function set(list: SavedDeck[]): Promise<void> {
 export async function loadDecks(): Promise<SavedDeck[]> {
   return get()
 }
+/** Bulk overwrite — used by cloud restore (merge) to write the merged list back. */
+export async function replaceDecks(list: SavedDeck[]): Promise<void> {
+  await set(list.slice(0, 50))
+}
 export async function saveDeck(d: SavedDeck): Promise<SavedDeck[]> {
   const list = await get()
   const next = [d, ...list.filter((x) => x.id !== d.id)].slice(0, 50)
   await set(next)
+  scheduleBackup('slides', next) // mirror to company cloud (no-op off proxy)
   return next
 }
 export async function deleteDeck(id: string): Promise<SavedDeck[]> {
   const next = (await get()).filter((x) => x.id !== id)
   await set(next)
+  scheduleBackup('slides', next) // push the smaller mirror so a delete won't be resurrected on restore
   return next
 }
