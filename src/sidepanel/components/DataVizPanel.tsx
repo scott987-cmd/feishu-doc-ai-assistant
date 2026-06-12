@@ -184,7 +184,7 @@ export default function DataVizPanel({ settings, context, disabled, onBack }: Pr
       <button className="sc-back" onClick={onBack}>← 返回</button>
       <div className="dv-body">
         <div className="dv-title">🧩 AI 小程序</div>
-        <p className="dv-sub">用一句话把当前表做成图表 / 报表 / 看板 / 计算器，渲染成页面上的浮窗。（做 PPT 请用「AI 幻灯片」）</p>
+        <p className="dv-sub">用一句话把当前表做成图表 / 报表 / 看板 / 计算器，渲染成页面上的浮窗。</p>
 
         {isWiki && (
           <p className="dv-hint dv-hint--warn">正在解析知识库（Wiki）页面…若长时间无法识别，请直接打开多维表格 / 电子表格本体再使用。</p>

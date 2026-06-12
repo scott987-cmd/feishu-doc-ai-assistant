@@ -29,6 +29,13 @@ describe('delete undo', () => {
     expect(await captureRecords('t', 'app', 'tbl', [])).toEqual([])
   })
 
+  it('converts complex fields to WRITE format (user → [{id}]) and drops uncertain ones (link)', async () => {
+    mockGet.mockResolvedValue({ records: [{ record_id: 'r1', fields: { 名称: 'A', 负责人: [{ id: 'ou_1', name: '张三' }], 关联: [{ record_id: 'recX' }] } }] })
+    mockFields.mockResolvedValue({ items: [{ field_name: '名称', type: 1 }, { field_name: '负责人', type: 11 }, { field_name: '关联', type: 18 }] })
+    // user(11) → [{id}] (so batch_create accepts it); link(18) dropped (write format uncertain)
+    expect(await captureRecords('t', 'app', 'tbl', ['r1'])).toEqual([{ fields: { 名称: 'A', 负责人: [{ id: 'ou_1' }] } }])
+  })
+
   it('save + load round-trips; empty capture stores nothing', async () => {
     await saveDeleteUndo({ appToken: 'app', tableId: 'tbl', label: '删除 2 条记录', records: [{ fields: { x: 1 } }, { fields: { x: 2 } }] })
     const u = await loadDeleteUndo()

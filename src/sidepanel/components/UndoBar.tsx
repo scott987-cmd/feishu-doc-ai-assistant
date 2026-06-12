@@ -40,14 +40,21 @@ export default function UndoBar({ settings }: { settings: AppSettings }) {
   }
   async function dismiss() { await clearDeleteUndo(); setUndo(null) }
 
-  if (!undo) return note ? <div style={{ ...bar, background: '#f6ffed', color: '#389e0d' }}>{note}</div> : null
-
+  if (!undo && !note) return null
+  const isErr = note.startsWith('恢复失败')
   return (
-    <div style={bar}>
-      <span style={{ flex: 1 }}>🗑 {undo.label} · 误删了？可一键恢复</span>
-      <button style={btn} disabled={busy} onClick={() => void restore()}>{busy ? '恢复中…' : '↩ 撤销'}</button>
-      <button style={x} onClick={() => void dismiss()} title="不撤销，关闭">✕</button>
-    </div>
+    <>
+      {undo && (
+        <div style={bar}>
+          <span style={{ flex: 1 }}>🗑 {undo.label} · 误删了？可一键恢复</span>
+          <button style={btn} disabled={busy} onClick={() => void restore()}>{busy ? '恢复中…' : '↩ 撤销'}</button>
+          <button style={x} onClick={() => void dismiss()} title="不撤销，关闭">✕</button>
+        </div>
+      )}
+      {/* Show success / failure even while the undo bar is still up — otherwise a failed restore
+          looked like "nothing happened" (the error was set but hidden behind the bar). */}
+      {note && <div style={{ ...bar, background: isErr ? '#fff1f0' : '#f6ffed', color: isErr ? '#cf1322' : '#389e0d' }}>{note}</div>}
+    </>
   )
 }
 

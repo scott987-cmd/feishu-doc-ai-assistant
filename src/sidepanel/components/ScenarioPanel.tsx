@@ -123,7 +123,7 @@ export default function ScenarioPanel({ settings, context, disabled, onBusyChang
     type Grp = { key: string; label: string; requires: 'table' | 'doc' | 'any' | 'content'; feats: Feat[] }
     const groups: Grp[] = [
       { key: 'page', label: '把数据做成页面', requires: 'table', feats: [
-        { ic: '🧩', title: 'AI 小程序', desc: '一句话把当前表做成 图表/报表/看板/计算器/幻灯片，渲染成页面浮窗；可保存，下次用最新数据一键打开', go: () => setView({ mode: 'dataviz' }) },
+        { ic: '🧩', title: 'AI 小程序', desc: '一句话把当前表做成 图表/报表/看板/计算器，渲染成页面浮窗；可保存，下次用最新数据一键打开', go: () => setView({ mode: 'dataviz' }) },
         { ic: '🌐', title: 'AI 建站', desc: '一句话把当前表做成一个完整网站页面，渲染成页面浮窗；离线自包含、自动符合风格；可保存、用最新数据一键打开', go: () => setView({ mode: 'aisite' }) },
       ] },
       { key: 'enrich', label: '数据加工与分析', requires: 'table', feats: [

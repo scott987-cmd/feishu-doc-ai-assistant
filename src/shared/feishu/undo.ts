@@ -22,14 +22,32 @@ export interface DeleteUndo {
   records: Array<{ fields: Record<string, unknown> }>
 }
 
-// Feishu field types that are COMPUTED / AUTO and rejected by records/batch_create. Capturing
-// them would make the whole undo's re-create FAIL, so they're stripped: 19 Lookup · 20 Formula ·
-// 1001 CreatedTime · 1002 ModifiedTime · 1003 CreatedUser · 1004 ModifiedUser · 1005 AutoNumber.
-const READONLY_FIELD_TYPES = new Set([19, 20, 1001, 1002, 1003, 1004, 1005])
+/**
+ * Convert a field's batch_get READ value into the batch_create WRITE format, or return `undefined`
+ * to DROP the field (read-only, or a complex type whose write format we can't reconstruct). Without
+ * this the restore's batch_create was rejected (the READ shape ≠ WRITE shape for user/attachment/
+ * link fields), which made "↩ 撤销" silently fail. Simple types (text/number/select/date/checkbox/
+ * phone/url/…) round-trip unchanged.
+ */
+function toWriteValue(type: number | undefined, v: unknown): unknown {
+  if (v == null) return undefined
+  switch (type) {
+    case 19: case 20: case 1001: case 1002: case 1003: case 1004: case 1005:
+      return undefined // computed/auto — never writable
+    case 11: // User: read [{id,name,…}] → write [{id}]
+      return Array.isArray(v) ? v.map((u) => ({ id: (u as { id?: string })?.id })).filter((u) => u.id) : undefined
+    case 17: // Attachment: read [{file_token,name,…}] → write [{file_token}]
+      return Array.isArray(v) ? v.map((a) => ({ file_token: (a as { file_token?: string })?.file_token })).filter((a) => a.file_token) : undefined
+    case 18: case 21: case 22: case 23: // Link / Location / GroupChat — write format uncertain → drop (partial restore)
+      return undefined
+    default:
+      return v // text/number/single+multi select/date/checkbox/phone/url/email/rating/… round-trip
+  }
+}
 
-/** Capture the WRITABLE field data of specific records right before deleting them (read-only
- *  computed/auto fields are stripped so the restore's batch_create isn't rejected). Never throws —
- *  a capture failure must not block the delete; it just means no undo is offered. */
+/** Capture restorable field data of specific records right before deleting them — values are
+ *  converted to batch_create WRITE format (read-only & uncertain-complex fields dropped) so the
+ *  restore actually succeeds. Never throws — a capture failure must not block the delete. */
 export async function captureRecords(
   token: string, appToken: string, tableId: string, recordIds: string[],
 ): Promise<Array<{ fields: Record<string, unknown> }>> {
@@ -39,13 +57,15 @@ export async function captureRecords(
       API.batchGetRecords(token, appToken, tableId, recordIds) as Promise<{ records?: Array<{ fields?: Record<string, unknown> }> }>,
       (API.listFields(token, appToken, tableId) as Promise<{ items?: Array<{ field_name?: string; type?: number }> }>).catch(() => null),
     ])
-    // Set of writable field names; if field meta can't be read, keep everything (best-effort).
-    const writable = fieldRes?.items
-      ? new Set(fieldRes.items.filter((f) => f.type == null || !READONLY_FIELD_TYPES.has(f.type)).map((f) => f.field_name))
-      : null
+    const typeByName = new Map((fieldRes?.items ?? []).map((f) => [f.field_name, f.type]))
+    const hasMeta = !!fieldRes?.items
     return (recRes.records ?? []).map((x) => {
       const all = x.fields ?? {}
-      const fields = writable ? Object.fromEntries(Object.entries(all).filter(([k]) => writable.has(k))) : all
+      const fields: Record<string, unknown> = {}
+      for (const [k, v] of Object.entries(all)) {
+        const wv = hasMeta ? toWriteValue(typeByName.get(k), v) : v
+        if (wv != null && !(Array.isArray(wv) && wv.length === 0)) fields[k] = wv
+      }
       return { fields }
     })
   } catch { return [] }
