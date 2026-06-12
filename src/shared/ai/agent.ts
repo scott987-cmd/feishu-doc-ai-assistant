@@ -71,6 +71,11 @@ export interface AgentCallbacks {
 // (prevents runaway loops / mass operations). Default 30, tunable via VITE_MAX_TOOL_CALLS.
 const MAX_TOOL_CALLS_PER_TURN = BUILD_CONFIG.maxToolCalls
 
+// Low temperature for the orchestration loop: tool SELECTION and ARG values (row indices, counts,
+// field names) should be deterministic, not creative — high temp is a top cause of wrong-tool /
+// wrong-index destructive mistakes. (The creative viz/site codegen is a SEPARATE call, unaffected.)
+const AGENT_TEMPERATURE = 0.2
+
 // "Create-once" tools: re-running the SAME call (same args) in one turn almost always
 // means an accidental duplicate (e.g. the model retried after a slow response) and
 // would create a second table/doc/sheet. We dedupe exact repeats within a turn.
@@ -288,6 +293,7 @@ export async function runAgent(
       messages: msgs,
       tools: FEISHU_TOOLS,
       tool_choice: 'auto',
+      temperature: AGENT_TEMPERATURE,
       stream: true,
     }, { signal })
 
