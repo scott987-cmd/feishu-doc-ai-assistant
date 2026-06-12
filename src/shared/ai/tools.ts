@@ -1086,7 +1086,9 @@ export const FEISHU_TOOLS: ChatCompletionTool[] = [
     function: {
       name: 'delete_document_blocks',
       description:
-        '⚠️ 破坏性操作·不可撤销。删除某父块下 [start_index, end_index) 范围的子块。' +
+        '⚠️ 破坏性操作。删除某父块下 [start_index, end_index) 范围的子块。本插件不提供文档块的一键撤销，' +
+        '但删错了可在飞书文档里通过「版本历史」回滚——删除完成后请主动告知用户：' +
+        '可点文档右上角「···」→「历史记录 / 版本」恢复到删除前的版本。' +
         '调用前必须告知用户将删除的内容并获明确确认。父块为文档正文时 parent_block_id = document_id。',
       parameters: {
         type: 'object',

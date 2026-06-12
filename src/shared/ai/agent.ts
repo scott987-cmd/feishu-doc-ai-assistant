@@ -9,7 +9,7 @@ import type { BlockSpec } from '../feishu/docx'
 import * as Compose from '../feishu/compose'
 import { feishuReq } from '../feishu/http'
 import { storageGet } from '../storage'
-import { captureRecords, saveDeleteUndo } from '../feishu/undo'
+import { captureRecords, captureSheetRows, saveDeleteUndo } from '../feishu/undo'
 import { isTenantHost, TENANT_ORIGIN_KEY } from '../feishu/tenant'
 import type { Metric } from '../feishu/compose'
 import { resolveToken, invalidateToken, isPermissionError, isTokenExpiredError, forceRefreshUserToken } from '../feishu/auth'
@@ -1040,11 +1040,17 @@ async function executeSheetTool(
         token, ss!, sanitizeToken(args.sheet_id as string | undefined)!,
         args.dimension as 'ROWS' | 'COLUMNS', args.start_index as number, args.count as number
       )
-    case 'delete_dimension':
-      return Sheets.deleteDimension(
-        token, ss!, sanitizeToken(args.sheet_id as string | undefined)!,
-        args.dimension as 'ROWS' | 'COLUMNS', args.start_index as number, args.count as number
-      )
+    case 'delete_dimension': {
+      const sheetId = sanitizeToken(args.sheet_id as string | undefined)!
+      const dim = args.dimension as 'ROWS' | 'COLUMNS'
+      const start = args.start_index as number, n = args.count as number
+      // Capture row VALUES before deleting so the UI can offer 撤销 (re-insert rows + write back).
+      // ROWS only — column deletes are rarer and far wider to snapshot.
+      const undo = dim === 'ROWS' ? await captureSheetRows(token, ss!, sheetId, start, n) : null
+      const r = await Sheets.deleteDimension(token, ss!, sheetId, dim, start, n)
+      if (undo) await saveDeleteUndo(undo)
+      return r
+    }
     default:
       throw new Error(`未知工具: ${name}`)
   }
@@ -1289,7 +1295,10 @@ function buildSystemPrompt(ctx: PageContext, s: AppSettings, baseCtx?: BaseCtx):
 
 若工具结果是 \`_cancelled\`（用户点了「取消」），停止该删除，改为询问用户下一步，不要重试。
 
-**撤销：** 多维表格的 \`delete_record\` / \`batch_delete_records\` 删除后，对话里会自动出现「↩ 撤销删除」按钮，用户点一下即可重建被删记录（10 分钟内有效）。用户问"怎么恢复"时，请引导其点这个按钮——**绝不要建议用 Ctrl+Z 或在飞书界面撤销**（这是 API 删除，前端 Ctrl+Z 无效）。其它删除（字段 / 工作表 / 文档块 / 去重）无此撤销，属不可恢复，需更谨慎说明。
+**撤销 / 恢复：**
+- 多维表格记录删除（\`delete_record\` / \`batch_delete_records\`）、电子表格删行（\`delete_dimension\` 删的是行）后，对话里会自动出现「↩ 撤销删除」按钮，用户点一下即可恢复（10 分钟内有效）。引导用户点它，**绝不要建议用 Ctrl+Z 或前端界面撤销**（API 删除前端撤销无效）。
+- 文档块删除（\`delete_document_blocks\`）无一键撤销，但删完请主动告知用户：可在飞书文档右上角「···」→「历史记录 / 版本」回滚到删除前的版本。
+- 删字段 / 删表 / 删工作表 / 去重 无撤销、不可恢复，需更谨慎说明。
 
 **2.3 身份与权限。** 你始终以**用户本人的飞书身份**操作，权限等同用户本人：用户读不了/改不了的文档，你也不能。遇到权限错误不要反复重试或绕路，直接告诉用户其账号缺少该文档权限。你创建的所有文档都归属用户本人。
 

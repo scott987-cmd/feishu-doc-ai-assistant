@@ -13,10 +13,17 @@ vi.mock('./api', () => ({
   batchCreateRecords: (...a: unknown[]) => mockCreate(...a),
   listFields: (...a: unknown[]) => mockFields(...a),
 }))
+const mockListSheets = vi.fn(), mockReadRange = vi.fn(), mockInsertDim = vi.fn(), mockWriteRange = vi.fn()
+vi.mock('./sheets', () => ({
+  listSheets: (...a: unknown[]) => mockListSheets(...a),
+  readRange: (...a: unknown[]) => mockReadRange(...a),
+  insertDimension: (...a: unknown[]) => mockInsertDim(...a),
+  writeRange: (...a: unknown[]) => mockWriteRange(...a),
+}))
 
-const { captureRecords, saveDeleteUndo, loadDeleteUndo, clearDeleteUndo, restoreDeleteUndo, UNDO_TTL_MS } = await import('./undo')
+const { captureRecords, captureSheetRows, saveDeleteUndo, loadDeleteUndo, clearDeleteUndo, restoreDeleteUndo, UNDO_TTL_MS } = await import('./undo')
 
-beforeEach(() => { for (const k of Object.keys(mem)) delete mem[k]; mockGet.mockReset(); mockCreate.mockReset(); mockFields.mockReset() })
+beforeEach(() => { for (const k of Object.keys(mem)) delete mem[k]; for (const m of [mockGet, mockCreate, mockFields, mockListSheets, mockReadRange, mockInsertDim, mockWriteRange]) m.mockReset() })
 
 describe('delete undo', () => {
   it('captureRecords keeps WRITABLE fields, strips read-only (formula/created-time), never throws', async () => {
@@ -46,7 +53,7 @@ describe('delete undo', () => {
     await saveDeleteUndo({ appToken: 'app', tableId: 'tbl', label: '删除 2 条记录', records: [{ fields: { x: 1 } }, { fields: { x: 2 } }] })
     const u = await loadDeleteUndo()
     expect(u?.label).toBe('删除 2 条记录')
-    expect(u?.records).toHaveLength(2)
+    expect(u && u.kind !== 'sheetRows' ? u.records : []).toHaveLength(2)
     await clearDeleteUndo()
     await saveDeleteUndo({ appToken: 'app', tableId: 'tbl', label: 'x', records: [] })
     expect(await loadDeleteUndo()).toBeNull()
@@ -55,6 +62,22 @@ describe('delete undo', () => {
   it('ignores an expired undo (older than TTL)', async () => {
     mem['_last_delete_undo_v1'] = { at: Date.now() - UNDO_TTL_MS - 1000, appToken: 'a', tableId: 't', label: 'old', records: [{ fields: { x: 1 } }] }
     expect(await loadDeleteUndo()).toBeNull()
+  })
+
+  it('captureSheetRows reads the deleted rows values for undo (A1 range from col count)', async () => {
+    mockListSheets.mockResolvedValue({ sheets: [{ sheet_id: 'sh1', grid_properties: { column_count: 3 } }] })
+    mockReadRange.mockResolvedValue({ valueRange: { values: [['a', 'b', 'c'], ['d', 'e', 'f']] } })
+    const u = await captureSheetRows('t', 'ss', 'sh1', 5, 2)
+    expect(u).toMatchObject({ kind: 'sheetRows', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 5, values: [['a', 'b', 'c'], ['d', 'e', 'f']] })
+    expect(mockReadRange).toHaveBeenCalledWith('t', 'ss', 'sh1!A6:C7') // rows 6-7 (0-based 5..6), cols A-C
+  })
+
+  it('restore re-inserts the rows and writes the captured values back', async () => {
+    mockInsertDim.mockResolvedValue({}); mockWriteRange.mockResolvedValue({})
+    const n = await restoreDeleteUndo('tok', { kind: 'sheetRows', at: Date.now(), label: '', spreadsheetToken: 'ss', sheetId: 'sh1', startIndex: 5, values: [['a', 'b'], ['c', 'd']] })
+    expect(n).toBe(2)
+    expect(mockInsertDim).toHaveBeenCalledWith('tok', 'ss', 'sh1', 'ROWS', 5, 2)
+    expect(mockWriteRange).toHaveBeenCalledWith('tok', 'ss', 'sh1!A6:B7', [['a', 'b'], ['c', 'd']])
   })
 
   it('restore re-creates the captured records and returns the count', async () => {
