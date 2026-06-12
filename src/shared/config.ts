@@ -67,14 +67,18 @@ export const BUILD_CONFIG = {
    *  comma-separated domains where clipping is allowed. Empty = allow anywhere. */
   clipManagedDomains: (import.meta.env.VITE_CLIP_MANAGED_DOMAINS ?? '')
     .split(',').map((s: string) => s.trim().toLowerCase()).filter(Boolean) as string[],
-  /** Chrome Web Store build: ship NO baked credentials AND execute NO remotely-obtained code
-   *  — data-viz/site render from a declarative VizSpec via the bundled interpreter instead of
-   *  LLM-generated JS, so the sandbox CSP drops 'unsafe-eval'. Also strips manifest `key`. */
-  // NOTE: parse identically to sandbox/main.ts NO_EVAL and vite.config.ts noEval (bare ===,
-  // no .trim()) so a whitespaced VITE_WEBSTORE can't make the app believe "no remote code"
-  // while the CSP/manifest still ship eval + key. One value, one parse, everywhere.
+  /** Store-PACKAGING flag (VITE_WEBSTORE): strips manifest `key` + applies the store name/desc
+   *  (in vite.config.ts). Does NOT by itself disable remote code — that's a separate, opt-in flag
+   *  below, so a full-featured BYO build can still be packaged for the store. */
   webstore: (import.meta.env.VITE_WEBSTORE ?? '') === '1' ||
     (import.meta.env.VITE_WEBSTORE ?? '') === 'true',
+  /** No-remote-code flag (VITE_NO_REMOTE_CODE): execute NO LLM-generated JS — data-viz/site render
+   *  from a declarative VizSpec via the bundled interpreter, so the sandbox CSP drops 'unsafe-eval'.
+   *  Parse identically to sandbox/main.ts NO_EVAL and vite.config.ts noEval (bare ===, no .trim())
+   *  so a whitespaced value can't make the app believe "no remote code" while CSP still ships eval.
+   *  One value, one parse, everywhere. */
+  noRemoteCode: (import.meta.env.VITE_NO_REMOTE_CODE ?? '') === '1' ||
+    (import.meta.env.VITE_NO_REMOTE_CODE ?? '') === 'true',
 } as const
 
 /** True when an App ID is configured AND we can mint a user token — a baked-in secret
@@ -101,9 +105,10 @@ export const HAS_ENTERPRISE_POLICY = BUILD_CONFIG.enterprisePolicy && !!BUILD_CO
 /** Web Clipper feature flag (see BUILD_CONFIG.clipEnabled). */
 export const CLIP_ENABLED = BUILD_CONFIG.clipEnabled
 
-/** No-remote-code mode (store build): data-viz/site render from a declarative VizSpec, never
- *  from LLM-generated JS; lets us honestly answer "no remote code" + drop sandbox 'unsafe-eval'. */
-export const NO_REMOTE_CODE = BUILD_CONFIG.webstore
+/** No-remote-code mode: data-viz/site render from a declarative VizSpec, never from LLM-generated
+ *  JS; lets us honestly answer "no remote code" + drop sandbox 'unsafe-eval'. Now independent of the
+ *  store-packaging flag, so a store build can keep full features (remote code) while still BYO. */
+export const NO_REMOTE_CODE = BUILD_CONFIG.noRemoteCode
 
 /** Web Speech API (webkitSpeechRecognition) routes audio through Google's servers, which
  *  breaks the "only Feishu + LLM / pure-intranet" posture. So it's only offered on the

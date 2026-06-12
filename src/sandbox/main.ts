@@ -27,9 +27,9 @@ import type { VizSpec, DashboardSpec, ChartSpec as VizChartSpec, RawChartSpec } 
 import { buildOption, evalAggregate, formatValue, actionTemplate } from '../shared/dataviz/interpret'
 
 // No-remote-code path: render a declarative VizSpec via the bundled interpreter (no eval).
-// When VITE_WEBSTORE=1 this const is statically true → Vite dead-code-eliminates every legacy
-// execViz/execInto branch below, so the store bundle contains no `new Function(` at all.
-const NO_EVAL = import.meta.env.VITE_WEBSTORE === '1' || import.meta.env.VITE_WEBSTORE === 'true'
+// When VITE_NO_REMOTE_CODE=1 this const is statically true → Vite dead-code-eliminates every legacy
+// execViz/execInto branch below, so the bundle contains no `new Function(` at all.
+const NO_EVAL = import.meta.env.VITE_NO_REMOTE_CODE === '1' || import.meta.env.VITE_NO_REMOTE_CODE === 'true'
 
 type RenderMsg = {
   type: 'DATAVIZ_RENDER'
