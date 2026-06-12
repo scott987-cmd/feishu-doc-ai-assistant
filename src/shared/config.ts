@@ -2,15 +2,21 @@
  * Build-time constants injected by Vite from .env.local.
  * These are string-replaced in the compiled bundle — not stored at runtime.
  */
+// A store-PACKAGED build (VITE_WEBSTORE=1) ships NO baked credentials — it's BYO (the user enters
+// their own App ID/Secret in Settings). Force the cred env to empty so a leaked `.env.local` value
+// (Vite won't let an empty `.env.store.local` override it) can't bake the dev's app into a public
+// store build. `_storePkg` folds to a constant → the minifier also strips the dead literal.
+const _storePkg = (import.meta.env.VITE_WEBSTORE ?? '') === '1' || (import.meta.env.VITE_WEBSTORE ?? '') === 'true'
+
 export const BUILD_CONFIG = {
   /** internal config revision */
   _rev: 'c0a73d',
-  feishuAppId:     (import.meta.env.VITE_FEISHU_APP_ID     ?? '') as string,
-  feishuAppSecret: (import.meta.env.VITE_FEISHU_APP_SECRET ?? '') as string,
+  feishuAppId:     (_storePkg ? '' : (import.meta.env.VITE_FEISHU_APP_ID     ?? '')) as string,
+  feishuAppSecret: (_storePkg ? '' : (import.meta.env.VITE_FEISHU_APP_SECRET ?? '')) as string,
   /** Password-encrypted App Secret (personal mode). base64(salt‖iv‖ciphertext), produced
    *  by scripts/encrypt-secret.mjs. The plaintext secret is NOT in the bundle — only this
    *  ciphertext; a user password (PBKDF2→AES-GCM) decrypts it at runtime to enable OAuth. */
-  appSecretEnc:    (import.meta.env.VITE_FEISHU_APP_SECRET_ENC ?? '').trim() as string,
+  appSecretEnc:    (_storePkg ? '' : (import.meta.env.VITE_FEISHU_APP_SECRET_ENC ?? '')).trim() as string,
   /** Max tool calls per conversation turn before the agent stops and asks the user to
    *  confirm continuing (a safety checkpoint against runaway loops / mass operations).
    *  Default 30; set VITE_MAX_TOOL_CALLS to tune (clamped 1–100). */
@@ -30,7 +36,7 @@ export const BUILD_CONFIG = {
   /** Optional OAuth proxy base URL. When set, the user-token code-exchange + refresh go
    *  through it so the client_secret never ships in the bundle (enterprise / private
    *  deploys). Empty = direct flow using the baked-in secret (personal use). */
-  oauthProxyUrl: (import.meta.env.VITE_OAUTH_PROXY_URL ?? '').trim() as string,
+  oauthProxyUrl: (_storePkg ? '' : (import.meta.env.VITE_OAUTH_PROXY_URL ?? '')).trim() as string,
   /** Optional shared key sent as `X-Proxy-Key` to the OAuth proxy. Anti-abuse only (it ships in
    *  the bundle, so it's NOT a strong secret) — real access control is IP allowlist / intranet+SSO
    *  in front of the proxy. Empty = don't send the header. */
