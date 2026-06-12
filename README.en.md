@@ -81,6 +81,8 @@ create tables, fill in data, write formulas, generate documents, revise drafts b
 - **Document summary** 📝: reads through the current document and generates a summary per your requirements (abstract / key points / to-dos…), which can be copied.
   The **summary requirements (prompt) can be edited directly and persisted on your machine** — Feishu's native AI quick-read is fixed, but here you call the shots.
 - **Three deployment modes**: personal / enterprise SaaS / private (on-prem), all switched via build-time configuration.
+- **Enterprise server suite** 🏢 (optional · one zero-dep Node process): on top of the token-exchange proxy, the same process mounts — **managed App ID / App Secret / LLM / policy** delivery (employees configure nothing, secrets stay server-side, rotatable), a **shared skill library** (de-identified cross-user lessons, dedup / score / promote / proactive push), **enterprise cloud backup** (mini-programs/sites/decks mirrored to the company's own object storage, isolated per open_id, optional AES, restorable on loss), and an **admin console** (`/admin`: dashboard / skill moderation / backup management / config inspector / audit). All double-gated `HAS_* = flag && proxy` → the store build (no proxy) **dead-code-eliminates it, zero release impact**. See [`docs/index.html`](docs/index.html).
+- **Local backup & restore** 💾 (all builds): export config + saved artifacts + local lessons + sessions to a file; import to recover after a device change / reinstall (secrets excluded by default, opt-in).
 
 ---
 
@@ -160,8 +162,11 @@ unlock passwords to the repo** (already in `.gitignore`).
 
 ## Documentation map
 
+> 📖 **Full docs (offline single-page HTML, zero-dep)**: [`docs/index.html`](docs/index.html) — usage / deployment / architecture / security in one page, open it in a browser.
+
 | Document | Contents |
 |---|---|
+| [`docs/index.html`](docs/index.html) | **Full doc site** (single HTML): overview / usage / deployment (personal · enterprise suite · store · private) / architecture / security / admin console / validation / FAQ |
 | [`docs/QUICKSTART.md`](docs/QUICKSTART.en.md) | **Personal quick start**: configure Feishu app permissions → fill config → `npm run pack` one-click package → load & use (5 steps) |
 | [`docs/STORE_PUBLISHING.md`](docs/STORE_PUBLISHING.en.md) | **Publish to the Chrome Web Store**: no-credentials public build + user bring-your-own-app setup + submission checklist + review-risk mitigations |
 | [`PRIVACY.md`](PRIVACY.md) | **Privacy Policy** (bilingual): the privacy URL required for store submission, ready to host |

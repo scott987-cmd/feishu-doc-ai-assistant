@@ -120,6 +120,28 @@ VITE_LLM_FROM_PROXY=1            # 从代理取大模型配置
 **③ 员工端**：装好后「设置 → 飞书授权」即可，**无需填 API Key**；设置里有「企业统一 / 手动」开关（除非锁定）。
 安全模型 / 已知残留见 [`../SECURITY_AUDIT.md` → ★ 企业托管 LLM](../SECURITY_AUDIT.md)。
 
+### 3.5 托管 App ID + 共享技能库 + 云备份 + 管理台（可选·同进程挂载）
+
+代理进程会自动挂载这几个子服务，**按需用环境变量打开**，客户端再用对应 `VITE_*` 开关启用（双门控，商店版无代理 → 死代码消除）。完整变量见 **[`index.html` → 环境变量速查](index.html)** 与各 `.mjs` 文件头。
+
+```bash
+# 代理 .env 追加（按需）：
+# —— 托管 App ID：单一企业构建只内置代理地址，App ID 由代理 app_config 下发（公开值，无需 token）
+#    客户端加 VITE_APP_ID_FROM_PROXY=1，并把 VITE_FEISHU_APP_ID 留空
+# —— 共享技能库（client: VITE_SKILLS_ENABLED=1）
+EMBED_URL=https://api.openai.com/v1/embeddings   # 不配则内存假向量(语义弱)
+EMBED_KEY=sk-...  EMBED_MODEL=text-embedding-3-small
+SKILLS_FILE=/var/lib/feishu/skills.json          # 落盘；SKILLS_MAX 默认 20000 条上限
+# —— 企业云备份（client: VITE_ARTIFACT_SYNC=1；需 FEISHU_TENANT_KEY 租户锁）
+S3_ENDPOINT=...  S3_REGION=...  S3_BUCKET=...  S3_ACCESS_KEY=...  S3_SECRET_KEY=...   # 或 ARTIFACTS_DIR=本地盘
+ARTIFACT_ENC_KEY=<32字节hex>                     # 可选·静态 AES-GCM
+# —— 运维管理台（设了密码才挂载 /admin）
+ADMIN_PASSWORD=<高熵密码>
+ADMIN_TOKEN_SECRET=<32字节随机>                  # ★建议设：会话签名密钥与登录密码解耦
+```
+- **管理台安全**：`/admin` 已纳入 `IP_ALLOWLIST`（在所有子服务分发之前把关），并带防点击劫持头 + 同源校验 + 登录限流。务必**仅内网/VPN 可达**。浏览器开 `https://<你的代理>/admin` 登录。
+- **一键复验**：`npm run validate:server` 用合成数据（假飞书 + spawn 真代理）跑 29 条端到端断言。
+
 ---
 
 ## 4. 私有化 / 纯内网部署

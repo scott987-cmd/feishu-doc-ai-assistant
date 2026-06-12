@@ -27,6 +27,10 @@
  *   IP_ALLOWLIST             可选·强控制：逗号分隔的 IPv4 / CIDR（如 10.0.0.0/8,203.0.113.5）。
  *                            设了就只放行这些来源 IP —— 适合"公司固定出口 IP / 内网 / VPN"
  *   TRUST_PROXY              置 1 才信任 X-Forwarded-For（仅当本服务确实在你自己的反向代理后面时）
+ *                            ⚠ 安全：置 1 时，上游反代【必须覆盖】X-Forwarded-For（如 nginx
+ *                            `proxy_set_header X-Forwarded-For $remote_addr;`），绝不能【追加】，
+ *                            否则客户端可伪造 XFF 绕过限流、甚至伪造命中 IP_ALLOWLIST。不在可信反代
+ *                            后面就保持 0（用 socket 对端 IP）。
  *   RATE_LIMIT_PER_MIN       每 IP 每分钟上限，默认 30
  *   ── 同进程挂载的子服务（各自还有自己的 env，见对应 .mjs 文件头）──
  *   SKILLS_DISABLED=1        关闭共享技能库（/skills/*）。技能库 env 见 skill-proxy-server.mjs
