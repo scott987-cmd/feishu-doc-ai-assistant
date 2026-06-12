@@ -18,6 +18,7 @@ import { assertSafeBaseUrl } from '../providers'
 import { resolveLlmConfig } from './llmConfig'
 import { redactSensitive } from './redact'
 import { loadRecipes, recordRecipe, relevantRecipes, formatRecipes } from './recipes'
+import { matchSkills, formatSkills } from './skills'
 import type { BaseCtx } from '../feishu/context'
 import { ctxToPrompt } from '../feishu/context'
 import { generateViz } from './dataviz'
@@ -292,6 +293,12 @@ export async function runAgent(
       const hints = formatRecipes(relevantRecipes(await loadRecipes(), lastUserText, resourceKind))
       if (hints) systemPrompt += '\n\n' + hints
     } catch { /* recall is best-effort */ }
+    // Community skills from the shared server — no-op unless enterprise+proxy (store unaffected).
+    // De-identified: only the redacted intent + resource kind leave; server returns scored skills.
+    try {
+      const skillHints = formatSkills(await matchSkills({ resourceKind, intent: lastUserText }))
+      if (skillHints) systemPrompt += '\n\n' + skillHints
+    } catch { /* best-effort */ }
   }
 
   const msgs: ChatCompletionMessageParam[] = [

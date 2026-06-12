@@ -5,12 +5,16 @@
  * a counter (no extra LLM spend). Next time, the most relevant past lessons are fed back into
  * the system prompt so the agent repeats what worked instead of re-discovering it.
  *
- * Privacy & safety: stored only in chrome.storage.local, never sent anywhere except as a
- * prompt hint to (and, for the lesson, distilled by) the user's own configured model. We keep
- * the user's request text + tool NAMES + the distilled lesson only — NEVER table/doc data or
- * tool arguments (the summarizer is given names only). Execution still goes through every
- * security gate, so a recalled recipe can't widen what the agent is allowed to do.
+ * Privacy & safety: stored only in chrome.storage.local. We keep the user's request text + tool
+ * NAMES + the distilled lesson only — NEVER table/doc data or tool arguments (the summarizer is
+ * given names only). The raw recipe is never sent anywhere except as a prompt hint to the user's
+ * own model. ONE exception, opt-in + gated: on an ENTERPRISE build with a proxy AND skills enabled
+ * (HAS_SKILLS), the DE-IDENTIFIED, data-free LESSON + tool names are shared to the community skill
+ * server (see skills.ts). The store/BYO build has no proxy → nothing is ever shared. Execution
+ * still goes through every security gate, so a recalled recipe/skill can't widen what's allowed.
  */
+import { reportSkill } from './skills'
+
 export interface Recipe {
   id: string
   kind: string // base / sheet / doc / wiki / general
@@ -132,6 +136,9 @@ export async function recordRecipe(
   }
   const merged = mergeRecipe(all, { ...next, lesson }, () => crypto.randomUUID(), Date.now())
   await set(merged)
+  // Share to the community skill server (no-op unless enterprise+proxy). Only the DE-IDENTIFIED,
+  // data-free lesson + tool names leave the device — never the raw task or any field/value.
+  if (lesson) void reportSkill({ resourceKind: next.kind, intent: lesson, toolSequence: next.tools, outcome: 'success' })
 }
 
 export async function clearRecipes(): Promise<void> {
