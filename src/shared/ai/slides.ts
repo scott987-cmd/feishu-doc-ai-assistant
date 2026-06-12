@@ -81,10 +81,13 @@ export function sanitizeSlides(raw: unknown): Slide[] {
     }
     // A chart slide carries a self-contained ECharts option object (data inside).
     if (layout === 'chart' && r.chart && typeof r.chart === 'object') s.chart = r.chart as Record<string, unknown>
-    // An embed slide carries a saved 看板's render code (added by us, not the model).
+    // An embed slide carries a saved 看板's render code, OR (no-remote-code / Plan B) a declarative
+    // VizSpec rendered by the bundled interpreter. Preserve whichever is present so a deck survives
+    // re-sanitisation without losing its embedded board.
     if (layout === 'embed' && typeof r.code === 'string') s.code = r.code
+    if (layout === 'embed' && r.spec && typeof r.spec === 'object') s.spec = r.spec as Slide['spec']
     // Drop empty/no-content slides (nothing to show).
-    if (s.title || s.subtitle || s.quote || s.bullets?.length || s.bullets2?.length || s.stats?.length || s.chart || s.code) out.push(s)
+    if (s.title || s.subtitle || s.quote || s.bullets?.length || s.bullets2?.length || s.stats?.length || s.chart || s.code || s.spec) out.push(s)
   }
   return out.slice(0, 40)
 }

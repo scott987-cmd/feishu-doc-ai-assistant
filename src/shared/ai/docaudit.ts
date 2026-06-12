@@ -65,6 +65,22 @@ export async function saveAuditCheck(check: string): Promise<void> {
   try { await chrome.storage.local.set({ [CHECK_KEY]: check }) } catch { /* best-effort */ }
 }
 
+/** Normalize raw audit issues (from the model's JSON) into the safe, clamped AuditIssue shape.
+ *  Pure — drops items with neither problem nor quote, defaults severity to 'medium', clamps
+ *  field lengths. Extracted so it can be unit-tested with synthetic data (no LLM). */
+export function normalizeAuditIssues(parsed: { issues?: Array<Partial<AuditIssue>> } | null | undefined): AuditIssue[] {
+  const sev = (s: unknown): AuditIssue['severity'] => (s === 'high' || s === 'low' ? s : 'medium')
+  return (parsed?.issues ?? [])
+    .filter((i) => i && (i.problem || i.quote))
+    .map((i) => ({
+      type: String(i.type ?? '其它').slice(0, 16),
+      severity: sev(i.severity),
+      quote: String(i.quote ?? '').slice(0, 120),
+      problem: String(i.problem ?? '').slice(0, 300),
+      suggestion: String(i.suggestion ?? '').slice(0, 300),
+    }))
+}
+
 export async function auditDocument(settings: AppSettings, text: string, check: string = DEFAULT_AUDIT_CHECK): Promise<AuditIssue[]> {
   let out = (await chatComplete(settings, buildPrompt(text, check))).trim()
   if (!out) throw new Error('模型未返回内容。')
@@ -75,16 +91,7 @@ export async function auditDocument(settings: AppSettings, text: string, check: 
   } catch {
     throw new Error('模型输出不是有效 JSON，无法生成体检结果。请重试或换一个支持 JSON 输出的模型。')
   }
-  const sev = (s: unknown): AuditIssue['severity'] => (s === 'high' || s === 'low' ? s : 'medium')
-  return (parsed.issues ?? [])
-    .filter((i) => i && (i.problem || i.quote))
-    .map((i) => ({
-      type: String(i.type ?? '其它').slice(0, 16),
-      severity: sev(i.severity),
-      quote: String(i.quote ?? '').slice(0, 120),
-      problem: String(i.problem ?? '').slice(0, 300),
-      suggestion: String(i.suggestion ?? '').slice(0, 300),
-    }))
+  return normalizeAuditIssues(parsed)
 }
 
 /** Read the current doc's text and run the audit. Caps the text to bound tokens. `check`
