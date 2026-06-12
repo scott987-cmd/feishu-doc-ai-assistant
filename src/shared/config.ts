@@ -54,6 +54,10 @@ export const BUILD_CONFIG = {
   /** Enterprise: pull a central policy (force-off clip / auto-confirm, etc.) from the proxy and lock
    *  those toggles. Requires a proxy. */
   enterprisePolicy: (import.meta.env.VITE_ENTERPRISE_POLICY ?? '') === '1',
+  /** Shared SKILL library (enterprise): report de-identified successful patterns to the proxy +
+   *  pull community high-score skills. OFF by default; needs a proxy. Store/BYO builds have no
+   *  proxy (force-cleared above) → always off, never any extra network calls. */
+  skillsEnabled: (import.meta.env.VITE_SKILLS_ENABLED ?? '') === '1',
   /** Redact likely-sensitive values (CN phone / email / ID / bank card) from data BEFORE it's sent
    *  to the LLM. Only affects the copy sent to the model — never the source Feishu data. */
   llmRedact: (import.meta.env.VITE_LLM_REDACT ?? '') === '1',
@@ -107,6 +111,10 @@ export const HAS_MANAGED_LLM = BUILD_CONFIG.llmFromProxy && !!BUILD_CONFIG.oauth
 
 /** Enterprise central policy is available (build opted in AND a proxy is configured to serve it). */
 export const HAS_ENTERPRISE_POLICY = BUILD_CONFIG.enterprisePolicy && !!BUILD_CONFIG.oauthProxyUrl
+
+/** Shared skill library available (opted in AND a proxy to serve it). Double-gated: the store/BYO
+ *  build has no proxy → always false → all skill code no-ops, store release totally unaffected. */
+export const HAS_SKILLS = BUILD_CONFIG.skillsEnabled && !!BUILD_CONFIG.oauthProxyUrl
 
 /** Web Clipper feature flag (see BUILD_CONFIG.clipEnabled). */
 export const CLIP_ENABLED = BUILD_CONFIG.clipEnabled
