@@ -50,6 +50,12 @@
   .sketch svg{display:block;width:100%;height:auto;max-width:840px;margin:0 auto;font-family:"Comic Sans MS","Segoe Print","Bradley Hand","Chalkboard SE","PingFang SC","Microsoft YaHei",cursive}
   .sketch .cap{max-width:760px;margin:8px auto 2px;color:#8a7d5f;font-size:12.5px;line-height:1.6;text-align:center}
   .sk-lbl{fill:#2b2f3a;font-weight:700}.sk-sub{fill:#5b5640}.sk-edge{fill:#7a6f55;font-size:12px}.sk-zone{fill:#9c8f6e;font-size:12px;font-weight:700;letter-spacing:.04em}
+  /* 截图 */
+  .shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin:16px 0}
+  .shots figure{margin:0}.shots img{width:100%;border:1px solid var(--line);border-radius:10px;background:var(--soft)}
+  .shots figcaption{font-size:12px;color:var(--mut);margin-top:5px;text-align:center}
+  .shot{margin:16px 0}.shot img{width:100%;max-width:880px;display:block;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 28px #0000001f}
+  .shot figcaption{font-size:12.5px;color:var(--mut);margin:7px 0 0}
 </style>
 </head>
 <body>
@@ -111,6 +117,14 @@
 <li><b>文档质检</b>：通读整篇，挑出逻辑断点、未定义术语、前后矛盾、遗留 TODO、空小节等。</li>
 <li><b>网页剪藏</b>：把当前网页内容剪藏进多维表格。</li>
 </ul>
+<div class="shots">
+  <figure><img src="screenshots/01-chat-welcome.png" alt="侧边栏对话界面" loading="lazy"><figcaption>侧边栏对话 · 一句话下指令</figcaption></figure>
+  <figure><img src="screenshots/04-dataviz-panel.png" alt="数据看板/小程序" loading="lazy"><figcaption>看板 / 小程序（ECharts）</figcaption></figure>
+  <figure><img src="screenshots/05-aisite-panel.png" alt="AI 建站" loading="lazy"><figcaption>AI 建站 · 自包含网站</figcaption></figure>
+  <figure><img src="screenshots/03-slides-panel.png" alt="AI 幻灯片" loading="lazy"><figcaption>AI 幻灯片（PPT）</figcaption></figure>
+  <figure><img src="screenshots/09-docsummary-panel.png" alt="文档质检 / 总结" loading="lazy"><figcaption>文档质检 / 总结</figcaption></figure>
+  <figure><img src="screenshots/10-settings.png" alt="设置" loading="lazy"><figcaption>设置 · 模型 + 飞书授权</figcaption></figure>
+</div>
 
 <h2 id="deploy-personal">部署 · 个人 / 直连</h2>
 <p>三种鉴权模式，按安全性从高到低：</p>
@@ -382,7 +396,33 @@ npm run build -- --mode enterprise
 <div class="note">完整威胁矩阵、应急流程、历史审计项见 <code>SECURITY_AUDIT.md</code>。本仓库经过两轮代码审查 + 一轮安全审查，所有中危及以上风险已整改。</div>
 
 <h2 id="admin">运维 · 管理台</h2>
-<p>设 <code>ADMIN_PASSWORD</code> 启动代理后，浏览器开 <code>https://&lt;你的代理&gt;/admin</code> 登录。统一管理：</p>
+<p>设 <code>ADMIN_PASSWORD</code> 启动代理后，浏览器开 <code>https://&lt;你的代理&gt;/admin</code> 登录，统一管理技能库 / 云备份 / 配置 / 审计。</p>
+
+<h3>登录与防护（怎么进、怎么守）</h3>
+<div class="sketch">
+<svg viewBox="0 0 800 280" role="img" aria-label="管理台访问与安全：运维 → /admin → 密码登录 → HMAC 签名会话 → 管理台 5 页签；底部安全防护带">
+  <g filter="url(#hd)" stroke="#2b2f3a" stroke-width="2.2" stroke-linecap="round">
+    <rect x="92" y="64" width="140" height="74" rx="13" fill="#d0ebff"/>
+    <rect x="300" y="50" width="200" height="102" rx="14" fill="#fff3bf"/>
+    <rect x="566" y="50" width="222" height="102" rx="14" fill="#d3f9d8"/>
+    <rect x="92" y="206" width="696" height="50" rx="12" fill="#eceae3"/>
+    <path d="M62 100 L92 100" fill="none" marker-end="url(#ah)"/>
+    <path d="M232 100 L300 100" fill="none" marker-end="url(#ah)"/>
+    <path d="M500 101 L566 101" fill="none" marker-end="url(#ah)"/>
+  </g>
+  <g text-anchor="middle">
+    <text x="40" y="94" font-size="22">🧑‍💼</text><text x="40" y="116" class="sk-sub" font-size="11">运维</text>
+    <text x="162" y="98" class="sk-lbl" font-size="14.5">浏览器 /admin</text><text x="162" y="118" class="sk-sub" font-size="11">仅内网 / VPN</text>
+    <text x="400" y="84" class="sk-lbl" font-size="14.5">代理鉴权</text><text x="400" y="106" class="sk-sub" font-size="11">🔒 校验 ADMIN_PASSWORD</text><text x="400" y="124" class="sk-sub" font-size="11">→ 签发 HMAC 会话</text><text x="400" y="141" class="sk-sub" font-size="10.5">密钥≠密码 · 重启即吊销</text>
+    <text x="677" y="84" class="sk-lbl" font-size="14.5">管理台 · 5 页签</text><text x="677" y="106" class="sk-sub" font-size="11">总览 · 技能审核 · 备份管理</text><text x="677" y="124" class="sk-sub" font-size="11">配置巡检 · 审计</text>
+    <text x="440" y="237" class="sk-sub" font-size="12">🛡 IP 白名单（最先把关）· 防点击劫持(X-Frame-Options + CSP) · 同源校验 · 登录限流</text>
+    <text x="266" y="92" class="sk-edge" text-anchor="middle">①密码</text>
+    <text x="533" y="92" class="sk-edge" text-anchor="middle">②Bearer 会话</text>
+  </g>
+</svg>
+<div class="cap">设了密码才挂载 <code>/admin</code>；会话签名密钥与登录密码<b>解耦</b>（独立 <code>ADMIN_TOKEN_SECRET</code> 或启动随机 → 重启即吊销）。<code>/admin</code> 已<b>纳入 IP 白名单</b>，务必仅内网/VPN 可达。</div>
+</div>
+
 <table>
 <tr><th>页签</th><th>能做什么</th></tr>
 <tr><td>总览</td><td>各模块健康、技能数/已晋级、备份后端、最近活动</td></tr>
@@ -391,6 +431,12 @@ npm run build -- --mode enterprise
 <tr><td>配置</td><td>当前生效配置（密钥已脱敏）</td></tr>
 <tr><td>审计</td><td>近 500 条事件（换 token / app_config / llm_config / 技能 / 备份 / 管理操作）</td></tr>
 </table>
+
+<h3>实际界面</h3>
+<figure class="shot"><img src="screenshots/admin-overview.png" alt="管理台总览：各模块健康指标 + 最近活动" loading="lazy"><figcaption><b>总览</b>：技能/备份指标卡 + 最近活动（换 token / 技能上报 / 备份 / 登录…）</figcaption></figure>
+<figure class="shot"><img src="screenshots/admin-skills.png" alt="管理台技能库审核：脱敏技能列表 + 强制晋级/降级/删除" loading="lazy"><figcaption><b>技能库审核</b>：脱敏技能（意图/经验/工具链/分数/热度/状态），可强制晋级、降级、删除</figcaption></figure>
+<figure class="shot"><img src="screenshots/admin-artifacts.png" alt="管理台备份管理：按租户/用户 open_id/类型列出云备份对象" loading="lazy"><figcaption><b>备份管理</b>：按 租户 / 用户 open_id / 类型 列出对象，删除用于合规清理</figcaption></figure>
+
 <div class="note warn">管理台能删备份、改技能——务必 <b>仅内网/VPN 可达 + IP 白名单</b>，用高熵 <code>ADMIN_PASSWORD</code>，并设独立的 <code>ADMIN_TOKEN_SECRET</code>。</div>
 
 <h2 id="validate">验证 · 测试</h2>
