@@ -223,6 +223,30 @@ const DOC_TOOLS = new Set([
   'create_document', 'create_doc_from_markdown', 'get_document_content', 'list_blocks',
   'add_document_content', 'insert_table', 'insert_sheet', 'delete_document_blocks',
 ])
+// Cross-cutting tools exposed on EVERY page (incl. the "create a new X" entry points) so the user
+// can always ask a question, escape-hatch a raw API call, render a viz, or create a fresh resource.
+const CORE_TOOLS = new Set([
+  'ask_user', 'feishu_api_call', 'render_data_app',
+  'create_bitable_app', 'create_spreadsheet', 'create_document', 'create_doc_from_markdown',
+])
+
+/**
+ * Expose only the tools relevant to the CURRENT page (core + that resource's toolset) instead of
+ * all ~55 every turn. Fewer, on-topic tools → the model picks the right one far more reliably (a
+ * top cause of wrong-tool / wrong-resource destructive mistakes) and the request is cheaper/faster.
+ * On a Base: bitable tools (everything not sheet/doc). On Sheet/Doc: that resource's tools. On an
+ * unresolved/other page: core + creators only (guides the user to open a concrete resource).
+ */
+export function toolsForContext(kind: string | undefined): typeof FEISHU_TOOLS {
+  return FEISHU_TOOLS.filter((t) => {
+    const name = (t as { function?: { name?: string } }).function?.name ?? ''
+    if (CORE_TOOLS.has(name)) return true
+    if (kind === 'sheet') return SHEET_TOOLS.has(name)
+    if (kind === 'doc') return DOC_TOOLS.has(name)
+    if (kind === 'base') return !SHEET_TOOLS.has(name) && !DOC_TOOLS.has(name)
+    return false // unknown / unresolved wiki → core + creators only
+  })
+}
 
 export async function runAgent(
   history: ChatMessage[],
@@ -291,7 +315,7 @@ export async function runAgent(
     const stream = await client.chat.completions.create({
       model: llmCfg.model,
       messages: msgs,
-      tools: FEISHU_TOOLS,
+      tools: toolsForContext(context.feishu?.kind), // only the current resource's tools (+ core)
       tool_choice: 'auto',
       temperature: AGENT_TEMPERATURE,
       stream: true,

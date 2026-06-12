@@ -1,7 +1,37 @@
 import { describe, it, expect } from 'vitest'
 import type { ChatCompletionMessageParam } from 'openai/resources'
 import type { ChatMessage, AppSettings, PageContext } from '../types'
-import { sanitizeToken, truncateToolResult, checkDestructiveConfirmation, buildApiHistory, assertApiCallAllowed, runAgent, isFileLevelDelete, describeDestructiveOp, isDestructiveApiCall, rewriteFeishuOrigins } from './agent'
+import { sanitizeToken, truncateToolResult, checkDestructiveConfirmation, buildApiHistory, assertApiCallAllowed, runAgent, isFileLevelDelete, describeDestructiveOp, isDestructiveApiCall, rewriteFeishuOrigins, toolsForContext } from './agent'
+
+describe('toolsForContext — exposes only the current resource\'s tools (+ core)', () => {
+  const names = (kind: string | undefined) => toolsForContext(kind).map((t) => (t as { function: { name: string } }).function.name)
+  it('sheet page: core + sheet tools; no bitable/doc-specific tools', () => {
+    const n = names('sheet')
+    expect(n).toEqual(expect.arrayContaining(['read_range', 'delete_dimension', 'ask_user', 'feishu_api_call']))
+    expect(n).not.toContain('batch_delete_records') // bitable
+    expect(n).not.toContain('list_blocks')          // doc
+    expect(n.length).toBeLessThan(25)               // was 55 before scoping
+  })
+  it('doc page: core + doc tools; not sheet/bitable manipulation', () => {
+    const n = names('doc')
+    expect(n).toEqual(expect.arrayContaining(['add_document_content', 'delete_document_blocks']))
+    expect(n).not.toContain('read_range')
+    expect(n).not.toContain('batch_delete_records')
+  })
+  it('base page: bitable tools; not sheet/doc manipulation', () => {
+    const n = names('base')
+    expect(n).toEqual(expect.arrayContaining(['batch_delete_records', 'search_records']))
+    expect(n).not.toContain('delete_dimension')
+    expect(n).not.toContain('delete_document_blocks')
+  })
+  it('unknown/unresolved page: core + creators only (small set)', () => {
+    const n = names(undefined)
+    expect(n).toEqual(expect.arrayContaining(['feishu_api_call', 'create_spreadsheet', 'create_document']))
+    expect(n).not.toContain('read_range')
+    expect(n).not.toContain('batch_delete_records')
+    expect(n.length).toBeLessThan(10)
+  })
+})
 
 describe('rewriteFeishuOrigins — clip/report links always keep the tenant prefix (no recurrence)', () => {
   const T = 'https://acme.feishu.cn' // tenant origin (tests run with base domain = feishu.cn)
