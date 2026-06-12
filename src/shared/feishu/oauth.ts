@@ -27,6 +27,14 @@ interface TokenResp { access_token?: string; refresh_token?: string; expires_in?
  */
 async function requestToken(payload: Record<string, unknown>): Promise<TokenResp> {
   const clientId = await getEffectiveAppId()
+  // BOTH modes need a real App ID (proxy checks ALLOWED_CLIENT_IDS; the authorize/token URL needs it).
+  // On a managed-App-ID build whose proxy `app_config` is temporarily down, getEffectiveAppId returns
+  // '' — fail LOUDLY here instead of POSTing client_id:'' and getting an opaque upstream error.
+  if (!clientId) {
+    throw new Error(BUILD_CONFIG.oauthProxyUrl
+      ? '未能获取 App ID：企业代理暂不可达（App ID 下发接口）。请稍后重试或联系管理员。'
+      : '未配置 App ID：请在「设置 → 飞书鉴权」填写你自己的飞书 App ID 与 App Secret。')
+  }
   if (BUILD_CONFIG.oauthProxyUrl) {
     // Proxy adds client_id + client_secret; we send only the grant material. Optional X-Proxy-Key
     // is anti-abuse defense-in-depth (NOT a strong secret — it ships in the bundle).
@@ -41,9 +49,6 @@ async function requestToken(payload: Record<string, unknown>): Promise<TokenResp
     return (await res.json()) as TokenResp
   }
   // Direct mode: secret is baked-plaintext, password-unlocked, or the user-entered one (store build).
-  if (!clientId) {
-    throw new Error('未配置 App ID：请在「设置 → 飞书鉴权」填写你自己的飞书 App ID 与 App Secret。')
-  }
   const clientSecret = await getClientSecret()
   if (!clientSecret) {
     throw new Error('应用密钥未就绪：请在「设置 → 飞书鉴权」填写并保存你的 App Secret（内置加密版则先输入解锁密码）。')
@@ -137,6 +142,11 @@ export async function authorizeFeishuUser(): Promise<OAuthResult> {
     throw new Error('尚未配置飞书应用凭据：请在「设置 → 飞书鉴权」填写你的 App ID 与 App Secret（或本版本内置/代理模式）。')
   }
   const appId = await getEffectiveAppId()
+  // Managed-App-ID build whose proxy app_config is down → appId '' → don't launch a broken consent
+  // page with client_id= empty; surface a clear error.
+  if (!appId) {
+    throw new Error('未能获取 App ID：企业代理暂不可达（App ID 下发接口）。请稍后重试或联系管理员。')
+  }
   const redirectUri = oauthRedirectUrl()
   if (!redirectUri) {
     throw new Error('无法获取扩展重定向 URL（需在扩展环境中运行，dev 预览不支持 OAuth）')

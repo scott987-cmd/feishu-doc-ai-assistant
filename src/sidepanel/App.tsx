@@ -129,7 +129,11 @@ export default function App() {
 
   // Enterprise cloud backup: on a fresh/cleared/reinstalled device (local empty), pull the user's
   // own saved artifacts back from the company cloud — ONCE per install. Total no-op off proxy.
-  useEffect(() => { void autoRestoreOnceOnEmpty() }, [])
+  // Re-runs when auth becomes available (token/open_id change): on a fresh device the user authorizes
+  // AFTER first mount, so a bare [] dep would miss the restore window. autoRestoreOnceOnEmpty is
+  // idempotent (own once-flag; bails without setting it when no token yet), so re-firing is safe.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { void autoRestoreOnceOnEmpty() }, [settings.feishuAccessToken, settings.feishuOwnerOpenId])
 
   // Set context, but if it's an already-resolved wiki, substitute the cached real
   // resource — so refreshCtx (tab events) doesn't keep flipping wiki↔doc, which

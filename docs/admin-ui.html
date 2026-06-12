@@ -75,15 +75,16 @@
 <div id="toast" class="toast" style="display:none"></div>
 
 <script>
-const ADMIN = location.pathname.replace(/\/+$/,'') || '/admin'   // 自身路径，兼容反代前缀
+const ADMIN = location.pathname.replace(/\/[^/]*\.html?$/i,'').replace(/\/+$/,'') || '/admin'   // 自身路径，兼容反代前缀；剥掉可能的 /index.html
 const API = (p) => ADMIN + '/api' + p
 let TOKEN = localStorage.getItem('admintok') || ''
 const TABS = [['overview','总览'],['skills','技能库'],['artifacts','备份'],['config','配置'],['audit','审计']]
 let tab = 'overview'
 
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',2200) }
-function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])) }
-function tsFmt(t){ if(!t) return '-'; try{ return new Date(t).toLocaleString() }catch{ return t } }
+// 转义所有注入 innerHTML / 属性的服务端数据。含单引号(&#39;)——多处用 onclick="fn('${esc(id)}')"，属性里是单引号字符串，不转义单引号会被一个 ' 击穿成 XSS。
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+function tsFmt(t){ if(!t) return '-'; try{ return esc(new Date(t).toLocaleString()) }catch{ return esc(t) } }
 function kib(n){ if(n==null) return '-'; if(n<1024) return n+' B'; if(n<1048576) return (n/1024).toFixed(1)+' KB'; return (n/1048576).toFixed(2)+' MB' }
 
 async function api(p, opts){

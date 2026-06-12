@@ -13,11 +13,16 @@ const RULES: Array<[RegExp, string]> = [
   [/(?<!\d)\d{17}[\dXx](?!\d)/g, '[身份证]'],
 ]
 
-export function redactSensitive(s: string): string {
-  if (!BUILD_CONFIG.llmRedact) return s
+/** Always-on PII scrub (phone/email/ID), independent of any flag — for data that leaves the device
+ *  on a path whose privacy promise is UNCONDITIONAL (e.g. the shared skill-library payload). */
+export function redactPII(s: string): string {
   let out = s
   for (const [re, rep] of RULES) out = out.replace(re, rep)
   return out
+}
+
+export function redactSensitive(s: string): string {
+  return BUILD_CONFIG.llmRedact ? redactPII(s) : s
 }
 
 export function capPayload(s: string): string {

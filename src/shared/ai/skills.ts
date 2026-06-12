@@ -15,7 +15,7 @@
  * the store release is completely unaffected.
  */
 import { BUILD_CONFIG, HAS_SKILLS } from '../config'
-import { redactSensitive } from './redact'
+import { redactPII } from './redact'
 
 /** What the client SENDS after a successful turn (already de-identified). */
 export interface SkillObservation {
@@ -58,7 +58,9 @@ const headers = (): Record<string, string> => ({
   'Content-Type': 'application/json',
   ...(BUILD_CONFIG.oauthProxyKey ? { 'X-Proxy-Key': BUILD_CONFIG.oauthProxyKey } : {}),
 })
-const cleanIntent = (s: string): string => redactSensitive(s || '').trim().slice(0, 200)
+// Always PII-scrub outbound skill text (unconditional — not gated on VITE_LLM_REDACT), since the
+// skill library's privacy promise must hold regardless of that separate flag.
+const cleanIntent = (s: string): string => redactPII(s || '').trim().slice(0, 200)
 const asSkills = (data: unknown): Skill[] => {
   const arr = (data as { skills?: unknown })?.skills
   return Array.isArray(arr) ? (arr as Skill[]).slice(0, 6) : []

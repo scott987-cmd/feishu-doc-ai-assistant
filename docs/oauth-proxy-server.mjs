@@ -208,6 +208,15 @@ const server = http.createServer((req, res) => {
   const origin = req.headers.origin || ''
   const h = cors(origin)
 
+  // 健康检查：本进程自己先答（否则会被技能模块的 endsWith('/healthz') 抢走）。仅 liveness——只回 {ok:true}，
+  // 不泄露技能数/后端类型等运营信息（这些在【鉴权】的管理台总览里看）；健康探针常来自不在 IP 白名单里的 LB。
+  if (req.method === 'GET' && req.url === '/healthz') return send(res, 200, { ok: true }, h)
+
+  // IP 白名单：必须在【所有】子服务（含管理台）分发之前统一把关——否则 /admin* 会先被 handleAdminHttp
+  // 处理掉，绕过运维以为已生效的网络层白名单（管理台能删备份/改技能，绝不能让它脱离 IP 白名单暴露在公网）。
+  const ip = clientIp(req)
+  if (IP_ALLOWLIST.length && !ipMatches(ip, IP_ALLOWLIST)) return send(res, 403, { error: 'ip_forbidden' }, h)
+
   // 管理台（若启用）：/admin* 必须最先匹配，否则 /admin/api/skills/* 会被技能模块的 '/skills/' 抢走。
   if (handleAdminHttp) { try { if (handleAdminHttp(req, res)) return } catch (e) { console.error('[admin] http error:', e?.message || e) } }
   // 共享技能库（若启用）：/skills/* 由技能模块自带 CORS/鉴权/限流处理，处理了就直接返回。
@@ -216,19 +225,17 @@ const server = http.createServer((req, res) => {
   if (handleArtifactHttp) { try { if (handleArtifactHttp(req, res)) return } catch (e) { console.error('[artifacts] http error:', e?.message || e) } }
 
   if (req.method === 'OPTIONS') { res.writeHead(204, h); return res.end() }
-  if (req.method === 'GET' && req.url === '/healthz') return send(res, 200, { ok: true }, h)
   if (req.method !== 'POST') return send(res, 405, { error: 'method_not_allowed' }, h)
 
   // 来源锁定：浏览器会带 Origin；锁了 ALLOW_ORIGIN 就拒绝其它来源（注意 CORS 只挡浏览器，非强鉴权）
   if (ALLOW_ORIGIN !== '*' && origin && origin !== ALLOW_ORIGIN) return send(res, 403, { error: 'origin_forbidden' }, h)
 
-  const ip = clientIp(req)
-  if (IP_ALLOWLIST.length && !ipMatches(ip, IP_ALLOWLIST)) return send(res, 403, { error: 'ip_forbidden' }, h)
   if (rateLimited(ip)) return send(res, 429, { error: 'rate_limited' }, h)
   if (SHARED_KEY && !safeEqual(req.headers['x-proxy-key'], SHARED_KEY)) return send(res, 401, { error: 'unauthorized' }, h)
 
   let size = 0, chunks = ''
   req.on('data', (c) => { size += c.length; if (size > MAX_BODY) { req.destroy(); } else chunks += c })
+  req.on('aborted', () => { if (!res.writableEnded) send(res, 413, { error: 'too_large' }, h) }) // 超限 → 干净的 413
   req.on('end', async () => {
     let body
     try { body = JSON.parse(chunks || '{}') } catch { return send(res, 400, { error: 'bad_json' }, h) }
@@ -303,6 +310,12 @@ server.listen(PORT, () => {
   if (ALLOW_ORIGIN === '*') console.warn('⚠ ALLOW_ORIGIN=* —— 仅用于本地联调。生产务必锁成 chrome-extension://<扩展ID>，否则任意网页可跨域读取返回的 token。')
   if (!ALLOWED_REDIRECT_URIS.size) console.warn('⚠ 未设 ALLOWED_REDIRECT_URIS —— code 换 token 将一律被拒（fail-closed）。请设为扩展回调地址。')
 })
+
+// 优雅退出：本进程挂载了技能库时，其落盘是 5s 脏写定时器，重启会丢最近的上报——这里在退出前 flush。
+// （技能模块只有 standalone 运行才装自己的信号处理；mounted 模式由本宿主负责。）
+const shutdown = () => { try { skillMod?.persist?.() } catch { /* best-effort */ } process.exit(0) }
+process.on('SIGTERM', shutdown)
+process.on('SIGINT', shutdown)
 
 /* ── systemd 示例（/etc/systemd/system/feishu-oauth-proxy.service）─────────────
 [Unit]

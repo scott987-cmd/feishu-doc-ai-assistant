@@ -69,6 +69,7 @@ const MIN_SOURCES = Number(env.MIN_SOURCES || 2)
 const MIN_SUCCESS_RATE = Number(env.MIN_SUCCESS_RATE || 0.6)
 const W = { users: Number(env.W_USERS ?? 1), success: Number(env.W_SUCCESS ?? 1), recency: Number(env.W_RECENCY ?? 0.5), undone: Number(env.W_UNDONE ?? 1.5) }
 const PLAYBOOK_MIN = Number(env.PLAYBOOK_MIN || 3)
+const SKILLS_MAX = Number(env.SKILLS_MAX || 20000) // 技能条数上限：防持(弱)代理密钥者用随机上报撑爆内存/磁盘
 const MAX_BODY = 16 * 1024
 const KINDS = new Set(['base', 'sheet', 'doc', 'wiki', 'general'])
 
@@ -247,9 +248,21 @@ async function ingest({ resourceKind, intent, toolSequence, outcome, src, tenant
       successes: outcome === 'undone' ? 0 : 1, undones: outcome === 'undone' ? 1 : 0,
       sources: new Set(src ? [src] : []), tenants: new Set([tenant]), firstTs: now, lastTs: now,
     })
+    if (skills.length > SKILLS_MAX) evictWorst(now) // 撑爆保护：超限就淘汰一条最差的（优先未晋级、低分）
   }
   markDirty()
   emit('skill_report', { kind, outcome, tenant })
+}
+
+// 淘汰一条「最差」技能：已晋级的给一个大基数尽量保留，其余按分数，最低者出局。
+function evictWorst(now) {
+  let idx = -1, worst = Infinity
+  for (let i = 0; i < skills.length; i++) {
+    const s = skills[i]
+    const rank = (isPromoted(s) ? 1e6 : 0) + score(s, now)
+    if (rank < worst) { worst = rank; idx = i }
+  }
+  if (idx >= 0) skills.splice(idx, 1)
 }
 
 const toSkill = (s, level = 'recipe', sc = 0) => ({ skillId: s.skillId, level, resourceKind: s.resourceKind, intent: s.intent, toolSequence: s.toolSequence, lesson: s.lesson, score: Math.round(sc * 100) / 100 })
@@ -339,6 +352,7 @@ export function handleSkillHttp(req, res) {
   if (req.method !== 'POST') { send(res, 405, { error: 'method_not_allowed' }, h); return true }
   let size = 0, chunks = ''
   req.on('data', (c) => { size += c.length; if (size > MAX_BODY) req.destroy(); else chunks += c })
+  req.on('aborted', () => { if (!res.writableEnded) send(res, 413, { error: 'too_large' }, h) }) // 超限 → 干净的 413（而非裸断连）
   req.on('end', async () => {
     let body; try { body = JSON.parse(chunks || '{}') } catch { return send(res, 400, { error: 'bad_json' }, h) }
     const r = await dispatchSkills({ method: 'POST', pathname: url.pathname, body, tenant: auth.tenant, now })
