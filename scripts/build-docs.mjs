@@ -304,6 +304,8 @@ for (const rel of mdFiles) {
 // 让文档里指向源文件的相对链接可达）
 function copyNonMd(dir) {
   for (const e of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
+    // 绝不把密钥类点文件拷进公开站点：.env / .env.local / .env.<x> 一律跳过（.env.example 是模板，保留）。
+    if (/^\.env(\..*)?$/.test(e.name) && e.name !== '.env.example') continue
     const rel = path.join(dir, e.name)
     if (e.isDirectory()) copyNonMd(rel)
     else if (!e.name.endsWith('.md')) { fs.mkdirSync(path.join(OUT, dir), { recursive: true }); fs.copyFileSync(path.join(ROOT, rel), path.join(OUT, rel)) }
