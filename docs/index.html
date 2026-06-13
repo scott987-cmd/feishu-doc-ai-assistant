@@ -67,6 +67,7 @@
   <a href="#overview">概览</a>
   <a href="#usage">使用</a>
   <div class="g">部署</div>
+  <a href="#package-wizard">🧰 一键打包向导</a>
   <a href="#deploy-personal">个人 / 直连</a>
   <a href="#deploy-enterprise">企业服务端套件</a>
   <a href="#deploy-store">商店 / BYO 包</a>
@@ -125,6 +126,19 @@
   <figure><img src="screenshots/09-docsummary-panel.png" alt="文档质检 / 总结" loading="lazy"><figcaption>文档质检 / 总结</figcaption></figure>
   <figure><img src="screenshots/10-settings.png" alt="设置" loading="lazy"><figcaption>设置 · 模型 + 飞书授权</figcaption></figure>
 </div>
+
+<h2 id="package-wizard">🧰 一键打包向导（图形化 · 给小白）</h2>
+<p>不想碰命令行 / <code>.env</code>？跑一条命令打开网页向导，<b>选模式 → 改名称 / 换图标 → 填参数 → 一键打包下载</b>，全程不用敲配置：</p>
+<pre><code>npm run package:ui   # 打开 http://localhost:8799（仅本机）</code></pre>
+<figure><img src="screenshots/package-wizard.png" alt="企业打包向导" loading="lazy" style="max-width:560px"><figcaption>打包向导：4 种模式 + 品牌定制 + 连接/企业能力/高级参数 → 预览配置 / 一键打包</figcaption></figure>
+<ul>
+  <li><b>4 种模式</b>：企业·代理（推荐）/ 个人·直连 / 商店·BYO / 私有化·内网——选哪个就只显示哪些字段，不会填错。</li>
+  <li><b>品牌定制</b>：改扩展名称、描述；上传一张方形 PNG，自动缩成 16/32/48/128 写进 <code>manifest</code>（不动源文件）。</li>
+  <li><b>连接 / 能力</b>：代理地址、App ID / 大模型是否从代理下发、统一策略、共享技能库、企业云备份，勾选即配。</li>
+  <li><b>高级</b>：大模型域名白名单、外发脱敏、无远程代码、单次外发上限、OAuth scope、IP CIDR、剥 manifest key。</li>
+  <li><b>安全</b>：表单只落到本机 <code>.env.package.local</code>（已 gitignore）；打包前临时挪开你的 <code>.env.local</code> 保证产物“只含这次填的”；构建结束自动还原。商店模式强制不内置任何凭据并剥 key。</li>
+</ul>
+<p>打完点「下载」拿到 <code>.zip</code> 解压，<code>chrome://extensions</code> → 开发者模式 →「加载已解压」即可；也可直接加载项目里的 <code>dist/</code>。底层就是驱动 <code>npm run build -- --mode &lt;模式&gt;</code> + 后处理 <code>manifest</code>/图标，和手动构建产物一致。</p>
 
 <h2 id="deploy-personal">部署 · 个人 / 直连</h2>
 <p>三种鉴权模式，按安全性从高到低：</p>
@@ -312,7 +326,7 @@ npm run build -- --mode enterprise
 <li><b>secret 不进明文包</b>；<b>写操作不自动重试</b>。</li>
 <li><b>企业特性双门控</b>：<code>HAS_* = flag &amp;&amp; 有代理</code> → 商店版死代码消除。</li>
 </ul>
-<p>深结构见 <code>ARCHITECTURE.md</code>。</p>
+<p>深结构见 <code>docs/ARCHITECTURE.md</code>。</p>
 
 <h2 id="security">安全模型</h2>
 
@@ -393,7 +407,7 @@ npm run build -- --mode enterprise
 <li><b>纳入 IP 白名单</b>（在所有子服务分发之前把关）；建议仅内网/VPN 可达。</li>
 <li>防点击劫持（<code>X-Frame-Options: DENY</code> + CSP <code>frame-ancestors none</code>）；同源校验；登录限流。</li>
 </ul>
-<div class="note">完整威胁矩阵、应急流程、历史审计项见 <code>SECURITY_AUDIT.md</code>。本仓库经过两轮代码审查 + 一轮安全审查，所有中危及以上风险已整改。</div>
+<div class="note">完整威胁矩阵、应急流程、历史审计项见 <code>docs/SECURITY_AUDIT.md</code>。本仓库经过两轮代码审查 + 一轮安全审查，所有中危及以上风险已整改。</div>
 
 <h2 id="admin">运维 · 管理台</h2>
 <p>设 <code>ADMIN_PASSWORD</code> 启动代理后，浏览器开 <code>https://&lt;你的代理&gt;/admin</code> 登录，统一管理技能库 / 云备份 / 配置 / 审计。</p>
@@ -457,7 +471,7 @@ npm run test:ui          # 动了侧边栏 UI 再跑（11 项冒烟）</code></p
 <div class="card"><b>更多</b><br>见 <code>docs/FAQ.md</code> · <code>docs/USER_GUIDE.md</code> · <code>docs/PRIVATE_DEPLOYMENT.md</code> · <code>docs/STORE_PUBLISHING.md</code>。</div>
 
 <hr>
-<p class="kbd">本页为离线单文件文档（零依赖）。源与更多细节：<code>README.md</code> · <code>ARCHITECTURE.md</code> · <code>SECURITY_AUDIT.md</code> · <code>docs/DEPLOYMENT.md</code>。</p>
+<p class="kbd">本页为离线单文件文档（零依赖）。源与更多细节：<code>README.md</code> · <code>docs/ARCHITECTURE.md</code> · <code>docs/SECURITY_AUDIT.md</code> · <code>docs/DEPLOYMENT.md</code>。</p>
 </main>
 </div>
 <script>

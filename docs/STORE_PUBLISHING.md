@@ -138,4 +138,4 @@ node scripts/check-no-eval.mjs  # → ✅ dist/ 中无 new Function(
 2. 更新：改代码 → `npm run build`（`manifest.version` 记得 +1）→ 压 zip → 后台上传新版本 → 等审核。
 3. 商店版**不要**带 `key`/私钥的固定 ID 也行（商店会分配 ID）；若想 ID 稳定可保留 `key`。
 
-> 配套：隐私政策 [`PRIVACY.md`](../PRIVACY.md)、安全模型 [`SECURITY_AUDIT.md`](../SECURITY_AUDIT.md)、用户上手 [`QUICKSTART.md`](QUICKSTART.md)。
+> 配套：隐私政策 [`PRIVACY.md`](../PRIVACY.md)、安全模型 [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md)、用户上手 [`QUICKSTART.md`](QUICKSTART.md)。

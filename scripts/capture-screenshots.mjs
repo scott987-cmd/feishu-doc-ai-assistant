@@ -33,7 +33,7 @@ const SAVED_VIZ = { id: 'demo-viz', name: '区域营收看板', source: { kind: 
 const browser = await launch()
 const page = await browser.newPage()
 await page.setViewport({ width: 400, height: 700, deviceScaleFactor: 2 })
-const base = `http://localhost:${port}/dev.html`
+const base = `http://localhost:${port}/scripts/dev.html`
 const errs = []
 page.on('pageerror', (e) => errs.push(e.message))
 

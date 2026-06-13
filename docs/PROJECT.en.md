@@ -4,7 +4,7 @@
 
 > Single-file authoritative reference. Covers: project overview / software architecture / implemented features / security design / supported scenarios /
 > customization / packaging / deployment / configuration.
-> Companion docs: module details in [ARCHITECTURE.en.md](../ARCHITECTURE.en.md); the line-by-line security audit in [SECURITY_AUDIT.en.md](../SECURITY_AUDIT.en.md).
+> Companion docs: module details in [ARCHITECTURE.en.md](ARCHITECTURE.en.md); the line-by-line security audit in [SECURITY_AUDIT.en.md](SECURITY_AUDIT.en.md).
 > Snapshot: 2026-05-31. Tests: 177 passed / 32 skipped.
 
 ---
@@ -111,7 +111,7 @@ per-round bubbles in order, clickable markdown links, cover images, export as te
 ## 4. Security Design
 
 > Core principle: **the AI always acts as the user themselves, and all permission boundaries are hardcoded in the code** (the prompt only guides / reports errors,
-> it is not a security boundary). See [SECURITY_AUDIT.en.md](../SECURITY_AUDIT.en.md).
+> it is not a security boundary). See [SECURITY_AUDIT.en.md](SECURITY_AUDIT.en.md).
 
 ### 4.1 Three Fundamental Principles (enforced in code)
 - **P1 Creation belongs to the user**: operating with user_access_token → newly created documents naturally belong to the user.

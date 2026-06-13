@@ -7,7 +7,7 @@
 > 权限最小化 → 凭据管理 → 分发强制安装 → 升级 → 端到端验证 → 排错。
 >
 > 通用部署（个人/企业云）见 [`DEPLOYMENT.md`](DEPLOYMENT.md)；强制安装细节见 [`enterprise/DEPLOY.md`](enterprise/DEPLOY.md)；
-> 安全模型/图解见 [`../SECURITY_AUDIT.md`](../SECURITY_AUDIT.md)；代理见 [`oauth-proxy/README.md`](oauth-proxy/README.md)。
+> 安全模型/图解见 [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md)；代理见 [`oauth-proxy/README.md`](oauth-proxy/README.md)。
 
 ---
 
@@ -234,4 +234,4 @@ RATE_LIMIT_PER_MIN=60
 
 ## 15. 安全模型
 
-逐条审计、攻击场景、App Secret/OAuth 图解、出站锁定（M7）、沙箱隔离（M9）等：见 [`../SECURITY_AUDIT.md`](../SECURITY_AUDIT.md)。一句话：**纯内网、用户身份、secret 不进包、出站双重锁定、生成代码沙箱无网络。**
+逐条审计、攻击场景、App Secret/OAuth 图解、出站锁定（M7）、沙箱隔离（M9）等：见 [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md)。一句话：**纯内网、用户身份、secret 不进包、出站双重锁定、生成代码沙箱无网络。**

@@ -3,7 +3,7 @@
 Chrome **MV3** 扩展「飞书文档AI助手」：在飞书 多维表格/电子表格/文档 页用自然语言操作，并把数据做成 网站/看板/PPT。**无后端**，全部以**用户本人飞书身份**操作。React 18 + TS + Vite + vitest + ECharts。
 
 > 详尽开发指南见 **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**（仓库地图、配方、地雷区、调试入口）。
-> 还有：[`ARCHITECTURE.md`](ARCHITECTURE.md)（深结构）· [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md)（安全）· [`docs/FAQ.md`](docs/FAQ.md) · [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)。
+> 还有：[`ARCHITECTURE.md`](docs/ARCHITECTURE.md)（深结构）· [`SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)（安全）· [`docs/FAQ.md`](docs/FAQ.md) · [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)。
 
 ## 迭代循环（每次改完都跑）
 1. `npm run typecheck` — 必须 0 错

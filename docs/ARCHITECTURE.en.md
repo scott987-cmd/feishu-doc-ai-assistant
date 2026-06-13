@@ -2,8 +2,8 @@
 
 # Architecture (Deep Reference for Modules and Internals)
 
-> For a one-stop getting-started guide see [`docs/PROJECT.en.md`](docs/PROJECT.en.md); for a line-by-line security review see [`SECURITY_AUDIT.en.md`](SECURITY_AUDIT.en.md);
-> for the full configuration reference see [`.env.example`](.env.example). This document focuses on the deep-water details: **module structure, tool inventory, field types, real-world API pitfalls,
+> For a one-stop getting-started guide see [`PROJECT.en.md`](PROJECT.en.md); for a line-by-line security review see [`SECURITY_AUDIT.en.md`](SECURITY_AUDIT.en.md);
+> for the full configuration reference see [`.env.example`](../.env.example). This document focuses on the deep-water details: **module structure, tool inventory, field types, real-world API pitfalls,
 > and the internals of the template engine**.
 
 ## Directory Structure
@@ -412,8 +412,8 @@ Apply: applyPlan() → resolveToken, branched by source:
 
 ## Environment Variables Summary
 
-For all build-time variables (across the three deployments: personal / enterprise SaaS / private) see [`.env.example`](.env.example)
-and [`docs/PROJECT.en.md`](docs/PROJECT.en.md) §9 — including the App Secret three tiers, the OAuth proxy, the private-deployment base domain,
+For all build-time variables (across the three deployments: personal / enterprise SaaS / private) see [`.env.example`](../.env.example)
+and [`PROJECT.en.md`](PROJECT.en.md) §9 — including the App Secret three tiers, the OAuth proxy, the private-deployment base domain,
 the LLM host allowlist, the device CIDR gate, the tool-call cap, and more.
 
 ---

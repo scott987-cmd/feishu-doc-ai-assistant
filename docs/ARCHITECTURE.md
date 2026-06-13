@@ -2,8 +2,8 @@
 
 # Architecture（模块与内部细节深入参考）
 
-> 一站式上手见 [`docs/PROJECT.md`](docs/PROJECT.md)，安全逐条见 [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md)，
-> 配置全量见 [`.env.example`](.env.example)。本文聚焦**模块结构、工具清单、字段类型、API 实测坑、
+> 一站式上手见 [`PROJECT.md`](PROJECT.md)，安全逐条见 [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md)，
+> 配置全量见 [`.env.example`](../.env.example)。本文聚焦**模块结构、工具清单、字段类型、API 实测坑、
 > 模板引擎内部**等深水区细节。
 
 ## 目录结构
@@ -412,8 +412,8 @@ ScenarioPanel Gallery        # 模板市场 UI（一键导入）
 
 ## 环境变量汇总
 
-全部构建时变量（个人 / 企业 SaaS / 私有化 三种部署）见 [`.env.example`](.env.example)
-与 [`docs/PROJECT.md`](docs/PROJECT.md) §9——含 App Secret 三档、OAuth 代理、私有化基础域名、
+全部构建时变量（个人 / 企业 SaaS / 私有化 三种部署）见 [`.env.example`](../.env.example)
+与 [`PROJECT.md`](PROJECT.md) §9——含 App Secret 三档、OAuth 代理、私有化基础域名、
 大模型 host 白名单、设备 CIDR 门、工具调用上限等。
 
 ---

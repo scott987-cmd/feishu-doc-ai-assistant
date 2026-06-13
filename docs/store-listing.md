@@ -112,7 +112,7 @@ connect-src 'https:' on extension pages exists only so users can connect to THEI
 OpenAI-compatible LLM endpoint (configured by the user), not any developer server. No
 credentials are bundled; each user enters their own Feishu app credentials and LLM key,
 stored encrypted on-device. Security details:
-https://github.com/scott987-cmd/feishu-doc-ai-assistant/blob/main/SECURITY_AUDIT.md
+https://github.com/scott987-cmd/feishu-doc-ai-assistant/blob/main/docs/SECURITY_AUDIT.md
 ```
 
 ---

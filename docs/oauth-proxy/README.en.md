@@ -4,7 +4,7 @@
 
 Keep the **App Secret server-side only** — not a single byte ships in the extension bundle. The client only sends authorization material (code / refresh_token); the proxy injects the secret server-side to exchange for a token, and returns "that user's own token" verbatim.
 
-> See [`../../SECURITY_AUDIT.md` → ★ App Secret and OAuth Security Model](../../SECURITY_AUDIT.en.md) for the security model / flow diagram / threat matrix.
+> See [`../SECURITY_AUDIT.md` → ★ App Secret and OAuth Security Model](../SECURITY_AUDIT.en.md) for the security model / flow diagram / threat matrix.
 > The proxy itself: [`../oauth-proxy-server.mjs`](../oauth-proxy-server.mjs) (zero-dependency, Node ≥18).
 
 ---

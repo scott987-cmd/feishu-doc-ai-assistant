@@ -3,8 +3,8 @@
 # 开发手册（面向 AI agent 的快速迭代指南）
 
 > 目标：让一个**新接手的 agent** 在几分钟内能安全地改代码、验证、不破坏既有约束。
-> 深水区结构见 [`../ARCHITECTURE.md`](../ARCHITECTURE.md)；一站式总览见 [`PROJECT.md`](PROJECT.md)；
-> 安全逐条见 [`../SECURITY_AUDIT.md`](../SECURITY_AUDIT.md)；部署见 [`DEPLOYMENT.md`](DEPLOYMENT.md)。
+> 深水区结构见 [`ARCHITECTURE.md`](ARCHITECTURE.md)；一站式总览见 [`PROJECT.md`](PROJECT.md)；
+> 安全逐条见 [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md)；部署见 [`DEPLOYMENT.md`](DEPLOYMENT.md)。
 
 ---
 

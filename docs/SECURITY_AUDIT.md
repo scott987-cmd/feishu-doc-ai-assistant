@@ -102,7 +102,7 @@
 
 ### 4. 生产级代理（自托管，无需 Cloudflare）
 
-参考实现：**`docs/oauth-proxy-server.mjs`**（零依赖 Node ≥18；另有 Cloudflare 版 `oauth-proxy-worker.js`）。已内置：
+参考实现：**`oauth-proxy-server.mjs`**（零依赖 Node ≥18；另有 Cloudflare 版 `oauth-proxy-worker.js`）。已内置：
 
 - Origin 锁定 `ALLOW_ORIGIN=chrome-extension://<扩展ID>`、`redirect_uri` 白名单、`client_id` 校验；
 - **IP 白名单** `IP_ALLOWLIST`（IPv4/CIDR，强控制）、每 IP **限流**、可选**共享密钥** `PROXY_SHARED_KEY`（对应客户端 `VITE_OAUTH_PROXY_KEY`，防滥用非强密钥）；
@@ -132,7 +132,7 @@
 ## ★ 企业托管 LLM / 策略 / 脱敏 安全模型
 
 > 企业可让 LLM 配置、统一策略**经代理下发**，并对外发数据脱敏。核心：**公司大模型 key 不进 .crx，
-> 只发给本企业飞书成员**。个人版不受影响（仍各自配置）。配置见 [`docs/oauth-proxy/README.md`](docs/oauth-proxy/README.md) §5。
+> 只发给本企业飞书成员**。个人版不受影响（仍各自配置）。配置见 [`oauth-proxy/README.md`](oauth-proxy/README.md) §5。
 
 ### 身份闸门（谁能拿到公司配置）
 - 客户端用**用户自己的 `user_access_token`** 向代理证明身份；代理调飞书 `authen/v1/user_info`
@@ -328,9 +328,9 @@
 - **说明**：飞书 token 接口即使用 PKCE 仍强制 `client_secret`，纯客户端无法不暴露。
 - **方案**：新增**可选 OAuth 代理模式**——构建时设 `VITE_OAUTH_PROXY_URL` 且**不**注入
   secret，则 code 换 token / refresh 改 POST 到代理（代理服务端持有 secret，客户端只发
-  授权码/refresh_token），**secret 不再进包**。参考实现：**`docs/oauth-proxy-server.mjs`**
+  授权码/refresh_token），**secret 不再进包**。参考实现：**`oauth-proxy-server.mjs`**
   （零依赖 Node，自托管、无需 Cloudflare，内置 Origin 锁/redirect 白名单/IP 白名单/限流/可选共享密钥）；
-  另有 Cloudflare 版 `docs/oauth-proxy-worker.js`。
+  另有 Cloudflare 版 `oauth-proxy-worker.js`。
 - **图解 + 威胁模型 + 企业部署**：见上方 [★ App Secret 与 OAuth 安全模型（图解）](#-app-secret-与-oauth-安全模型图解)。
 - **三种部署**：个人=直连带 secret 或**密码加密 secret**；企业/私有化=代理模式(secret 不进包)。owner 可按需选。
 

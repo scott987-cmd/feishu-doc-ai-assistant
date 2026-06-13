@@ -3,7 +3,7 @@
 # 部署指南 · 快速上手（企业 / 个人 / 私有化）
 
 > 一页选好你的路 → 照抄命令 → 跑起来。深入细节链到对应文档：
-> 安全模型 [`../SECURITY_AUDIT.md`](../SECURITY_AUDIT.md) · 代理 [`oauth-proxy/README.md`](oauth-proxy/README.md) ·
+> 安全模型 [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md) · 代理 [`oauth-proxy/README.md`](oauth-proxy/README.md) ·
 > 企业 MDM 强制安装 [`enterprise/DEPLOY.md`](enterprise/DEPLOY.md) · 使用手册 [`USER_GUIDE.md`](USER_GUIDE.md)
 
 ---
@@ -15,13 +15,13 @@
 | **个人 / 想最省事** | 纯 user-token（不内置凭据） | 没有 secret | [§2-A](#a-纯-user-token零内置最安全最省事) |
 | **个人 / 小团队** | 直连·密码加密 | 加密进包，密码解锁 | [§2-B](#b-直连密码加密个人加固) |
 | **企业（云端飞书）** | **代理模式 + MDM 强制安装** | 只在你的服务器 | [§3](#3-企业部署) |
-| **私有化 / 纯内网** | 代理 + 私有域名 + 出站锁定 | 只在你的服务器 | [§4](#4-私有化纯内网部署) |
+| **私有化 / 纯内网** | 代理 + 私有域名 + 出站锁定 | 只在你的服务器 | [§4](#4-私有化--纯内网部署) |
 
 > 三种模式的唯一区别就是 **App Secret 怎么处理**；其余构建/打包/飞书配套完全一样。
 
 **所有模式的两个共同前提：**
 1. **大模型 Key**：每个用户在扩展「⚙️设置」里自填（OpenAI 兼容，默认 DeepSeek）——**不是构建变量**。
-2. **飞书后台一次性配套**：见 [§6](#6-飞书后台一次性配套)（可用范围 / 重定向 URL / 权限 scope）。
+2. **飞书后台一次性配套**：见 [§6](#6-飞书后台一次性配套开放平台--你的应用)（可用范围 / 重定向 URL / 权限 scope）。
 
 ---
 
@@ -118,7 +118,7 @@ VITE_LLM_FROM_PROXY=1            # 从代理取大模型配置
 # VITE_ENTERPRISE_POLICY=1       # 启用统一策略下发
 ```
 **③ 员工端**：装好后「设置 → 飞书授权」即可，**无需填 API Key**；设置里有「企业统一 / 手动」开关（除非锁定）。
-安全模型 / 已知残留见 [`../SECURITY_AUDIT.md` → ★ 企业托管 LLM](../SECURITY_AUDIT.md)。
+安全模型 / 已知残留见 [`SECURITY_AUDIT.md` → ★ 企业托管 LLM](SECURITY_AUDIT.md)。
 
 ### 3.5 托管 App ID + 共享技能库 + 云备份 + 管理台（可选·同进程挂载）
 
@@ -175,8 +175,11 @@ python3 -c "import json;print(json.load(open('dist/manifest.json'))['content_sec
 
 ## 5. 打包方式
 
+> 🧰 **图形化向导（最省事）**：`npm run package:ui` 打开 `http://localhost:8799`（仅本机），网页上选模式、改名称/图标、勾参数 → **一键打包下载 `.zip`**。底层就是下面这些命令 + 后处理 `manifest`/图标，适合不想碰命令行的同学。
+
 | 方式 | 命令 | 用途 |
 |---|---|---|
+| 图形化向导 | `npm run package:ui` | 小白友好：网页选模式/改名称图标/填参数 → 一键打包下载 |
 | 未打包目录 | 加载 `dist/` | 个人 / 联调（`chrome://extensions` → 开发者模式 → 加载已解压） |
 | zip | `cd dist && zip -qr ../pkg.zip .` | 分发 / 备份 |
 | **.crx**（钉死 ID） | 见 [`enterprise/DEPLOY.md` §一](enterprise/DEPLOY.md) | 企业强制安装（需 `extension-key.pem`） |

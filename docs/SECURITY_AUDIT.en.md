@@ -102,7 +102,7 @@ and can reach documents the user has no access to, which is exactly the escalati
 
 ### 4. Production-grade proxy (self-hosted, no Cloudflare needed)
 
-Reference implementation: **`docs/oauth-proxy-server.mjs`** (zero-dependency Node ≥18; a Cloudflare version `oauth-proxy-worker.js` is also available). Built in:
+Reference implementation: **`oauth-proxy-server.mjs`** (zero-dependency Node ≥18; a Cloudflare version `oauth-proxy-worker.js` is also available). Built in:
 
 - Origin lock `ALLOW_ORIGIN=chrome-extension://<extension ID>`, `redirect_uri` allowlist, `client_id` check;
 - **IP allowlist** `IP_ALLOWLIST` (IPv4/CIDR, strong control), per-IP **rate limit**, optional **shared key** `PROXY_SHARED_KEY` (matching the client-side `VITE_OAUTH_PROXY_KEY`, abuse-deterrent not a strong key);
@@ -132,7 +132,7 @@ Reference implementation: **`docs/oauth-proxy-server.mjs`** (zero-dependency Nod
 ## ★ Enterprise managed LLM / policy / redaction security model
 
 > Enterprises can have the LLM config and unified policy **delivered via the proxy**, and redact outbound data. Core: **the company's LLM key never enters the .crx,
-> and is delivered only to this enterprise's Feishu members**. The personal edition is unaffected (everyone still configures their own). For config see [`docs/oauth-proxy/README.en.md`](docs/oauth-proxy/README.en.md) §5.
+> and is delivered only to this enterprise's Feishu members**. The personal edition is unaffected (everyone still configures their own). For config see [`oauth-proxy/README.en.md`](oauth-proxy/README.en.md) §5.
 
 ### Identity gate (who can obtain the company config)
 - The client proves its identity to the proxy using **the user's own `user_access_token`**; the proxy calls Feishu `authen/v1/user_info`
@@ -294,9 +294,9 @@ Reference implementation: **`docs/oauth-proxy-server.mjs`** (zero-dependency Nod
 - **Explanation**: the Feishu token endpoint still mandates `client_secret` even with PKCE, so a pure client cannot avoid exposing it.
 - **Solution**: added an **optional OAuth proxy mode** — if `VITE_OAUTH_PROXY_URL` is set at build time and the secret is **not** injected,
   then code-to-token / refresh are POSTed to the proxy instead (the proxy server holds the secret, the client only sends the
-  authorization code / refresh_token), so **the secret no longer enters the package**. Reference implementation: **`docs/oauth-proxy-server.mjs`**
+  authorization code / refresh_token), so **the secret no longer enters the package**. Reference implementation: **`oauth-proxy-server.mjs`**
   (zero-dependency Node, self-hosted, no Cloudflare needed; built-in Origin lock / redirect allowlist / IP allowlist / rate limit / optional shared key);
-  a Cloudflare version `docs/oauth-proxy-worker.js` is also available.
+  a Cloudflare version `oauth-proxy-worker.js` is also available.
 - **Diagram + threat model + enterprise deployment**: see [★ App Secret & OAuth security model (illustrated)](#-app-secret--oauth-security-model-illustrated) above.
 - **Three deployments**: personal = direct with secret or **password-encrypted secret**; enterprise/on-premise = proxy mode (secret not in package). The owner chooses as needed.
 
