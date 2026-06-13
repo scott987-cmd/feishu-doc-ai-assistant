@@ -34,7 +34,7 @@
 > 📚 **完整文档** → [`docs/PROJECT.md`](docs/PROJECT.md)（架构 / 功能 / 安全 / 部署 / 配置一站式）
 > · **部署指南（企业/个人/私有化快速上手）** [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
 > · 使用手册（含截图）[`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)
-> · 模块细节 [`ARCHITECTURE.md`](ARCHITECTURE.md) · 安全审计 [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md)
+> · 模块细节 [`ARCHITECTURE.md`](docs/ARCHITECTURE.md) · 安全审计 [`SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)
 > · 企业 MDM 强制安装 [`docs/enterprise/DEPLOY.md`](docs/enterprise/DEPLOY.md)
 
 ---
@@ -66,7 +66,7 @@
 - **AI 小程序** 🧩：一句话把当前表做成飞书页面上的悬浮窗小程序（可拖拽/四角缩放）——
   **图表看板**(ECharts) / **计算器·交互工具** / **可打印报表**(window.print) / **汇报幻灯片** / **卡片墙·时间线等自定义视图**。
   生成代码与数据**分离**——保存后下次用**最新数据**一键打开、零 LLM；一页可挂多个独立小程序（各自浮标）；
-  代码跑在 **MV3 沙箱**（null 源、`connect-src 'none'`）里**只读渲染**，**拿了数据也发不出去**。详见 [`ARCHITECTURE.md`](ARCHITECTURE.md)。
+  代码跑在 **MV3 沙箱**（null 源、`connect-src 'none'`）里**只读渲染**，**拿了数据也发不出去**。详见 [`ARCHITECTURE.md`](docs/ARCHITECTURE.md)。
 - **AI 建站** 🌐：一句话（可附**参考站点 URL** 作风格提示）把当前表做成一个**完整的网站页面**（导航 / 英雄区 / 指标卡 / 明细表），
   渲染成页面浮窗。沙箱里**预置了一套设计系统**——即使描述很简略也能生成**好看、统一、符合插件风格**的页面；
   **离线自包含**（系统字体、无外链/CDN）、数据绑定（重开拉最新数据）、可先出方案确认、可用语言微调、可保存。
@@ -143,11 +143,15 @@ npm run typecheck && npm run test
 - **凭据保护**：storage 内 AES-256-GCM；App Secret 支持明文 / 密码加密 / 代理三档。
 - **出站锁定**：只访问飞书 + 大模型两类端点（代码层白名单 + CSP 双重，私有化可纯内网）。
 
-逐条见 [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md)。
+逐条见 [`SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)。
 
 ---
 
 ## 想给自己的组织打包？（fork / 自建）
+
+> 🧰 **不想碰命令行？** 跑 `npm run package:ui` 打开图形化**打包向导**（仅本机 `http://localhost:8799`）：
+> 选模式（企业/个人/商店/私有化）→ 改名称、上传图标、勾选参数 → **一键打包下载 `.zip`**。
+> 底层即驱动下方的 `npm run build`，产物一致。详见[完整指南 · 打包向导](https://scott987-cmd.github.io/feishu-doc-ai-assistant/docs/index.html#package-wizard)。
 
 本仓库 `manifest.json` 的 `key` 与 `extension-key.pem`（已 gitignore）固定了**作者的**扩展 ID。
 自建分发时请**生成你自己的签名密钥**并替换：
@@ -170,7 +174,7 @@ openssl rsa -in my-extension-key.pem -pubout -outform DER | openssl base64 -A
 > 📖 **完整文档（离线单页 HTML，零依赖）**：[`docs/index.html`](docs/index.html) —— 使用 / 部署 / 架构 / 安全 一站读完，浏览器直接打开。
 >
 > 🌐 **在线文档站**：本仓库所有 Markdown 已可一键生成静态站并**免费托管在 GitHub Pages**——
-> `npm run docs:html`（零依赖，产物在 `site/`）本地预览；推送到 `main` 由 [`.github/workflows/pages.yml`](.github/workflows/pages.yml) 自动构建发布。
+> `npm run docs:html`（零依赖，产物在 `site/`）本地预览；推送到 `main` 由 [`.github/workflows/pages.yml`](https://github.com/scott987-cmd/feishu-doc-ai-assistant/blob/main/.github/workflows/pages.yml) 自动构建发布。
 > 一次性开启：仓库 **Settings → Pages → Source = "GitHub Actions"**，之后访问 `https://<用户名>.github.io/<仓库名>/`。
 
 | 文档 | 内容 |
@@ -185,15 +189,15 @@ openssl rsa -in my-extension-key.pem -pubout -outform DER | openssl base64 -A
 | [`docs/FAQ.md`](docs/FAQ.md) | **常见问题**：鉴权/导出/升级/私有化 排错 |
 | [`CLAUDE.md`](CLAUDE.md) · [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | **开发手册**：面向 agent 的快速迭代（循环 / 仓库地图 / 硬约束 / 地雷区） |
 | [`docs/PROJECT.md`](docs/PROJECT.md) | **一站式**：架构 / 功能 / 安全 / 部署 / 配置 |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | 深水区：模块结构、工具清单、字段类型、API 实测坑、模板引擎内部 |
-| [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md) | 安全设计逐条审计 + 攻击场景 + 修复（含 App Secret/OAuth 图解） |
+| [`ARCHITECTURE.md`](docs/ARCHITECTURE.md) | 深水区：模块结构、工具清单、字段类型、API 实测坑、模板引擎内部 |
+| [`SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md) | 安全设计逐条审计 + 攻击场景 + 修复（含 App Secret/OAuth 图解） |
 | [`docs/enterprise/DEPLOY.md`](docs/enterprise/DEPLOY.md) | 企业内部分发（.crx + Chrome 策略强制安装，含 macOS `.mobileconfig`） |
 | [`docs/oauth-proxy/`](docs/oauth-proxy/) · [`docs/oauth-proxy-server.mjs`](docs/oauth-proxy-server.mjs) | OAuth 代理：自托管 Node（Docker/nginx）+ Cloudflare 版，secret 不进包 |
 | [`docs/skill-proxy-server.mjs`](docs/skill-proxy-server.mjs) · [`docs/artifact-proxy-server.mjs`](docs/artifact-proxy-server.mjs) | 企业服务端套件：共享技能库 / 企业云备份（与 oauth 代理同进程挂载，零依赖） |
 | [`docs/admin-server.mjs`](docs/admin-server.mjs) · [`docs/admin-ui.html`](docs/admin-ui.html) | 运维管理台：单页 + 签名会话鉴权（看板/技能审核/备份管理/配置/审计） |
 | [`docs/sim/validate-server.mjs`](docs/sim/validate-server.mjs) | 合成数据服务端验证器（`npm run validate:server`，无需真飞书） |
 | [`.env.example`](.env.example) | 全部构建时配置项 |
-| [`CHANGELOG.md`](CHANGELOG.md) | 版本更新日志 |
+| [`CHANGELOG.md`](docs/CHANGELOG.md) | 版本更新日志 |
 
 ---
 
@@ -206,7 +210,7 @@ npm run typecheck && npm run test && npm run build
 ```
 
 > 改动若涉及安全卡点（`isFileLevelDelete` / `assertApiCallAllowed` / `resolveToken` /
-> `assertSafeBaseUrl` 等），请同步更新 [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md) 与对应单测。
+> `assertSafeBaseUrl` 等），请同步更新 [`SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md) 与对应单测。
 > **切勿提交任何密钥 / 密码 / 私钥**（`.gitignore` 已覆盖 `*.pem` / `*password*.txt` / `.env.*` 等）。
 
 ## ⚠️ 免责声明

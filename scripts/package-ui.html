@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>企业打包向导 · 飞书文档AI助手</title>
+<style>
+  :root{--bg:#f6f8fc;--card:#fff;--fg:#1d2433;--mut:#5b6478;--line:#e2e6f0;--accent:#4f6bff;--ok:#1a9d6b;--warn:#c47d0a;--code:#0f1320;--codefg:#e6e9f5}
+  @media(prefers-color-scheme:dark){:root{--bg:#0f1320;--card:#171c2e;--fg:#e6e9f5;--mut:#9aa3c7;--line:#262c46;--accent:#7d93ff;--code:#0b0e18}}
+  *{box-sizing:border-box}body{margin:0;font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--fg)}
+  .wrap{max-width:860px;margin:0 auto;padding:28px 20px 90px}
+  h1{font-size:24px;margin:0 0 2px}.sub{color:var(--mut);margin:0 0 22px;font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:16px 0}
+  .card h2{font-size:16px;margin:0 0 4px}.card .h{color:var(--mut);font-size:13px;margin:0 0 14px}
+  label{display:block;font-size:13.5px;font-weight:600;margin:12px 0 4px}
+  .hint{font-weight:400;color:var(--mut);font-size:12px}
+  input[type=text],input[type=url],input[type=number],input[type=password],textarea{width:100%;font:inherit;font-size:14px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--fg)}
+  textarea{min-height:60px;resize:vertical}
+  .modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+  .mode{border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;background:var(--bg)}
+  .mode.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent)}
+  .mode b{display:block;font-size:14px}.mode span{color:var(--mut);font-size:12px;line-height:1.5;display:block;margin-top:3px}
+  .row{display:flex;gap:14px;flex-wrap:wrap}.row>div{flex:1;min-width:200px}
+  .chk{display:flex;align-items:flex-start;gap:9px;margin:9px 0;font-weight:400;font-size:13.5px}
+  .chk input{margin-top:3px}.chk b{font-weight:600}.chk small{color:var(--mut);display:block;font-size:12px}
+  .logo{display:flex;align-items:center;gap:14px}.logo img{width:64px;height:64px;border:1px solid var(--line);border-radius:12px;object-fit:contain;background:var(--bg)}
+  details{margin-top:8px}summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--accent)}
+  .bar{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);padding:12px 20px;display:flex;gap:12px;align-items:center;justify-content:center}
+  button{font:inherit;font-size:14px;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:9px;padding:9px 18px}
+  button.primary{background:var(--accent);border-color:transparent;color:#fff;font-weight:600}
+  button:disabled{opacity:.55;cursor:default}
+  pre{background:var(--code);color:var(--codefg);padding:13px 15px;border-radius:10px;overflow:auto;font-size:12.5px;max-height:320px}
+  .ok{color:var(--ok)}.err{color:#ff6b6b}.warnote{border-left:3px solid var(--warn);background:color-mix(in srgb,var(--warn) 9%,transparent);padding:9px 14px;border-radius:0 8px 8px 0;font-size:12.5px;margin-top:10px}
+  .hide{display:none}
+  .dlbtn{display:inline-block;background:var(--ok);color:#fff;padding:9px 18px;border-radius:9px;text-decoration:none;font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧰 企业打包向导</h1>
+  <p class="sub">几步点出一个定制扩展包：改名称 / 换图标 / 配参数 → 一键打包下载。无需命令行。</p>
+
+  <div class="card">
+    <h2>① 打包模式</h2>
+    <p class="h">先选你要的场景，下面只显示对应需要填的项。</p>
+    <div class="modes" id="modes">
+      <div class="mode" data-mode="enterprise"><b>🏢 企业 / 代理（推荐）</b><span>给公司用。密钥放服务端代理，员工免配置；可统一下发 App ID / 大模型 / 策略。</span></div>
+      <div class="mode" data-mode="personal"><b>👤 个人 / 直连</b><span>自己用。填你自己的飞书 App ID + Secret（加密存本机，不进包也可）。</span></div>
+      <div class="mode" data-mode="store"><b>🛒 商店上架（BYO）</b><span>上架 Chrome 商店。不内置任何凭据、用户自填、剥掉 key。</span></div>
+      <div class="mode" data-mode="private"><b>🔒 私有化 / 内网</b><span>Lark / 飞书私有化部署，填你的域名后缀。</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>② 品牌定制</h2>
+    <p class="h">改成你公司的名字和图标（写进扩展 manifest）。</p>
+    <div class="row">
+      <div><label>扩展名称 <span class="hint">显示在扩展栏 / 商店</span></label><input type="text" id="name" placeholder="如：ACME 智能助手"></div>
+    </div>
+    <label>简短描述</label><textarea id="desc" placeholder="如：ACME 内部 AI 工具，用一句话操作飞书表格/文档"></textarea>
+    <label>图标 Logo <span class="hint">上传一张方形 PNG（建议 ≥256×256），自动缩成 16/32/48/128</span></label>
+    <div class="logo"><img id="logoPrev" alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"><input type="file" id="logo" accept="image/png,image/*"></div>
+  </div>
+
+  <div class="card" id="sec-conn">
+    <h2>③ 连接配置</h2>
+    <p class="h" id="conn-h"></p>
+
+    <div id="f-proxy" class="hide">
+      <label>代理地址 <span class="hint">你自托管的 oauth 代理 URL</span></label><input type="url" id="proxyUrl" placeholder="https://your-proxy.example.com/feishu/oauth">
+      <label>代理共享密钥（可选）<span class="hint">对应代理 PROXY_SHARED_KEY，弱防滥用</span></label><input type="text" id="proxyKey" placeholder="留空也可">
+      <div class="chk"><input type="checkbox" id="appIdFromProxy" checked><div><b>App ID 也从代理下发</b><small>勾选则无需在包里内置 App ID（单一构建服务任意租户）。不勾选请在下方填 App ID。</small></div></div>
+      <div id="f-appid-ent" class="hide"><label>飞书 App ID</label><input type="text" id="appId_ent" placeholder="cli_xxxxxxxxxxxx"></div>
+      <div class="chk"><input type="checkbox" id="llmFromProxy" checked><div><b>大模型也从代理下发</b><small>员工免填 API Key（密钥在服务端）。</small></div></div>
+      <div class="chk"><input type="checkbox" id="llmLock"><div><b>锁定为企业统一大模型</b><small>禁止员工切到“手动配置”。</small></div></div>
+    </div>
+
+    <div id="f-direct" class="hide">
+      <label>飞书 App ID</label><input type="text" id="appId" placeholder="cli_xxxxxxxxxxxx">
+      <label>App Secret <span class="hint">直连模式会进包；个人自用可接受，企业请用「代理」模式</span></label><input type="password" id="appSecret" placeholder="你的应用密钥">
+      <details><summary>更安全：用密码加密的密文（高级）</summary><label>加密密文 <span class="hint">由 <code>node scripts/encrypt-secret.mjs</code> 生成；填了它就把上面明文留空</span></label><input type="text" id="appSecretEnc" placeholder="base64 密文"></details>
+    </div>
+
+    <div id="f-private" class="hide">
+      <label>飞书/Lark 私有化域名后缀 <span class="hint">如 your-domain.com（open.&lt;域&gt; / accounts.&lt;域&gt; 自动派生）</span></label><input type="text" id="baseDomain" placeholder="your-private-domain.com">
+    </div>
+
+    <div id="f-store" class="hide"><div class="warnote">商店模式不内置任何凭据（用户首配时自填 App ID/Secret），并自动剥掉 manifest key。无需在此填连接。</div></div>
+  </div>
+
+  <div class="card hide" id="sec-feat">
+    <h2>④ 企业能力（可选）</h2>
+    <p class="h">需要服务端对应子服务支持（详见文档）。</p>
+    <div class="chk"><input type="checkbox" id="policy"><div><b>统一策略下发</b><small>强制并锁定 自动确认/越用越聪明 等开关。</small></div></div>
+    <div class="chk"><input type="checkbox" id="skills"><div><b>共享技能库</b><small>多用户脱敏经验汇聚、主动推送。</small></div></div>
+    <div class="chk"><input type="checkbox" id="artifacts"><div><b>企业云备份</b><small>小程序/建站/PPT 镜像到企业自有对象存储。</small></div></div>
+  </div>
+
+  <div class="card">
+    <h2>⑤ 高级（一般不用动）</h2>
+    <details>
+      <summary>展开高级参数</summary>
+      <div class="row">
+        <div><label>大模型域名白名单 <span class="hint">逗号分隔，锁死只能连这些 host</span></label><input type="text" id="allowedHosts" placeholder="api.deepseek.com,api.openai.com"></div>
+      </div>
+      <div class="chk"><input type="checkbox" id="redact"><div><b>外发前脱敏</b><small>发给大模型前掩盖手机/邮箱/身份证。</small></div></div>
+      <div class="chk"><input type="checkbox" id="noRemoteCode"><div><b>无远程代码</b><small>看板/建站走声明式渲染，沙箱去掉 unsafe-eval。</small></div></div>
+      <div class="chk"><input type="checkbox" id="llmNoPersist"><div><b>托管大模型 key 仅内存</b><small>不落盘，每会话重取。</small></div></div>
+      <div class="row">
+        <div><label>单次外发上限（字符）</label><input type="number" id="maxPayload" placeholder="20000"></div>
+        <div><label>单轮最多工具调用</label><input type="number" id="maxToolCalls" placeholder="30"></div>
+      </div>
+      <label>OAuth 申请的 scope <span class="hint">空格分隔，需在飞书后台开通</span></label><input type="text" id="oauthScope" placeholder="offline_access bitable:app docx:document">
+      <label>IP 限制 CIDR <span class="hint">逗号分隔，扩展只在这些网段可用</span></label><input type="text" id="allowedCidrs" placeholder="10.0.0.0/8">
+      <div class="chk"><input type="checkbox" id="stripKey"><div><b>去掉内置 key</b><small>首次自分发会生成新扩展 ID（商店模式自动剥）。</small></div></div>
+    </details>
+  </div>
+
+  <div class="card hide" id="sec-result">
+    <h2>结果</h2>
+    <div id="result"></div>
+    <pre id="log" class="hide"></pre>
+  </div>
+</div>
+
+<div class="bar">
+  <button onclick="preview()">预览配置</button>
+  <button class="primary" id="buildBtn" onclick="build()">🚀 一键打包</button>
+  <span id="busy" class="hide" style="color:var(--mut);font-size:13px">正在构建…（约 3–6 秒）</span>
+</div>
+
+<script>
+let mode = 'enterprise'
+let logoDataUrl = ''
+const $ = (id) => document.getElementById(id)
+const CONN_HINT = {
+  enterprise: '填你自托管的代理地址；密钥都在服务端，包里不带 secret。',
+  personal: '填你自己的飞书 App ID + Secret（自用）。',
+  store: '商店上架版无需填连接。',
+  private: '私有化：填域名后缀；连接方式可选直连或代理。',
+}
+function setMode(m) {
+  mode = m
+  document.querySelectorAll('.mode').forEach(e => e.classList.toggle('on', e.dataset.mode === m))
+  $('conn-h').textContent = CONN_HINT[m]
+  $('f-proxy').classList.toggle('hide', !(m === 'enterprise' || m === 'private'))
+  $('f-direct').classList.toggle('hide', !(m === 'personal' || m === 'private'))
+  $('f-private').classList.toggle('hide', m !== 'private')
+  $('f-store').classList.toggle('hide', m !== 'store')
+  $('sec-conn').classList.toggle('hide', m === 'store' ? false : false)
+  $('sec-feat').classList.toggle('hide', !(m === 'enterprise' || m === 'private'))
+}
+document.querySelectorAll('.mode').forEach(e => e.addEventListener('click', () => setMode(e.dataset.mode)))
+$('appIdFromProxy').addEventListener('change', e => $('f-appid-ent').classList.toggle('hide', e.target.checked))
+$('logo').addEventListener('change', (e) => {
+  const f = e.target.files[0]; if (!f) return
+  const r = new FileReader(); r.onload = () => { logoDataUrl = r.result; $('logoPrev').src = r.result }; r.readAsDataURL(f)
+})
+function gather() {
+  return {
+    mode, name: $('name').value.trim(), desc: $('desc').value.trim(), logoDataUrl,
+    proxyUrl: $('proxyUrl').value.trim(), proxyKey: $('proxyKey').value.trim(),
+    appIdFromProxy: $('appIdFromProxy').checked, appId: ($('appId').value || $('appId_ent').value).trim(),
+    appSecret: $('appSecret').value, appSecretEnc: $('appSecretEnc').value.trim(),
+    llmFromProxy: $('llmFromProxy').checked, llmLock: $('llmLock').checked, llmNoPersist: $('llmNoPersist').checked,
+    policy: $('policy').checked, skills: $('skills').checked, artifacts: $('artifacts').checked,
+    baseDomain: $('baseDomain').value.trim(), allowedHosts: $('allowedHosts').value.trim(),
+    redact: $('redact').checked, noRemoteCode: $('noRemoteCode').checked,
+    maxPayload: $('maxPayload').value.trim(), maxToolCalls: $('maxToolCalls').value.trim(),
+    oauthScope: $('oauthScope').value.trim(), allowedCidrs: $('allowedCidrs').value.trim(), stripKey: $('stripKey').checked,
+  }
+}
+async function preview() {
+  const r = await (await fetch('/api/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(gather()) })).json()
+  $('sec-result').classList.remove('hide')
+  $('result').innerHTML = '<b>将写入 <code>.env.package.local</code>：</b>'
+  $('log').classList.remove('hide'); $('log').textContent = r.env || '(空)'
+  $('sec-result').scrollIntoView({ behavior: 'smooth' })
+}
+async function build() {
+  $('buildBtn').disabled = true; $('busy').classList.remove('hide')
+  $('sec-result').classList.remove('hide'); $('result').innerHTML = '构建中…'; $('log').classList.add('hide')
+  try {
+    const r = await (await fetch('/api/build', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(gather()) })).json()
+    $('log').classList.remove('hide'); $('log').textContent = (r.log || '').slice(-6000)
+    if (r.ok) {
+      const kb = (r.size / 1024).toFixed(0)
+      $('result').innerHTML = `<p class="ok"><b>✅ 打包成功！</b></p>
+        <p>名称：<b>${esc(r.meta.name)}</b> · 版本：<code>${esc(r.meta.version)}</code> · 体积：${kb} KB</p>
+        <p><a class="dlbtn" href="/api/download">⬇ 下载 ${esc(r.zip)}</a></p>
+        <p class="hint">下载后解压 → <code>chrome://extensions</code> → 开发者模式 →「加载已解压」选解压出的文件夹。<br>也可直接加载项目里的 <code>dist/</code> 文件夹（已是这次打包结果）。</p>`
+    } else if (r.distOnly) {
+      $('result').innerHTML = `<p class="ok"><b>✅ 已构建到 dist/</b>（未找到 zip 命令，请手动压缩 <code>dist/</code>）。</p>`
+    } else {
+      $('result').innerHTML = `<p class="err"><b>❌ 构建失败</b>，看下面日志。</p>`
+    }
+  } catch (e) { $('result').innerHTML = '<p class="err">请求失败：' + esc(String(e)) + '</p>' }
+  $('buildBtn').disabled = false; $('busy').classList.add('hide')
+}
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+setMode('enterprise')
+</script>
+</body>
+</html>

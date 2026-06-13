@@ -7,7 +7,7 @@
 > least-privilege permissions → credential management → forced-install distribution → upgrades → end-to-end verification → troubleshooting.
 >
 > For general deployment (personal / enterprise cloud) see [`DEPLOYMENT.en.md`](DEPLOYMENT.en.md); for forced-install details see [`enterprise/DEPLOY.en.md`](enterprise/DEPLOY.en.md);
-> for the security model / diagrams see [`../SECURITY_AUDIT.en.md`](../SECURITY_AUDIT.en.md); for the proxy see [`oauth-proxy/README.en.md`](oauth-proxy/README.en.md).
+> for the security model / diagrams see [`SECURITY_AUDIT.en.md`](SECURITY_AUDIT.en.md); for the proxy see [`oauth-proxy/README.en.md`](oauth-proxy/README.en.md).
 
 ---
 
@@ -234,4 +234,4 @@ Private deployment does not go to the store: build the `.crx` (the project priva
 
 ## 15. Security model
 
-For the line-by-line audit, attack scenarios, App Secret/OAuth diagrams, outbound lockdown (M7), sandbox isolation (M9), and more: see [`../SECURITY_AUDIT.en.md`](../SECURITY_AUDIT.en.md). In one sentence: **pure intranet, user identity, no secret in the bundle, two-layer outbound lockdown, and generated code runs in a network-less sandbox.**
+For the line-by-line audit, attack scenarios, App Secret/OAuth diagrams, outbound lockdown (M7), sandbox isolation (M9), and more: see [`SECURITY_AUDIT.en.md`](SECURITY_AUDIT.en.md). In one sentence: **pure intranet, user identity, no secret in the bundle, two-layer outbound lockdown, and generated code runs in a network-less sandbox.**

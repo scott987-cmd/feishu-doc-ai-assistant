@@ -138,4 +138,4 @@ To support users **filling in any LLM address themselves**, the extension page's
 2. Update: change code → `npm run build` (remember to bump `manifest.version` by +1) → compress to zip → upload the new version in the console → wait for review.
 3. The Store edition **does not** need a fixed ID with a `key`/private key (the store assigns an ID); if you want a stable ID, you can keep the `key`.
 
-> Companion docs: privacy policy [`PRIVACY.md`](../PRIVACY.md), security model [`SECURITY_AUDIT.md`](../SECURITY_AUDIT.en.md), user onboarding [`QUICKSTART.md`](QUICKSTART.en.md).
+> Companion docs: privacy policy [`PRIVACY.md`](../PRIVACY.md), security model [`SECURITY_AUDIT.md`](SECURITY_AUDIT.en.md), user onboarding [`QUICKSTART.md`](QUICKSTART.en.md).

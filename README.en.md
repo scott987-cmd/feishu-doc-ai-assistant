@@ -34,7 +34,7 @@ create tables, fill in data, write formulas, generate documents, revise drafts b
 > 📚 **Full documentation** → [`docs/PROJECT.md`](docs/PROJECT.en.md) (architecture / features / security / deployment / configuration, all in one place)
 > · **Deployment guide (quick start for enterprise / personal / private deployment)** [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.en.md)
 > · User guide (with screenshots) [`docs/USER_GUIDE.md`](docs/USER_GUIDE.en.md)
-> · Module details [`ARCHITECTURE.md`](ARCHITECTURE.en.md) · Security audit [`SECURITY_AUDIT.md`](SECURITY_AUDIT.en.md)
+> · Module details [`ARCHITECTURE.md`](docs/ARCHITECTURE.en.md) · Security audit [`SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.en.md)
 > · Enterprise MDM forced install [`docs/enterprise/DEPLOY.md`](docs/enterprise/DEPLOY.en.md)
 
 ---
@@ -66,7 +66,7 @@ create tables, fill in data, write formulas, generate documents, revise drafts b
 - **AI mini-apps** 🧩: turn the current table into a floating mini-app on the Feishu page with a single sentence (draggable / resizable from all four corners) —
   **chart dashboards** (ECharts) / **calculators · interactive tools** / **printable reports** (window.print) / **presentation slides** / **card walls · timelines and other custom views**.
   The generated code and data are **decoupled** — after saving, open it again next time with the **latest data** in one click, with zero LLM calls; a single page can host multiple independent mini-apps (each with its own floating marker);
-  the code runs **read-only render-only** inside the **MV3 sandbox** (null origin, `connect-src 'none'`), so **even with the data in hand, it cannot send anything out**. See [`ARCHITECTURE.md`](ARCHITECTURE.en.md) for details.
+  the code runs **read-only render-only** inside the **MV3 sandbox** (null origin, `connect-src 'none'`), so **even with the data in hand, it cannot send anything out**. See [`ARCHITECTURE.md`](docs/ARCHITECTURE.en.md) for details.
 - **AI site builder** 🌐: with a single sentence (optionally attaching a **reference site URL** as a style hint), turn the current table into a **complete website page** (navigation / hero section / metric cards / detail table),
   rendered as a floating page window. The sandbox **comes preloaded with a design system** — even a very terse description produces a **good-looking, consistent, on-brand** page;
   it is **offline and self-contained** (system fonts, no external links / CDN), with data binding (re-fetches the latest data on reopen), supports proposing a plan for confirmation first, can be fine-tuned with language, and can be saved.
@@ -138,7 +138,7 @@ The assistant **operates with the user's own user_access_token**, with all permi
 - **Credential protection**: AES-256-GCM within storage; the App Secret supports three tiers — plaintext / password-encrypted / proxy.
 - **Outbound lockdown**: only accesses two kinds of endpoints, Feishu + the large model (code-layer allowlist + CSP, both; private deployment can be pure intranet).
 
-See [`SECURITY_AUDIT.md`](SECURITY_AUDIT.en.md) for each item in detail.
+See [`SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.en.md) for each item in detail.
 
 ---
 
@@ -176,12 +176,12 @@ unlock passwords to the repo** (already in `.gitignore`).
 | [`docs/FAQ.md`](docs/FAQ.en.md) | **FAQ**: troubleshooting for authentication / export / upgrade / private deployment |
 | [`CLAUDE.md`](CLAUDE.md) · [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.en.md) | **Development guide**: agent-oriented rapid iteration (loop / repo map / hard constraints / minefields) |
 | [`docs/PROJECT.md`](docs/PROJECT.en.md) | **All in one**: architecture / features / security / deployment / configuration |
-| [`ARCHITECTURE.md`](ARCHITECTURE.en.md) | The deep end: module structure, tool inventory, field types, API real-world pitfalls, template engine internals |
-| [`SECURITY_AUDIT.md`](SECURITY_AUDIT.en.md) | Item-by-item security design audit + attack scenarios + fixes (includes App Secret / OAuth diagrams) |
+| [`ARCHITECTURE.md`](docs/ARCHITECTURE.en.md) | The deep end: module structure, tool inventory, field types, API real-world pitfalls, template engine internals |
+| [`SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.en.md) | Item-by-item security design audit + attack scenarios + fixes (includes App Secret / OAuth diagrams) |
 | [`docs/enterprise/DEPLOY.md`](docs/enterprise/DEPLOY.en.md) | Internal enterprise distribution (.crx + force install via Chrome policy, includes macOS `.mobileconfig`) |
 | [`docs/oauth-proxy/`](docs/oauth-proxy/README.en.md) · [`docs/oauth-proxy-server.mjs`](docs/oauth-proxy-server.mjs) | OAuth proxy: self-hosted Node (Docker/nginx) + Cloudflare version, secret does not enter the bundle |
 | [`.env.example`](.env.example) | All build-time configuration options |
-| [`CHANGELOG.md`](CHANGELOG.md) | Version changelog |
+| [`CHANGELOG.md`](docs/CHANGELOG.md) | Version changelog |
 
 ---
 
@@ -194,7 +194,7 @@ npm run typecheck && npm run test && npm run build
 ```
 
 > If your change touches a security checkpoint (`isFileLevelDelete` / `assertApiCallAllowed` / `resolveToken` /
-> `assertSafeBaseUrl`, etc.), please update [`SECURITY_AUDIT.md`](SECURITY_AUDIT.en.md) and the corresponding unit tests in sync.
+> `assertSafeBaseUrl`, etc.), please update [`SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.en.md) and the corresponding unit tests in sync.
 > **Never commit any keys / passwords / private keys** (`.gitignore` already covers `*.pem` / `*password*.txt` / `.env.*`, etc.).
 
 ## ⚠️ Disclaimer

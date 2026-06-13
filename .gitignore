@@ -31,3 +31,7 @@ harness*.txt
 
 # generated docs site (built by scripts/build-docs.mjs / GitHub Pages CI)
 site/
+
+# enterprise packaging wizard output
+.env.package.local
+feishu-package.zip

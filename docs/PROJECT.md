@@ -4,7 +4,7 @@
 
 > 单文件权威参考。覆盖：项目概览 / 软件架构 / 实现功能 / 安全设计 / 支持场景 /
 > 二次开发 / 打包 / 部署 / 配置。
-> 配套：模块细节见 [ARCHITECTURE.md](../ARCHITECTURE.md)，逐条安全审计见 [SECURITY_AUDIT.md](../SECURITY_AUDIT.md)。
+> 配套：模块细节见 [ARCHITECTURE.md](ARCHITECTURE.md)，逐条安全审计见 [SECURITY_AUDIT.md](SECURITY_AUDIT.md)。
 > 快照：2026-05-31。测试 177 passed / 32 skipped。
 
 ---
@@ -112,7 +112,7 @@ harness/ dev/          离线测试驱动 / mock
 ## 4. 安全设计
 
 > 核心原则：**AI 始终以用户本人身份行事，权限边界全部硬编码在代码里**（提示词只做引导/报错，
-> 不作安全边界）。详见 [SECURITY_AUDIT.md](../SECURITY_AUDIT.md)。
+> 不作安全边界）。详见 [SECURITY_AUDIT.md](SECURITY_AUDIT.md)。
 
 ### 4.1 三条根本原则（代码强制）
 - **P1 创建归属用户**：以 user_access_token 操作 → 新建文档自然归用户。

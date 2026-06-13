@@ -3,7 +3,7 @@
 # Deployment Guide · Quick Start (Enterprise / Personal / Private)
 
 > Pick your path on one page → copy the commands → get it running. Deep-dive details link to the relevant docs:
-> Security model [`../SECURITY_AUDIT.en.md`](../SECURITY_AUDIT.en.md) · Proxy [`oauth-proxy/README.en.md`](oauth-proxy/README.en.md) ·
+> Security model [`SECURITY_AUDIT.en.md`](SECURITY_AUDIT.en.md) · Proxy [`oauth-proxy/README.en.md`](oauth-proxy/README.en.md) ·
 > Enterprise MDM forced install [`enterprise/DEPLOY.en.md`](enterprise/DEPLOY.en.md) · User guide [`USER_GUIDE.en.md`](USER_GUIDE.en.md)
 
 ---
@@ -12,16 +12,16 @@
 
 | You are… | Recommended mode | Where the App Secret lives | Jump to |
 |---|---|---|---|
-| **Personal / want the least hassle** | Pure user-token (no embedded credentials) | No secret | [§2-A](#a-pure-user-token-zero-embedded-most-secure-least-hassle) |
-| **Personal / small team** | Direct connect · password-encrypted | Encrypted into the package, unlocked by password | [§2-B](#b-direct-connect-password-encrypted-personal-hardening) |
+| **Personal / want the least hassle** | Pure user-token (no embedded credentials) | No secret | [§2-A](#a-pure-user-token-zero-embedded--most-secure--least-hassle) |
+| **Personal / small team** | Direct connect · password-encrypted | Encrypted into the package, unlocked by password | [§2-B](#b-direct-connect--password-encrypted-personal-hardening) |
 | **Enterprise (cloud Feishu)** | **Proxy mode + MDM forced install** | Only on your server | [§3](#3-enterprise-deployment) |
-| **Private / pure intranet** | Proxy + private domain + outbound lockdown | Only on your server | [§4](#4-private-pure-intranet-deployment) |
+| **Private / pure intranet** | Proxy + private domain + outbound lockdown | Only on your server | [§4](#4-private--pure-intranet-deployment) |
 
 > The only difference among the three modes is **how the App Secret is handled**; everything else — build/packaging/Feishu setup — is identical.
 
 **Two common prerequisites for all modes:**
 1. **LLM Key**: Each user fills it in themselves under the extension's "⚙️ Settings" (OpenAI-compatible, DeepSeek by default) — **not a build variable**.
-2. **One-time Feishu console setup**: See [§6](#6-one-time-feishu-console-setup) (availability scope / redirect URL / permission scopes).
+2. **One-time Feishu console setup**: See [§6](#6-one-time-feishu-console-setup-open-platform--your-app) (availability scope / redirect URL / permission scopes).
 
 ---
 
@@ -118,7 +118,7 @@ VITE_LLM_FROM_PROXY=1            # 从代理取大模型配置
 # VITE_ENTERPRISE_POLICY=1       # 启用统一策略下发
 ```
 **③ Employee side**: after installing, just go to "Settings → Feishu Authorization" — **no need to fill in an API Key**; Settings has an "Enterprise unified / Manual" toggle (unless locked).
-For the security model / known residual risks, see [`../SECURITY_AUDIT.en.md` → ★ Enterprise-Managed LLM](../SECURITY_AUDIT.en.md).
+For the security model / known residual risks, see [`SECURITY_AUDIT.en.md` → ★ Enterprise-Managed LLM](SECURITY_AUDIT.en.md).
 
 ---
 

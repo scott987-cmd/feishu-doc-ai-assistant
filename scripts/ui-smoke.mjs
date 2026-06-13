@@ -22,7 +22,7 @@ const port = await new Promise((resolve, reject) => {
     if (m) { clearTimeout(t); resolve(m[1]) }
   })
 })
-console.log(`dev:ui → http://localhost:${port}/dev.html`)
+console.log(`dev:ui → http://localhost:${port}/scripts/dev.html`)
 
 async function launch() {
   try { return await puppeteer.launch({ headless: 'new', args: ['--no-sandbox'] }) }
@@ -40,7 +40,7 @@ try {
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`))
   page.on('console', (m) => { if (m.type() === 'error' && !isNoise(m.text())) errors.push(`console.error: ${m.text()}`) })
 
-  await page.goto(`http://localhost:${port}/dev.html`, { waitUntil: 'networkidle0', timeout: 20000 })
+  await page.goto(`http://localhost:${port}/scripts/dev.html`, { waitUntil: 'networkidle0', timeout: 20000 })
   await new Promise((r) => setTimeout(r, 1200))
 
   ok('应用渲染（品牌名）', (await page.$eval('.brand-name', (e) => e.textContent).catch(() => '')) === '飞书文档AI助手')

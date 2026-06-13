@@ -23,7 +23,8 @@
     "icons": "node scripts/generate-icons.js",
     "prepare": "npm run icons",
     "test:render": "node scripts/render-test.mjs",
-    "docs:html": "node scripts/build-docs.mjs"
+    "docs:html": "node scripts/build-docs.mjs",
+    "package:ui": "node scripts/package-ui.mjs"
   },
   "dependencies": {
     "echarts": "^6.1.0",

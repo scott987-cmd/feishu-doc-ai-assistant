@@ -3,8 +3,8 @@
 # Development Handbook (a fast-iteration guide for AI agents)
 
 > Goal: enable a **newly onboarded agent** to safely change code, validate it, and avoid breaking existing constraints — within minutes.
-> For the deep-end structure, see [`../ARCHITECTURE.en.md`](../ARCHITECTURE.en.md); for a one-stop overview, see [`PROJECT.en.md`](PROJECT.en.md);
-> for the security checklist item by item, see [`../SECURITY_AUDIT.en.md`](../SECURITY_AUDIT.en.md); for deployment, see [`DEPLOYMENT.en.md`](DEPLOYMENT.en.md).
+> For the deep-end structure, see [`ARCHITECTURE.en.md`](ARCHITECTURE.en.md); for a one-stop overview, see [`PROJECT.en.md`](PROJECT.en.md);
+> for the security checklist item by item, see [`SECURITY_AUDIT.en.md`](SECURITY_AUDIT.en.md); for deployment, see [`DEPLOYMENT.en.md`](DEPLOYMENT.en.md).
 
 ---
 

@@ -5,7 +5,7 @@
 让 **App Secret 只留服务端**、扩展包里一字节都不带。客户端只发授权材料（code / refresh_token），
 代理在服务端注入 secret 换 token，并把「该用户自己的 token」原样回传。
 
-> 安全模型 / 流程图 / 威胁矩阵见 [`../../SECURITY_AUDIT.md` → ★ App Secret 与 OAuth 安全模型](../../SECURITY_AUDIT.md)。
+> 安全模型 / 流程图 / 威胁矩阵见 [`../SECURITY_AUDIT.md` → ★ App Secret 与 OAuth 安全模型](../SECURITY_AUDIT.md)。
 > 代理本体：[`../oauth-proxy-server.mjs`](../oauth-proxy-server.mjs)（零依赖 Node ≥18）。
 
 ---
