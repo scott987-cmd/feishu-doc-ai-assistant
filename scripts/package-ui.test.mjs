@@ -40,6 +40,15 @@ describe('envFromConfig', () => {
     expect(env.VITE_FEISHU_APP_ID).toBe('cli_abc')
     expect(env.VITE_FEISHU_APP_SECRET).toBe('secret123')
   })
+
+  it('mode 注入被消除：含换行的 mode 不会从注释行伪造出额外 VITE_* 变量', () => {
+    const out = envFromConfig({ mode: 'store\nVITE_OAUTH_PROXY_URL=https://evil.example.com\nVITE_FEISHU_APP_SECRET=pwned' })
+    const env = parse(out)
+    expect('VITE_OAUTH_PROXY_URL' in env).toBe(false) // 没被注入
+    expect('VITE_FEISHU_APP_SECRET' in env).toBe(false) // 没被注入（且非法 mode 回落 enterprise，不走 store 分支）
+    expect(out).not.toMatch(/^VITE_OAUTH_PROXY_URL=https:\/\/evil/m)
+    expect(out).not.toMatch(/^VITE_FEISHU_APP_SECRET=pwned/m)
+  })
 })
 
 describe('validateConfig', () => {
@@ -57,5 +66,8 @@ describe('validateConfig', () => {
   })
   it('私有化填了 App ID → 通过', () => {
     expect(validateConfig({ mode: 'private', appId: 'cli_x', baseDomain: 'c.com' })).toBeNull()
+  })
+  it('未知/被注入的 mode → 报错（不进入打包）', () => {
+    expect(validateConfig({ mode: 'store\nVITE_FEISHU_APP_SECRET=x', appId: 'cli_x' })).toMatch(/未知打包模式/)
   })
 })
