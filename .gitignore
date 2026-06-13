@@ -35,3 +35,6 @@ site/
 # enterprise packaging wizard output
 .env.package.local
 feishu-package.zip
+
+# local Claude Code agent/workflow data
+.claude/

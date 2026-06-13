@@ -13,7 +13,12 @@ export default defineConfig(({ command, mode }) => {
   // Build-time deployment config. Everything derives from ONE Feishu base domain:
   // public SaaS = feishu.cn; a private (on-prem) deploy only changes this suffix, e.g.
   // test.com → open.test.com / accounts.test.com / <tenant>.test.com (paths identical).
-  const env = loadEnv(mode, process.cwd(), '')
+  // PKG_ENV_DIR: the packaging wizard (scripts/package-ui.mjs) points this at a throwaway temp
+  // dir holding ONLY the form's VITE_* vars, so its build is truly hermetic — it never reads the
+  // repo's .env/.env.local. Unset for normal builds → process.cwd() (unchanged behavior). Named
+  // without the VITE_ prefix so it is never bundled into import.meta.env.
+  const envDir = process.env.PKG_ENV_DIR || process.cwd()
+  const env = loadEnv(mode, envDir, '')
   const baseDomain = (env.VITE_FEISHU_BASE_DOMAIN || 'feishu.cn')
     .trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^\.+|\.+$/g, '')
   const feishuMatch = `https://*.${baseDomain}/*`
@@ -58,6 +63,7 @@ export default defineConfig(({ command, mode }) => {
     `img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; base-uri 'none'`
 
   return {
+    envDir, // honor PKG_ENV_DIR for Vite's own .env loading (hermetic packaging builds)
     resolve: {
       alias: { '@': resolve(__dirname, 'src') },
     },
