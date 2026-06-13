@@ -29,7 +29,7 @@
 
 **Step 1 · Install (pick one)**
 
-- 🟢 **Install from the Chrome Web Store (recommended · no build)**: open 👉 **[the Chrome Web Store page](https://chromewebstore.google.com/detail/eplcnheinfmkcckelinolhpdagbamdcc)** → click "**Add to Chrome**". Then click the toolbar icon (right-click to pin) to use it. **No cloning, no build, no Feishu app of your own required.**
+- 🟢 **Install from the Chrome Web Store (recommended · no build)**: open 👉 **[the Chrome Web Store page](https://chromewebstore.google.com/detail/eplcnheinfmkcckelinolhpdagbamdcc)** → click "**Add to Chrome**". Then click the toolbar icon (right-click to pin) to use it. **Skips cloning / building / loading** — but this build ships **no credentials**, so after installing you must enter **your own** Feishu App ID / Secret in Settings (see Step 3).
 - 🛠 **Dev build / build it yourself**: `chrome://extensions` → enable "Developer mode" → "Load unpacked" → select the `dist/` directory (or install the `.crx`). For custom dev / using your own Feishu app / private deployment — see [`QUICKSTART.md`](QUICKSTART.en.md).
 
 **Step 2 · Open the side panel**: open any Feishu page (Base / Sheet / Doc) and click the extension icon to bring up the **side panel**.
@@ -42,6 +42,7 @@ In Settings you need to provide:
 
 | Item | Description |
 | --- | --- |
+| **Your own Feishu app (App ID / App Secret)** | **Required** for the store / no-baked-credentials build: in the "**Custom Feishu app**" box enter **your own** App ID + App Secret → click "Save credentials" → register the **callback URL** (shown automatically in Settings, like `https://<extension-id>.chromiumapp.org/`) in the Feishu console under "Security Settings → Redirect URL". How to create the app / enable scopes / publish: see [`QUICKSTART.md`](QUICKSTART.en.md). |
 | **Model provider / Base URL / Model** | OpenAI-compatible interface; defaults to the Chinese LLM **DeepSeek**. Can be switched to any compatible service. |
 | **API Key** | The LLM's key (`sk-…`). Stored only on this machine, encrypted. |
 | **LLM config source** (Enterprise) | When an enterprise pushes a unified config, there's an "Enterprise unified / Manual" toggle here: choosing **Enterprise unified** means **no Key required** — after authorizing with your enterprise Feishu account it is fetched automatically (admins can lock it to enterprise-unified only). The personal edition only has manual config. |
@@ -51,7 +52,7 @@ In Settings you need to provide:
 
 > 🔒 Security: all keys/tokens are stored encrypted in the local `chrome.storage` and are never uploaded to any server. The permission boundary is **hardcoded in the code** — "file-level deletions" such as deleting an entire table/document are flatly forbidden.
 
-> ℹ️ **Store-build authorization note**: the Feishu app behind the store build is pre-set by the publisher. If clicking "Authorize with Feishu" says **"app not in availability scope / no permission"**, that app is only open to specific organizations — in that case switch to the "**build it yourself**" option above and authorize with **your own** Feishu app (see [`QUICKSTART.md`](QUICKSTART.en.md)). Your LLM key is always entered by you in "Settings" and stored only on your machine.
+> ℹ️ **This extension always uses *your own* Feishu app** (BYO — zero credentials in the package, whether the store build or a self-build). The store build only saves you the build/load steps; **you still create the Feishu app yourself, once**: at [open.feishu.cn](https://open.feishu.cn) create a custom app → enable the scopes you need (all under "User identity") → add yourself to "Availability" and publish; use the callback URL shown in the extension's Settings. Full one-time steps: see [`QUICKSTART.md`](QUICKSTART.en.md). Your LLM key is likewise entered by you in Settings and stored only on your machine.
 
 ---
 
