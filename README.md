@@ -41,11 +41,11 @@
 
 ## 🚀 个人快速上手
 
-> 🟢 **最省事（免构建）**：直接从 **[Chrome 网上应用店](https://chromewebstore.google.com/detail/eplcnheinfmkcckelinolhpdagbamdcc)** 点「添加至 Chrome」→ 打开飞书页面 → 侧边栏「设置」里**飞书授权 + 填大模型 Key** → 开用。用法见 [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)。
+> 🟢 **免构建（装商店版）**：从 **[Chrome 网上应用店](https://chromewebstore.google.com/detail/eplcnheinfmkcckelinolhpdagbamdcc)** 点「添加至 Chrome」省去克隆/打包/加载。商店版**不内置凭据**，仍用**你自己的**飞书应用：先按下方**第 1 步**建应用，再在扩展「设置 → 自建飞书应用」填 **App ID/Secret** + 登记设置里显示的回调 + 飞书授权 + 大模型 Key。用法见 [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md)。
 
 ### 自行构建 / 用自己的飞书应用（5 步）
 
-> 想换成你自己的飞书 App、二次开发、或商店版提示「不在可用范围」时才需要。完整版（每个权限的说明、加密模式、排错）见 [`docs/QUICKSTART.md`](docs/QUICKSTART.md)。
+> 想把 App ID/Secret 直接**打进包**（免去每台设备在设置里填）、二次开发、或私有化时才需要。完整版（每个权限的说明、加密模式、排错）见 [`docs/QUICKSTART.md`](docs/QUICKSTART.md)。
 
 1. **配飞书应用**（[open.feishu.cn](https://open.feishu.cn) → 创建企业自建应用）：记下 App ID / Secret；「权限管理」开通 `offline_access`（必须）+ 按需 `bitable:app` `docx:document` `sheets:spreadsheet` `drive:drive` `wiki:wiki` `contact:user.base:readonly`（**都勾「用户身份」**）；「重定向 URL」加 `https://jhdbgegkmhcopcilclkpioilclemkeog.chromiumapp.org/`；把自己加进「可用范围」并**发布**。
 2. **填配置**：`cp .env.example .env.local` → 填 `VITE_FEISHU_APP_ID` + `VITE_FEISHU_APP_SECRET`（或 `node scripts/encrypt-secret.mjs` 出密文填 `VITE_FEISHU_APP_SECRET_ENC`、明文留空）。

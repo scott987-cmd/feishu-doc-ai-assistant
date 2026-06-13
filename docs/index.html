@@ -103,8 +103,8 @@
 
 <h2 id="usage">使用</h2>
 <h3>安装与上手</h3>
-<div class="note ok"><b>🟢 最省事（免构建）</b>：直接从 <a href="https://chromewebstore.google.com/detail/eplcnheinfmkcckelinolhpdagbamdcc" target="_blank" rel="noopener">Chrome 网上应用店</a> 点「添加至 Chrome」→ 打开飞书页面 → 侧边栏「设置」里<b>飞书授权 + 填大模型 Key</b> → 开用。无需克隆/构建/自建飞书应用。</div>
-<p>想自行构建 / 用自己的飞书应用（二次开发、私有化，或商店版授权提示「不在可用范围」时）：</p>
+<div class="note ok"><b>🟢 免构建（装商店版）</b>：从 <a href="https://chromewebstore.google.com/detail/eplcnheinfmkcckelinolhpdagbamdcc" target="_blank" rel="noopener">Chrome 网上应用店</a> 点「添加至 Chrome」省去克隆/构建/加载。商店版<b>不内置凭据</b>，仍用<b>你自己的</b>飞书应用：建好应用后在扩展「设置 → 自建飞书应用」填 App ID/Secret + 登记设置里显示的回调 + 飞书授权 + 大模型 Key。</div>
+<p>下面的命令是<b>自行构建</b>才需要（想把 App ID 打进包、二次开发或私有化）：</p>
 <pre><code>1) git clone &amp;&amp; npm i
 2) npm run build            # 产物在 dist/
 3) chrome://extensions → 打开「开发者模式」→「加载已解压的扩展程序」→ 选 dist/

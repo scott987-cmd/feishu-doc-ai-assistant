@@ -41,11 +41,11 @@ create tables, fill in data, write formulas, generate documents, revise drafts b
 
 ## 🚀 Personal quick start
 
-> 🟢 **Easiest (no build)**: install from the **[Chrome Web Store](https://chromewebstore.google.com/detail/eplcnheinfmkcckelinolhpdagbamdcc)** ("Add to Chrome") → open a Feishu page → in the side-panel "Settings", **authorize with Feishu + enter your LLM key** → done. Usage: [`docs/USER_GUIDE.md`](docs/USER_GUIDE.en.md).
+> 🟢 **No build (use the store version)**: installing from the **[Chrome Web Store](https://chromewebstore.google.com/detail/eplcnheinfmkcckelinolhpdagbamdcc)** ("Add to Chrome") skips clone/pack/load. The store build ships **no credentials** and still uses **your own** Feishu app: do **Step 1** below to create the app, then in the extension's "Settings → Custom Feishu app" enter your **App ID/Secret** + register the callback shown there + authorize with Feishu + enter your LLM key. Usage: [`docs/USER_GUIDE.md`](docs/USER_GUIDE.en.md).
 
 ### Build it yourself / use your own Feishu app (5 steps)
 
-> Needed only if you want your own Feishu App, custom dev, or the store build says "not in availability scope". Full version (per-permission notes, encrypted mode, troubleshooting): [`docs/QUICKSTART.md`](docs/QUICKSTART.en.md).
+> Needed only if you want the App ID/Secret **baked into the package** (so you don't enter it in Settings on each device), custom dev, or private deployment. Full version (per-permission notes, encrypted mode, troubleshooting): [`docs/QUICKSTART.md`](docs/QUICKSTART.en.md).
 
 1. **Configure the Feishu app** ([open.feishu.cn](https://open.feishu.cn) → create a custom app): note the App ID / Secret; under "Permissions" enable `offline_access` (required) + as needed `bitable:app` `docx:document` `sheets:spreadsheet` `drive:drive` `wiki:wiki` `contact:user.base:readonly` (**all under "User identity"**); add `https://jhdbgegkmhcopcilclkpioilclemkeog.chromiumapp.org/` to "Redirect URLs"; add yourself to "Availability" and **publish**.
 2. **Fill config**: `cp .env.example .env.local` → set `VITE_FEISHU_APP_ID` + `VITE_FEISHU_APP_SECRET` (or run `node scripts/encrypt-secret.mjs` to get ciphertext for `VITE_FEISHU_APP_SECRET_ENC` and leave the plaintext empty).
