@@ -2,6 +2,9 @@
 
 # 个人快速部署（5 步上手）
 
+> 🟢 **最省事 = 不用构建**：直接从 **[Chrome 网上应用店](https://chromewebstore.google.com/detail/eplcnheinfmkcckelinolhpdagbamdcc)** 点「添加至 Chrome」装好 → 打开飞书页面 → 侧边栏「设置」里**用飞书账号授权 + 填大模型 Key** → 开用（功能用法见 [`USER_GUIDE.md`](USER_GUIDE.md)）。
+> **本文档**讲的是**自行构建 + 用你自己的飞书应用**的玩法——想换成自己的飞书 App、二次开发、或商店版授权提示「不在可用范围」时才需要。
+>
 > 面向**个人自用**（自己装、自己用，不发别人/不上架）。企业/私有化见 [`DEPLOYMENT.md`](DEPLOYMENT.md) / [`PRIVATE_DEPLOYMENT.md`](PRIVATE_DEPLOYMENT.md)。
 > **上架 Chrome 商店 / 公开发行**（包里零凭据、用户自带飞书应用）见 [`STORE_PUBLISHING.md`](STORE_PUBLISHING.md)。
 > 卡住了看 [`FAQ.md`](FAQ.md)。
