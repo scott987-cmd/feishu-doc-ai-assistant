@@ -2,6 +2,9 @@
 
 # Personal Quick Deployment (5 Steps to Get Started)
 
+> 🟢 **Easiest = no build**: install straight from the **[Chrome Web Store](https://chromewebstore.google.com/detail/eplcnheinfmkcckelinolhpdagbamdcc)** ("Add to Chrome") → open a Feishu page → in the side-panel "Settings", **authorize with your Feishu account + enter your LLM key** → done (feature usage: [`USER_GUIDE.md`](USER_GUIDE.en.md)).
+> **This document** covers building it yourself **with your own Feishu app** — needed only if you want to use your own Feishu App, do custom dev, or the store build's authorization says "not in availability scope".
+>
 > Aimed at **personal use** (install it yourself, use it yourself, not distributed to others / not published to a store). For enterprise / private deployment, see [`DEPLOYMENT.md`](DEPLOYMENT.en.md) / [`PRIVATE_DEPLOYMENT.md`](PRIVATE_DEPLOYMENT.en.md).
 > **Publishing to the Chrome Web Store** (no credentials in the build, users bring their own Feishu app): see [`STORE_PUBLISHING.md`](STORE_PUBLISHING.en.md).
 > If you get stuck, check [`FAQ.md`](FAQ.en.md).

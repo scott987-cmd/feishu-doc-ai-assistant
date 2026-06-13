@@ -27,9 +27,14 @@
 
 ## 1. Installation and First-Time Setup
 
-1. Load the extension (dev build: `chrome://extensions` → enable "Developer mode" → "Load unpacked" → select the `dist/` directory; or install the `.crx`).
-2. Open any Feishu page and click the extension icon to bring up the **side panel**.
-3. On first use, the top will show **"Configure API keys to get started"** — click it to open "Settings":
+**Step 1 · Install (pick one)**
+
+- 🟢 **Install from the Chrome Web Store (recommended · no build)**: open 👉 **[the Chrome Web Store page](https://chromewebstore.google.com/detail/eplcnheinfmkcckelinolhpdagbamdcc)** → click "**Add to Chrome**". Then click the toolbar icon (right-click to pin) to use it. **No cloning, no build, no Feishu app of your own required.**
+- 🛠 **Dev build / build it yourself**: `chrome://extensions` → enable "Developer mode" → "Load unpacked" → select the `dist/` directory (or install the `.crx`). For custom dev / using your own Feishu app / private deployment — see [`QUICKSTART.md`](QUICKSTART.en.md).
+
+**Step 2 · Open the side panel**: open any Feishu page (Base / Sheet / Doc) and click the extension icon to bring up the **side panel**.
+
+**Step 3 · First-time setup**: the top will show **"Configure API keys to get started"** — click it to open "Settings":
 
 ![Settings](./screenshots/10-settings.png)
 
@@ -45,6 +50,8 @@ In Settings you need to provide:
 | **Gets smarter over time / Voice input / Auto-confirm** | Optional: whether to distill experience from history, whether to enable voice, and whether to skip the second confirmation for destructive operations. |
 
 > 🔒 Security: all keys/tokens are stored encrypted in the local `chrome.storage` and are never uploaded to any server. The permission boundary is **hardcoded in the code** — "file-level deletions" such as deleting an entire table/document are flatly forbidden.
+
+> ℹ️ **Store-build authorization note**: the Feishu app behind the store build is pre-set by the publisher. If clicking "Authorize with Feishu" says **"app not in availability scope / no permission"**, that app is only open to specific organizations — in that case switch to the "**build it yourself**" option above and authorize with **your own** Feishu app (see [`QUICKSTART.md`](QUICKSTART.en.md)). Your LLM key is always entered by you in "Settings" and stored only on your machine.
 
 ---
 
