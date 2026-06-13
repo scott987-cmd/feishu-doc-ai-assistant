@@ -26,6 +26,18 @@ const HTML = (() => { try { return fs.readFileSync(new URL('./package-ui.html', 
 const DIST = path.join(ROOT, 'dist')
 const ZIP = path.join(ROOT, 'feishu-package.zip')
 
+// CSRF / DNS-重绑定防护：本机工具，只接受来自自身 loopback 源的请求。恶意网页虽能让浏览器发跨站
+// 请求，但拿不到我们这台服务器的 Host/Origin，也无法用 application/json 免预检（见下 isJson）。
+const SELF_HOSTS = new Set([`127.0.0.1:${PORT}`, `localhost:${PORT}`])
+const SELF_ORIGINS = new Set([`http://127.0.0.1:${PORT}`, `http://localhost:${PORT}`])
+const originOk = (req) => {
+  if (!SELF_HOSTS.has(req.headers.host)) return false       // 防 DNS 重绑定：Host 必须是本机:端口
+  const o = req.headers.origin                               // 防 CSRF：带跨站 Origin 的一律拒
+  return !o || SELF_ORIGINS.has(o)
+}
+// 状态变更端点强制 application/json：跨站请求一旦带它就会触发 CORS 预检，而本服务器无 CORS 头 → 浏览器拦下。
+const isJson = (req) => (req.headers['content-type'] || '').split(';')[0].trim().toLowerCase() === 'application/json'
+
 const send = (res, status, obj, type = 'application/json') => {
   res.writeHead(status, { 'Content-Type': type + '; charset=utf-8', 'Cache-Control': 'no-store' })
   res.end(type === 'application/json' ? JSON.stringify(obj) : obj)
@@ -46,13 +58,16 @@ const run = (cmd, args, opts = {}) => new Promise((resolve) => {
 })
 
 // ── 表单 → .env 内容 ──────────────────────────────────────────────────────────
+export const PKG_MODES = ['enterprise', 'personal', 'store', 'private']
+
 export function envFromConfig(c) {
   const L = []
   // 值里若含换行会注入额外 env 行（翻 VITE_NO_REMOTE_CODE / 注入 secret 等）——一律去掉 CR/LF。
   const clean = (v) => String(v).replace(/[\r\n]+/g, ' ').trim()
   const put = (k, v) => { if (v !== undefined && v !== null && v !== '' && v !== false) L.push(`${k}=${v === true ? '1' : clean(v)}`) }
-  const mode = c.mode || 'enterprise'
-  L.push(`# 由打包向导生成 · 模式=${mode} · 仅存系统临时目录、用完即删`)
+  // mode 必须收敛到白名单：否则含换行的 mode 会注入到下面的注释行 → 伪造任意 VITE_* 行（绕过 put 的 clean）。
+  const mode = PKG_MODES.includes(c.mode) ? c.mode : 'enterprise'
+  L.push(`# 由打包向导生成 · 模式=${clean(mode)} · 仅存系统临时目录、用完即删`)
   if (mode === 'store') {
     put('VITE_WEBSTORE', 1) // 剥 manifest key + BYO（凭据/代理在 config.ts 被强制清空）
     // 商店版名称/摘要走 vite 单一管线(transformManifest 读 VITE_STORE_NAME/_DESC)，避免与后处理双写、
@@ -99,6 +114,7 @@ export function envFromConfig(c) {
 // 原来会静默出一个无凭据来源的包，构建还报成功）。商店/BYO 版由用户安装后在设置里自填，无需内置。
 export function validateConfig(c) {
   const mode = c.mode || 'enterprise'
+  if (!PKG_MODES.includes(mode)) return '未知打包模式：' + String(c.mode).slice(0, 40)
   if (mode === 'store') return null
   const viaProxy = (mode === 'enterprise' || mode === 'private') && !!c.appIdFromProxy && !!(c.proxyUrl && String(c.proxyUrl).trim())
   const hasAppId = !!(c.appId && String(c.appId).trim()) || viaProxy
@@ -165,12 +181,16 @@ async function doBuild(c) {
 let building = false // /api/build 串行锁——两次打包争用同一个 dist/ 会产出混包
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x')
+  // 跨站 / DNS 重绑定防护：拒掉非本机源的请求（修 CSRF——恶意网页静默触发打包、投毒 dist/zip）。
+  if (!originOk(req)) return send(res, 403, { error: 'forbidden' })
   if (req.method === 'GET' && url.pathname === '/') return send(res, 200, HTML, 'text/html')
   if (req.method === 'POST' && url.pathname === '/api/preview') {
+    if (!isJson(req)) return send(res, 415, { error: 'content_type' })
     const c = await readBody(req); if (!c) return send(res, 400, { error: 'bad' })
     return send(res, 200, { env: envFromConfig({ ...c, logoDataUrl: undefined }) })
   }
   if (req.method === 'POST' && url.pathname === '/api/build') {
+    if (!isJson(req)) return send(res, 415, { ok: false, log: '需要 Content-Type: application/json' })
     const c = await readBody(req); if (!c) return send(res, 400, { error: 'bad' })
     if (building) return send(res, 409, { ok: false, log: '已有一个打包正在进行——请等它完成再试（两次打包会争用同一个 dist/，产出混包）。' })
     building = true
