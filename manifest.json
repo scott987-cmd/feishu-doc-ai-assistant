@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "飞书文档AI助手",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "用 AI 操作飞书文档 / 多维表格 / 电子表格：文档总结·体检·建站·数据报告·智能填充，一句话搞定",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlPxA3K6+nmqOFBvNb/U4Gd5pDxZegG6VtcrF6VrLxMwmCf8U0TJDeIqD0OpeBcBM0gDlpEQD7G8kLz4WTdiWxY966J70Z5D27IAc3RvqbW0A+nRK9tBoUUJzlwQvykCKjbBxmH6DhQwyVvroorkkPXvKIczbBXbg+PPITBm5QNGTfTrR4dqptGmq8PTRDo12yO436jtbu1ipKLxyDQiL3HjhkjzhZqOSNUZnhm0Rv7BiZTFDMdWSrqqaxZF6x/FO1OXSWj8K7VfbhGW0/GwVfvnzCB1qe2yBvgmGMUMXbQxTQ6lXyLlYrjTW8AnzUDI8Gsjdnnttl1p9TiC366xECQIDAQAB",
   "content_security_policy": {
