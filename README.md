@@ -13,7 +13,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![React 18](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-build-646CFF?logo=vite&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-371%20passing-success)
+![Tests](https://img.shields.io/badge/tests-483%20passing-success)
 ![No backend](https://img.shields.io/badge/backend-none-lightgrey)
 
 </div>
@@ -147,7 +147,9 @@ npm run typecheck && npm run test
 - **凭据保护**：storage 内 AES-256-GCM；App Secret 支持明文 / 密码加密 / 代理三档。
 - **出站锁定**：只访问飞书 + 大模型两类端点（代码层白名单 + CSP 双重，私有化可纯内网）。
 
-逐条见 [`SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)。
+逐条见 [`SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md);企业加固姿态(pin 大模型 host 实现零外泄、`VITE_NO_REMOTE_CODE` 去 `unsafe-eval`、商店包零泄漏门禁、托管套件)见 [`docs/ENTERPRISE.md`](docs/ENTERPRISE.md)。
+
+> 🏢 **企业加固速记**:① "无外泄"保证需 pin `VITE_OPENAI_ALLOWED_HOSTS`(默认构建为支持 BYO 任意大模型,`connect-src` 含通配 `https:`);② 企业/商店发布建议 `VITE_NO_REMOTE_CODE=1`(沙箱去 `unsafe-eval`);③ 商店包由 CI `scripts/check-store-bundle.mjs` 断言**零企业端点、零 baked secret**。
 
 ---
 
@@ -189,6 +191,7 @@ openssl rsa -in my-extension-key.pem -pubout -outform DER | openssl base64 -A
 | [`PRIVACY.md`](PRIVACY.md) | **隐私政策**（中英）：上架必填的隐私权 URL，可直接托管使用 |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | **部署指南**：企业 / 个人 / 私有化快速上手（选路 + 命令 + 变量速查） |
 | [`docs/PRIVATE_DEPLOYMENT.md`](docs/PRIVATE_DEPLOYMENT.md) | **私有化专用**：内网/私有化飞书完整方案（出站锁定 / 代理 / 版本回退 / 验证清单） |
+| [`docs/ENTERPRISE.md`](docs/ENTERPRISE.md) | **企业部署**：私有化 vs SaaS vs 托管对比 + 托管套件 + 万人级铺设 + 数据流合规 + 成熟度评估 |
 | [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md) | **使用手册**：全功能图文说明（含截图） |
 | [`docs/FAQ.md`](docs/FAQ.md) | **常见问题**：鉴权/导出/升级/私有化 排错 |
 | [`CLAUDE.md`](CLAUDE.md) · [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | **开发手册**：面向 agent 的快速迭代（循环 / 仓库地图 / 硬约束 / 地雷区） |
@@ -207,7 +210,7 @@ openssl rsa -in my-extension-key.pem -pubout -outform DER | openssl base64 -A
 
 ## 贡献
 
-欢迎 Issue / PR。提交前请跑通：
+欢迎 Issue / PR。完整流程见 **[`CONTRIBUTING.md`](CONTRIBUTING.md)**;参与请遵守 [`行为准则`](CODE_OF_CONDUCT.md)。提交前请跑通：
 
 ```bash
 npm run typecheck && npm run test && npm run build
@@ -216,6 +219,8 @@ npm run typecheck && npm run test && npm run build
 > 改动若涉及安全卡点（`isFileLevelDelete` / `assertApiCallAllowed` / `resolveToken` /
 > `assertSafeBaseUrl` 等），请同步更新 [`SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md) 与对应单测。
 > **切勿提交任何密钥 / 密码 / 私钥**（`.gitignore` 已覆盖 `*.pem` / `*password*.txt` / `.env.*` 等）。
+
+🔒 **报告安全漏洞**:请勿走公开 Issue,见 [`SECURITY.md`](SECURITY.md)(GitHub 私有安全公告)。
 
 ## ⚠️ 免责声明
 

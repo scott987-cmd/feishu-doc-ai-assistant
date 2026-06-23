@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 文档 / Documentation
+    url: https://scott987-cmd.github.io/feishu-doc-ai-assistant/
+    about: 部署 / 开发 / 架构 / 安全 / 私有化与企业版 —— 先查文档站 / Read the docs first.
+  - name: 🔒 报告安全漏洞 / Report a security vulnerability
+    url: https://github.com/scott987-cmd/feishu-doc-ai-assistant/security/advisories/new
+    about: 请勿在公开 Issue 披露漏洞,走 GitHub 私有安全公告 / Use a private Security Advisory, not a public issue.
+  - name: 💬 提问 / 讨论 / Questions & discussion
+    url: https://github.com/scott987-cmd/feishu-doc-ai-assistant/discussions
+    about: 用法问题、想法讨论 / Usage questions and ideas.

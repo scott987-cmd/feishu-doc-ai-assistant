@@ -3,11 +3,12 @@
 Chrome **MV3** 扩展「飞书文档AI助手」：在飞书 多维表格/电子表格/文档 页用自然语言操作，并把数据做成 网站/看板/PPT。**无后端**，全部以**用户本人飞书身份**操作。React 18 + TS + Vite + vitest + ECharts。
 
 > 详尽开发指南见 **[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)**（仓库地图、配方、地雷区、调试入口）。
-> 还有：[`ARCHITECTURE.md`](docs/ARCHITECTURE.md)（深结构）· [`SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)（安全）· [`docs/FAQ.md`](docs/FAQ.md) · [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)。
+> 还有：[`ARCHITECTURE.md`](docs/ARCHITECTURE.md)（深结构）· [`SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)（安全）· [`docs/ENTERPRISE.md`](docs/ENTERPRISE.md)（版本对比/托管/万人级/成熟度）· [`docs/FAQ.md`](docs/FAQ.md) · [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)。
+> 贡献流程见 [`CONTRIBUTING.md`](CONTRIBUTING.md)；CI（`.github/workflows/ci.yml`）在 push/PR 强制跑迭代循环 + 商店包安全门(`check-store-bundle.mjs`) + 版本漂移检查。
 
 ## 迭代循环（每次改完都跑）
 1. `npm run typecheck` — 必须 0 错
-2. `npm test` — 必须全绿（~460 用例；新逻辑补测试）
+2. `npm test` — 必须全绿（~483 用例；新逻辑补测试）
 3. `npm run build` — 必须成功（偶发 TLS 报错→重试）
 4. 动了侧边栏 UI 再跑 `npm run test:ui`（11 项冒烟）
 5. 动了 `docs/*-proxy-server.mjs` / `docs/admin-*` 再跑 `npm run validate:server`（29 条合成数据端到端断言，无需真飞书）

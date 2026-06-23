@@ -63,7 +63,11 @@ async function loadCachedManaged(): Promise<LlmConfig | null> {
  * and fetched on first use, so the per-user identity check happens once per session.
  */
 export async function resolveLlmConfig(settings: AppSettings): Promise<LlmConfig> {
-  if (usingManagedLlm(settings)) {
+  // `HAS_MANAGED_LLM` is a build-time constant; guarding the call site with it (not just
+  // the runtime usingManagedLlm() check inside) lets a store build (no proxy) statically
+  // dead-code-eliminate fetchManagedLlmConfig — so its `grant_type:'llm_config'` endpoint
+  // string never ships in the public bundle (enforced by scripts/check-store-bundle.mjs).
+  if (HAS_MANAGED_LLM && usingManagedLlm(settings)) {
     const cached = await loadCachedManaged()
     if (cached) return cached
     // Dedup: concurrent cold callers (a panel firing viz+report+smartfill at once) share one fetch.

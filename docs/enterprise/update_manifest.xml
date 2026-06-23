@@ -12,6 +12,6 @@
 <gupdate xmlns='http://www.google.com/update2/response' protocol='2.0'>
   <app appid='jhdbgegkmhcopcilclkpioilclemkeog'>
     <!-- codebase: 指向你内网托管的 .crx（私有化用 feishu-ai-private.crx；SaaS 用 feishu-ai-saas.crx）。version 必须与 manifest.json 一致。 -->
-    <updatecheck codebase='https://YOUR-INTERNAL-HOST/feishu-ai-private.crx' version='1.0.4' />
+    <updatecheck codebase='https://YOUR-INTERNAL-HOST/feishu-ai-private.crx' version='1.1.0' />
   </app>
 </gupdate>
