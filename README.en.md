@@ -13,7 +13,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![React 18](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-build-646CFF?logo=vite&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-371%20passing-success)
+![Tests](https://img.shields.io/badge/tests-483%20passing-success)
 ![No backend](https://img.shields.io/badge/backend-none-lightgrey)
 
 </div>
@@ -191,7 +191,7 @@ unlock passwords to the repo** (already in `.gitignore`).
 
 ## Contributing
 
-Issues / PRs are welcome. Before submitting, please make sure these pass:
+Issues / PRs are welcome. See **[`CONTRIBUTING.en.md`](CONTRIBUTING.en.md)** for the full guide; by participating you agree to the [Code of Conduct](CODE_OF_CONDUCT.md). Before submitting, make sure these pass:
 
 ```bash
 npm run typecheck && npm run test && npm run build
@@ -200,6 +200,8 @@ npm run typecheck && npm run test && npm run build
 > If your change touches a security checkpoint (`isFileLevelDelete` / `assertApiCallAllowed` / `resolveToken` /
 > `assertSafeBaseUrl`, etc.), please update [`SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.en.md) and the corresponding unit tests in sync.
 > **Never commit any keys / passwords / private keys** (`.gitignore` already covers `*.pem` / `*password*.txt` / `.env.*`, etc.).
+
+🔒 **Reporting a vulnerability**: please do not use public issues — see [`SECURITY.md`](SECURITY.md) (GitHub private Security Advisory).
 
 ## ⚠️ Disclaimer
 

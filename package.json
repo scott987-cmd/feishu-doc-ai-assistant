@@ -1,6 +1,6 @@
 {
   "name": "feishu-doc-ai-assistant",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "飞书文档 / 多维表格 / 电子表格的 AI 助手——文档总结·体检·建站·数据报告·智能填充，自然语言搞定",
   "license": "Elastic-2.0",
   "author": "scott987-cmd (https://github.com/scott987-cmd)",

@@ -20,7 +20,7 @@ A Chrome **MV3** extension, "Feishu Doc AI Assistant": on Feishu Base / Sheet / 
 npm install                 # first time
 # —— edit the code under src/ ——
 npm run typecheck           # ① must be 0 errors (tsc --noEmit)
-npm test                    # ② must be all green (vitest, ~355 cases); new logic needs new tests
+npm test                    # ② must be all green (vitest, ~483 cases); new logic needs new tests
 npm run build               # ③ must succeed (occasional TLS error → just retry, it's network jitter from the manifest plugin)
 npm run test:ui             # ④ only needed if you changed the side-panel UI (puppeteer smoke, 11 items)
 # Real-device check: chrome://extensions → Developer mode → Load dist/ → open the side panel on a Feishu page

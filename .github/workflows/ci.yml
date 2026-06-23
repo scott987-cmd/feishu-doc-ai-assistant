@@ -1,0 +1,57 @@
+name: CI
+
+# The quality gate that CLAUDE.md / CONTRIBUTING.md document — now enforced on every
+# push and PR (not just on developers' machines). Mirrors the local loop:
+# typecheck → test → validate:server → build, plus the store-bundle safety gate.
+
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Version consistency (package.json == manifest.json)
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          MAN=$(node -p "require('./manifest.json').version")
+          if [ "$PKG" != "$MAN" ]; then
+            echo "::error::version drift — package.json=$PKG manifest.json=$MAN (keep them in sync)"; exit 1
+          fi
+          echo "version $PKG ✓"
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Server simulator (synthetic data, no real Feishu)
+        run: npm run validate:server
+
+      - name: Build (default)
+        run: npm run build
+
+      - name: Store build + bundle safety gate
+        run: |
+          VITE_WEBSTORE=1 npx vite build --mode store
+          node scripts/check-store-bundle.mjs

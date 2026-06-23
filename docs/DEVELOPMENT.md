@@ -20,7 +20,7 @@ Chrome **MV3** 扩展「飞书文档AI助手」：在飞书 多维表格/电子�
 npm install                 # 首次
 # —— 改 src/ 里的代码 ——
 npm run typecheck           # ① 必须 0 错（tsc --noEmit）
-npm test                    # ② 必须全绿（vitest，~355 用例）；新增逻辑要补测试
+npm test                    # ② 必须全绿（vitest，~483 用例）；新增逻辑要补测试
 npm run build               # ③ 必须成功（偶发 TLS 报错→直接重试，是 manifest 插件联网抖动）
 npm run test:ui             # ④ 改了侧边栏 UI 才需要（puppeteer 冒烟，11 项）
 # 真机验证：chrome://extensions → 开发者模式 → 加载 dist/ → 打开飞书页面侧边栏
