@@ -90,9 +90,12 @@ function hostAllowed(host: string, allowed: string[]): boolean {
  * mistyped / tampered base URL silently exfiltrating chat + table content.
  *
  * - Rejects empty / unparseable URLs.
- * - Requires https:// (http only allowed for localhost dev / a local proxy).
+ * - Requires https:// (http only for localhost, and only in dev/test builds — see below).
  * - When `allowedHosts` is non-empty (enterprise pin), the host must be in it; otherwise
  *   any https host is permitted (the "custom OpenAI-compatible endpoint" feature stays open).
+ *
+ * Whatever passes here must also pass the production CSP connect-src (vite.config.ts), or the
+ * request dies inside fetch() as an opaque "Connection error.".
  *
  * Returns the normalized origin+path on success; throws Error on rejection.
  */
@@ -108,11 +111,19 @@ export function assertSafeBaseUrl(baseUrl: string, allowedHosts: string[] = []):
   }
 
   const host = u.hostname.toLowerCase()
-  if (u.protocol !== 'https:' && !(u.protocol === 'http:' && isLocalhost(host))) {
-    throw new Error(`出于数据安全，模型 API 必须使用 https://（当前为 ${u.protocol}//${host}）。`)
+  // The localhost exemption (http + outside the enterprise pin) is for dev/test builds only (Vite
+  // dev server, harness, local mocks): a production build's CSP admits https only, and only the
+  // pinned hosts when pinned. Same rule as the template registry (SECURITY_AUDIT M3). Read per
+  // call, not at module load, so tests can flip PROD.
+  const devLocal = !import.meta.env.PROD && isLocalhost(host)
+  if (u.protocol !== 'https:' && !(u.protocol === 'http:' && devLocal)) {
+    throw new Error(u.protocol === 'http:' && isLocalhost(host)
+      ? `正式版只能连接 https:// 的模型地址：本地 http 地址（${u.host}）会被扩展的安全策略拦截。` +
+        `请改用 https（如给本地模型服务加一层 https 反向代理）。`
+      : `出于数据安全，模型 API 必须使用 https://（当前为 ${u.protocol}//${host}）。`)
   }
 
-  if (allowedHosts.length > 0 && !hostAllowed(host, allowedHosts) && !isLocalhost(host)) {
+  if (allowedHosts.length > 0 && !hostAllowed(host, allowedHosts) && !devLocal) {
     throw new Error(
       `企业策略限制：模型 API 主机「${host}」不在允许列表内，已阻止以防数据外泄。` +
       `允许的主机：${allowedHosts.join('、')}。`

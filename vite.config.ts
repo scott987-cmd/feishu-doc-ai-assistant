@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 import webExtension from 'vite-plugin-web-extension'
 import { resolve } from 'path'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
+import { llmConnectSources } from './scripts/csp.mjs'
 
 const originOf = (u: string): string => {
   try { return new URL(u).origin } catch { return '' }
@@ -25,8 +26,9 @@ export default defineConfig(({ command, mode }) => {
 
   // connect-src: the assistant only ever reaches two endpoint groups — Feishu (any
   // subdomain of the base domain) and the LLM. When the LLM hosts are pinned
-  // (VITE_OPENAI_ALLOWED_HOSTS) connect-src lists exactly them → pure-intranet lockdown;
-  // otherwise `https:` keeps a personal build's custom endpoint working.
+  // (VITE_OPENAI_ALLOWED_HOSTS) connect-src lists exactly them (+ subdomains, any port — what
+  // assertSafeBaseUrl admits) → pure-intranet lockdown; otherwise `https:` keeps a personal
+  // build's custom endpoint working. See scripts/csp.mjs.
   const llmHosts = (env.VITE_OPENAI_ALLOWED_HOSTS || '')
     .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
   const proxyOrigin = originOf((env.VITE_OAUTH_PROXY_URL || '').trim())
@@ -35,7 +37,7 @@ export default defineConfig(({ command, mode }) => {
   const connect = ["'self'", `https://*.${baseDomain}`]
   if (proxyOrigin) connect.push(proxyOrigin)
   if (registryOrigin) connect.push(registryOrigin)
-  connect.push(llmHosts.length ? llmHosts.map((h) => `https://${h}`).join(' ') : 'https:')
+  connect.push(...llmConnectSources(llmHosts))
   // Dev needs the Vite HMR websocket; only lock down for production builds.
   const connectSrc = command === 'serve'
     ? "'self' http://localhost:* ws://localhost:* https:"

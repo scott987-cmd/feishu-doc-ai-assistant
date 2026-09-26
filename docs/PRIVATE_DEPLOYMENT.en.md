@@ -104,7 +104,7 @@ Build and self-check:
 npm run build
 # ① Outbound is intranet-only (no bare https:)
 python3 -c "import json;print(json.load(open('dist/manifest.json'))['content_security_policy']['extension_pages'])"
-# Expect connect-src like: 'self' https://*.your-domain https://feishu-proxy.your-domain https://llm.your-domain
+# Expect connect-src like: 'self' https://*.your-domain https://feishu-proxy.your-domain https://llm.your-domain:* https://*.llm.your-domain:*
 # ② No secret in the bundle
 grep -r "<your-app-secret>" dist/ ; echo "↑ should be empty"
 ```
@@ -227,6 +227,7 @@ Private deployment does not go to the store: build the `.crx` (the project priva
 | Proxy `invalid_grant` | Authorization code expired/reused; re-click authorize |
 | An operation returns 404 but the capability should be supported | Self-hosted version lags behind; already auto-falls-back (§6); if it still fails, the endpoint may simply not be live in the private version |
 | LLM request rejected | Base URL is not within `VITE_OPENAI_ALLOWED_HOSTS` |
+| LLM reports `Connection error` | Settings → "测试模型连接" (test model connection) pinpoints it: the browser can't reach `llm.<domain>` (DNS/firewall), the certificate isn't trusted, or the gateway doesn't allow browser CORS (must allow the `Authorization` and `Content-Type` request headers); see [`FAQ.en.md`](FAQ.en.md) |
 | Full-screen "Checking network access permission" | `VITE_ALLOWED_CIDRS` + WebRTC cannot obtain the LAN IP (§7); switch to gateway restriction |
 | 403 no edit permission | The resource is not yours / not shared with the app; operate as yourself or add a collaborator under the doc's "Share" |
 

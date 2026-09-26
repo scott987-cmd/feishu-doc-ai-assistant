@@ -250,11 +250,12 @@ Reference implementation: **`oauth-proxy-server.mjs`** (zero-dependency Node ≥
 - **Risk**: base_url pointing at an arbitrary host means the entire conversation/table content could be exfiltrated (data leakage).
 - **Fix**: validate the base URL **right before runAgent actually sends the request** — tampering/misconfiguration **fails loudly** rather than silently exfiltrating:
   - reject empty/unparseable URLs;
-  - **enforce https://** (only localhost allows http, for a local proxy/harness);
-  - **optional enterprise hard lock**: if `VITE_OPENAI_ALLOWED_HOSTS` is set at build time, only these hosts (incl. subdomains) are allowed,
+  - **enforce https://** (http on localhost only in dev/test builds, for the harness/local debugging; release builds admit https only, matching the CSP —
+    otherwise an address would pass validation and then be blocked by the CSP as an undiagnosable `Connection error`);
+  - **optional enterprise hard lock**: if `VITE_OPENAI_ALLOWED_HOSTS` is set at build time, only these hosts (incl. subdomains, any port; the CSP allows the same, see M7) are allowed,
     so the admin of a 100,000-person deployment can pin the endpoint; if unset, any https host is allowed, preserving the "custom OpenAI-compatible endpoint" feature.
   - Settings gives a soft reminder for non-built-in vendor hosts (conversation content will be sent to this address).
-- **Tests**: `providers.test.ts` 5 cases (https enforcement, localhost exception, normalization, with/without enterprise allowlist).
+- **Tests**: `providers.test.ts` (https enforcement, localhost exception in dev/test only, normalization, with/without enterprise allowlist).
 
 ### M3 ✅ Template registry URL still allowed localhost in production / no schema validation — fixed
 - **Location**: `src/shared/templates/registry.ts`
@@ -317,6 +318,7 @@ Reference implementation: **`oauth-proxy-server.mjs`** (zero-dependency Node ≥
 - **Outbound lock (twofold)**: the assistant accesses only two kinds of endpoints — Feishu + the LLM.
   - Code layer: `isFeishuOutboundAllowed` only allows subdomains of the base domain (+proxy), enforced by `feishuReq`/`req`; the LLM is gated by `assertSafeBaseUrl`.
   - CSP layer: `vite.config` locks `connect-src`/`host_permissions`/`content_scripts` to `*.<domain>` + the pinned LLM host per env; when `VITE_OPENAI_ALLOWED_HOSTS` is set it **removes the `https:` wildcard → pure intranet**.
+    A pinned host is emitted as `https://<host>:*` + `https://*.<host>:*` (`scripts/csp.mjs`), mirroring `assertSafeBaseUrl`'s "subdomains, any port" — if the two layers disagree, an address that passed validation is silently blocked by the CSP inside fetch.
 - **Tests**: `config.test.ts` (subdomain allowed / suffix-spoofing rejected / endpoint derivation), with actual verification that an on-premise build's `connect-src` contains only intranet hosts.
 
 ### M8 ✅ Web Clipper — gesture-gated, doesn't break the outbound lock

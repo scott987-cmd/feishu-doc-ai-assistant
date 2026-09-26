@@ -227,6 +227,8 @@
 }
 .test-result--ok { color: var(--color-success); }
 .test-result--err { color: var(--color-error); }
+/* Long diagnoses (model connection test) get their own full-width line below the button. */
+.test-result--block { flex-basis: 100%; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
 
 /* ── Footer ── */
 .settings-footer {

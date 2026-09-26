@@ -1,8 +1,9 @@
-import OpenAI from 'openai'
 import type { AppSettings } from '../types'
 import { assertSafeBaseUrl } from '../providers'
 import { BUILD_CONFIG } from '../config'
 import { resolveLlmConfig } from './llmConfig'
+import { createLlmClient } from './llmClient'
+import { explainLlmError } from './llmError'
 
 /**
  * One-shot vision call: hand a screenshot to the configured (vision-capable) LLM and get
@@ -30,7 +31,7 @@ export function isVisionUnsupportedError(message: string): boolean {
 export async function imageToMarkdown(settings: AppSettings, dataUrl: string): Promise<string> {
   const cfg = await resolveLlmConfig(settings)
   const baseURL = assertSafeBaseUrl(cfg.baseUrl, BUILD_CONFIG.openaiAllowedHosts)
-  const client = new OpenAI({ baseURL, apiKey: cfg.apiKey, dangerouslyAllowBrowser: true })
+  const client = createLlmClient(baseURL, cfg.apiKey)
   try {
     const resp = await client.chat.completions.create({
       model: cfg.model,
@@ -53,6 +54,7 @@ export async function imageToMarkdown(settings: AppSettings, dataUrl: string): P
     if (isVisionUnsupportedError(msg)) {
       throw new Error('当前大模型不支持图片识别，请在「设置」里配置支持视觉的模型（如 GPT-4o / Qwen-VL / GLM-4V 等）。')
     }
-    throw e instanceof Error ? e : new Error(msg)
+    const err = explainLlmError(e, baseURL) // bare "Connection error." → host + likely causes
+    throw err instanceof Error ? err : new Error(msg)
   }
 }

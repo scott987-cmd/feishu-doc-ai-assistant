@@ -468,6 +468,7 @@ npm run test:ui          # 动了侧边栏 UI 再跑（11 项冒烟）</code></p
 
 <h2 id="faq">FAQ</h2>
 <div class="card"><b>个人用，必须自建服务端吗？</b><br>不用。个人版零服务端，用「飞书账号授权」即可。服务端只为企业统一下发凭据/技能库/云备份/管理台。</div>
+<div class="card"><b>报 Connection error / 连不上大模型？</b><br>请求没到达你配置的模型服务：网络访问不了（防火墙 / 代理、海外服务无法直连）、Base URL 填错、服务拒绝浏览器跨域（CORS）或证书不受信任。到<b>设置 → AI 模型 → 测试模型连接</b>一键定位；详见 <code>docs/FAQ.md</code>「大模型连接」。</div>
 <div class="card"><b>商店版会不会带上企业代理代码？</b><br>不会。企业特性双门控，无代理时被 Vite 死代码消除；构建后 dist 里技能/备份/<code>app_config</code> 端点串全为 0、无 appid。</div>
 <div class="card"><b>技能库会泄露我的数据吗？</b><br>只外发 LLM 蒸馏的一句话经验 + 工具名 + 匿名 id，且无条件 PII 脱敏；匹配查询用去标识经验，绝不发原始任务文本。备份则是你<b>自己的</b>产物进<b>你公司自己的</b>对象存储。</div>
 <div class="card"><b>更多</b><br>见 <code>docs/FAQ.md</code> · <code>docs/USER_GUIDE.md</code> · <code>docs/PRIVATE_DEPLOYMENT.md</code> · <code>docs/STORE_PUBLISHING.md</code>。</div>

@@ -98,6 +98,7 @@ npm run test:ui             # ④ 改了侧边栏 UI 才需要（puppeteer 冒�
 | 导出 PDF（🖨）没反应 | sandbox 需 `allow-modals`，**两层都要**：`viz-overlay.ts` iframe 属性 + `vite.config.ts` 的 CSP `sandbox` 指令（取交集）。 |
 | token ~2h 失效(`99991677`) | OAuth 必须含 `offline_access` 才发 refresh_token。`oauth.ts` 已**强制**请求；改授权逻辑勿删。 |
 | 私有化某端点 404 | `feishuFetch` 的 `/vN/`→`v(N-1)` 回退（`version.ts`），仅 `IS_PRIVATE_DEPLOY` 生效。 |
+| 大模型报 `Connection error`（对话失败、报告却正常） | 先用 设置 →「测试模型连接」定位。代码侧：SDK 客户端一律 `createLlmClient`（去掉 `x-stainless-*` 头，否则严格的 CORS 预检会拒）；`assertSafeBaseUrl` 放行的地址必须也被正式版 CSP 放行（`scripts/csp.mjs`），否则过了校验却在 fetch 里被拦。 |
 | 环境变量没生效 | **Vite 只读 `.env` 文件里的 `VITE_*`，不读 `process.env`**。多套配置用 `.env.<mode>.local` + `vite build --mode <mode>`。 |
 | `npm run build` 偶发 TLS 报错 | manifest 插件联网抖动，**直接重试**即可。 |
 | 写操作重复（建了两张表） | 别给写方法加重试（`robustFetch` 故意只对 GET 重试）。 |

@@ -98,6 +98,7 @@ These are **security boundaries hardcoded in the code**; prompts don't count. If
 | Export PDF (🖨) does nothing | the sandbox needs `allow-modals`, and **both layers are required**: the iframe attribute in `viz-overlay.ts` + the CSP `sandbox` directive in `vite.config.ts` (they're intersected). |
 | token expires after ~2h (`99991677`) | OAuth must include `offline_access` to be issued a refresh_token. `oauth.ts` already **forces** the request; don't remove it when changing auth logic. |
 | a private-deployment endpoint returns 404 | `feishuFetch`'s `/vN/` → `v(N-1)` fallback (`version.ts`), effective only under `IS_PRIVATE_DEPLOY`. |
+| the LLM reports `Connection error` (chat fails while reports work) | start with Settings → "测试模型连接" (test model connection). In code: always build the SDK client with `createLlmClient` (it drops the `x-stainless-*` headers a strict CORS preflight rejects); whatever `assertSafeBaseUrl` admits must also be admitted by the release CSP (`scripts/csp.mjs`), or it passes validation and then dies inside fetch. |
 | an env var has no effect | **Vite only reads `VITE_*` from `.env` files, not `process.env`**. For multiple config sets, use `.env.<mode>.local` + `vite build --mode <mode>`. |
 | `npm run build` occasionally throws a TLS error | network jitter from the manifest plugin — **just retry**. |
 | duplicate write operations (created two tables) | don't add retries to write methods (`robustFetch` deliberately only retries GET). |

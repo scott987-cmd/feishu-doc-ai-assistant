@@ -104,7 +104,7 @@ VITE_FEISHU_APP_SECRET_ENC=
 npm run build
 # ① 出站只剩内网（无裸 https:）
 python3 -c "import json;print(json.load(open('dist/manifest.json'))['content_security_policy']['extension_pages'])"
-# 期望 connect-src 形如：'self' https://*.your-domain https://feishu-proxy.your-domain https://llm.your-domain
+# 期望 connect-src 形如：'self' https://*.your-domain https://feishu-proxy.your-domain https://llm.your-domain:* https://*.llm.your-domain:*
 # ② 包里无 secret
 grep -r "<你的AppSecret>" dist/ ; echo "↑ 应为空"
 ```
@@ -227,6 +227,7 @@ RATE_LIMIT_PER_MIN=60
 | 代理 `invalid_grant` | 授权码过期/复用，重新点授权 |
 | 某操作 404 但能力本应支持 | 私有化版落后；已自动回退（§6），若仍失败可能该端点在私有版根本未上线 |
 | 大模型请求被拒 | Base URL 不在 `VITE_OPENAI_ALLOWED_HOSTS` 内 |
+| 大模型报 `Connection error` | 设置 →「测试模型连接」定位：浏览器到不了 `llm.<域名>`（DNS/防火墙）、证书不受信任，或网关未放行浏览器跨域（需允许 `Authorization`、`Content-Type` 请求头）；见 [`FAQ.md`](FAQ.md) |
 | 全屏「检查网络访问权限」| `VITE_ALLOWED_CIDRS` + WebRTC 取不到 LAN IP（§7），改用网关限制 |
 | 403 无编辑权限 | 该资源非本人/未共享给应用；以本人身份操作或在文档「分享」加协作者 |
 

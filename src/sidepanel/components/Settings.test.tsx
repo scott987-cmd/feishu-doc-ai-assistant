@@ -2,7 +2,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, fireEvent, cleanup } from '@testing-library/react'
 import { DEFAULT_SETTINGS } from '../../shared/types'
+import { probeLlm } from '../../shared/ai/llmProbe'
 import Settings from './Settings'
+
+vi.mock('../../shared/ai/llmProbe', () => ({
+  probeLlm: vi.fn(async () => ({ ok: false, msg: '连不上 api.deepseek.com。请检查：① Base URL 的域名是否写对' })),
+}))
 
 afterEach(cleanup)
 
@@ -50,5 +55,34 @@ describe('Settings — appearance accent', () => {
     fireEvent.click(swatches[1])
     expect(onAccentChange).toHaveBeenCalledOnce()
     expect(onAccentChange.mock.calls[0][0]).toMatch(/^#[0-9a-f]{6}$/i)
+  })
+})
+
+describe('Settings — 测试模型连接', () => {
+  it('probes the LLM config currently in the form and shows the diagnosis', async () => {
+    const { getByText, findByText } = renderSettings()
+    fireEvent.click(getByText('测试模型连接'))
+    expect(await findByText(/连不上 api\.deepseek\.com/)).toBeTruthy()
+    expect(probeLlm).toHaveBeenCalledWith(expect.objectContaining({ baseUrl: 'https://api.deepseek.com' }))
+  })
+
+  it('drops a stale result once the endpoint is edited', async () => {
+    const { container, getByText, findByText, queryByText } = renderSettings()
+    fireEvent.click(getByText('测试模型连接'))
+    await findByText(/连不上/)
+    fireEvent.change(container.querySelector('input[type="url"]')!, { target: { value: 'https://api.moonshot.cn/v1' } })
+    expect(queryByText(/连不上/)).toBeNull()
+  })
+
+  it('ignores a probe that finishes after the endpoint was edited mid-test', async () => {
+    let finish!: (r: { ok: boolean; msg: string }) => void
+    vi.mocked(probeLlm).mockImplementationOnce(() => new Promise((r) => { finish = r }))
+    const { container, getByText, findByText, queryByText } = renderSettings()
+    fireEvent.click(getByText('测试模型连接'))
+    await findByText('测试中…')
+    fireEvent.change(container.querySelector('input[type="url"]')!, { target: { value: 'https://api.moonshot.cn/v1' } })
+    finish({ ok: false, msg: '连不上 api.deepseek.com（旧地址）' })
+    await findByText('测试模型连接') // probe settled, button re-enabled
+    expect(queryByText(/旧地址/)).toBeNull()
   })
 })

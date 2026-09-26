@@ -2,6 +2,7 @@ import type { AppSettings } from '../types'
 import { assertSafeBaseUrl } from '../providers'
 import { BUILD_CONFIG } from '../config'
 import { resolveLlmConfig } from './llmConfig'
+import { explainLlmError } from './llmError'
 
 /**
  * One-shot (non-streaming) chat completion via plain `fetch`.
@@ -19,7 +20,7 @@ export async function chatComplete(settings: AppSettings, content: string): Prom
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cfg.apiKey}` },
     body: JSON.stringify({ model: cfg.model, stream: false, messages: [{ role: 'user', content }] }),
-  })
+  }).catch((e: unknown) => { throw explainLlmError(e, baseURL) }) // "Failed to fetch" → host + causes
   if (!res.ok) {
     const body = await res.text().catch(() => '')
     throw new Error(`AI 接口错误（${res.status}）：${body.slice(0, 200) || res.statusText}`)
@@ -44,7 +45,7 @@ export async function chatCompleteStream(settings: AppSettings, content: string,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cfg.apiKey}` },
     body: JSON.stringify({ model: cfg.model, stream: true, messages: [{ role: 'user', content }] }),
     signal: opts.signal,
-  })
+  }).catch((e: unknown) => { throw explainLlmError(e, baseURL) }) // aborts pass through untouched
   if (!res.ok) {
     const body = await res.text().catch(() => '')
     throw new Error(`AI 接口错误（${res.status}）：${body.slice(0, 200) || res.statusText}`)
@@ -54,7 +55,8 @@ export async function chatCompleteStream(settings: AppSettings, content: string,
   const decoder = new TextDecoder()
   let buf = '', full = ''
   for (;;) {
-    const { done, value } = await reader.read()
+    // A connection dropped mid-stream rejects with a bare TypeError("network error").
+    const { done, value } = await reader.read().catch((e: unknown) => { throw explainLlmError(e, baseURL) })
     if (done) break
     buf += decoder.decode(value, { stream: true })
     let nl: number

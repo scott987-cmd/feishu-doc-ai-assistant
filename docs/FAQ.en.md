@@ -20,6 +20,22 @@ This doc/table wasn't created by you, or it hasn't been shared with you. Use an 
 **Q: The encrypted build won't open (unlock password)?**
 The secret in the personal/encrypted build is ciphertext and must be unlocked once via **Settings → Feishu Auth → enter unlock password**. The password is set at packaging time by `scripts/encrypt-secret.mjs` (**copy the whole string, including any leading/trailing symbols**); if you maintain multiple encrypted builds, note that each build has its own unlock password.
 
+## LLM connection
+
+**Q: I get `Connection error` / "连接大模型接口 xxx 失败" (failed to connect to the LLM endpoint)?**
+The request **never reached the LLM service you configured** (or was cut off midway). For security the browser doesn't tell the extension why; the usual causes are:
+1. **Your network can't reach that address**: a corporate firewall / proxy blocks it, or an overseas service (e.g. OpenAI) isn't directly reachable from your network (typical inside mainland China) → switch to a domestic provider (DeepSeek / Qwen / GLM / Kimi) or a network that can reach it.
+2. **Wrong Base URL**: a typo in the domain or a wrong path (e.g. a missing `/v1`). Picking a built-in provider from the "供应商" dropdown is the safest.
+3. **The service refuses direct calls from a browser extension (cross-origin / CORS)**: some self-hosted gateways / relays / local servers don't allow browser cross-origin requests → allow CORS on the server (permit the `Authorization` and `Content-Type` request headers), or use a built-in provider.
+4. **An intranet service's certificate isn't trusted** (self-signed), or a flaky network dropped the connection (just retry).
+
+**Diagnose**: **Settings → AI 模型 → 测试模型连接 (test model connection)** tells you whether it is "unreachable", "reachable but refuses cross-origin calls", "invalid key (401)", "insufficient balance (402)", "endpoint or model not found (404)" or a timeout.
+
+> Older versions sent the OpenAI SDK's `x-stainless-*` telemetry headers with chat requests, which services with a strict CORS header allowlist reject — seen as **chat failing with Connection error while "data report / dashboard" work**. These headers are no longer sent, so all features send the same headers.
+
+**Q: Can I use a local model (Ollama / LM Studio etc. on `http://localhost`)?**
+Not directly in a release build: the extension's security policy (CSP) only allows `https://` addresses, so a local `http://` address is blocked (Settings flags it as soon as you enter it). If you need it, put an **https reverse proxy** (with a trusted certificate) in front of the local service and allow browser cross-origin requests (e.g. Ollama: `OLLAMA_ORIGINS=chrome-extension://*`). `http://localhost` only works in the dev build (`npm run dev:ext`).
+
 ## Generation / Export
 
 **Q: Clicking "Export PDF" on PPT / dashboard / website does nothing?**
@@ -51,7 +67,7 @@ Only when executing a task you explicitly initiate does it send **necessary and 
 Private Feishu versions often lag behind SaaS. The request layer **automatically falls back** `/<service>/vN/` → `v(N-1)` (see [`PRIVATE_DEPLOYMENT.md`](PRIVATE_DEPLOYMENT.en.md) §6). If it still 404s, that endpoint may not be available in your private version.
 
 **Q: LLM requests are rejected?**
-The private build locks `VITE_OPENAI_ALLOWED_HOSTS`; the Base URL must fall within the allowlist.
+The private build locks `VITE_OPENAI_ALLOWED_HOSTS`; the Base URL must fall within the allowlist (the listed hosts and their subdomains, on any port; the CSP `connect-src` allows exactly the same).
 
 **Q: Full-screen "Checking network access permission"?**
 `VITE_ALLOWED_CIDRS` is set but the browser (WebRTC mDNS) can't obtain the internal IP. Switch to gateway-level restriction, or adjust this config.

@@ -22,6 +22,12 @@
 - **场景 tab 改为功能中心**：模版库收成入口卡片（单独页面），新增能力以卡片展示。
 
 ### 修复
+- **大模型报 `Connection error` 看不懂、也无从排查**（[#12](https://github.com/scott987-cmd/feishu-doc-ai-assistant/issues/12)）：
+  - 连接失败 / 超时改为说明**连的是哪个地址 + 常见原因**（网络 / 防火墙、Base URL、跨域 CORS、证书），不再只有一句英文；
+  - 设置 → AI 模型新增 **「测试模型连接」**：直接告诉你是连不上、能连上但拒绝跨域、Key 无效（401）、余额不足（402）、地址或模型不存在（404）还是超时；
+  - 对话 / 智能填充 / 识图请求不再带 OpenAI SDK 的 `x-stainless-*` 遥测请求头——跨域白名单较严的服务曾因此拒绝（对话失败、报告却正常）；
+  - 地址校验与 CSP 对齐：正式版拒绝 `http://localhost`（此前能保存，请求却被 CSP 拦成 Connection error）；
+    私有化锁定 `VITE_OPENAI_ALLOWED_HOSTS` 时，CSP 同步放行白名单主机的子域与任意端口。
 - **OAuth 自动续期补反应式重试**：原仅"过期前 5 分钟"主动续期，窗口漏掉就硬 401。新增 token 失效检测
   + `forceRefreshUserToken` 强制续期 + 工具层重试一次；refresh_token 也失效则提示重新授权。
 - 剪藏/可视化一连串体验修复（链接点击、面板崩溃、最近用过下拉、Function 语法兼容、调整功能、多图重叠等）。

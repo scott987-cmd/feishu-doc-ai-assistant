@@ -3,7 +3,8 @@ import type { AppSettings } from '../../shared/types'
 import { HAS_BUILTIN_CREDS, HAS_APP_SECRET, HAS_ENCRYPTED_SECRET, WEB_SPEECH_ALLOWED, BUILD_CONFIG, FEISHU_API_BASE, HAS_MANAGED_LLM, HAS_ARTIFACT_SYNC, HAS_MANAGED_APP_ID } from '../../shared/config'
 import { restoreAllArtifacts } from '../cloudRestore'
 import { buildBackup, applyBackup } from '../../shared/configBackup'
-import { clearManagedLlmCache, usingManagedLlm } from '../../shared/ai/llmConfig'
+import { clearManagedLlmCache, usingManagedLlm, resolveLlmConfig } from '../../shared/ai/llmConfig'
+import { probeLlm, type LlmProbeResult } from '../../shared/ai/llmProbe'
 import { loadPolicy, policyLockedKeys } from '../../shared/enterprisePolicy'
 import { getTenantAccessToken } from '../../shared/feishu/auth'
 import { authorizeFeishuUser, oauthRedirectUrl, fetchUserOpenId } from '../../shared/feishu/oauth'
@@ -28,6 +29,8 @@ export default function Settings({ settings, accent, onAccentChange, onSave, onC
   const [form, setForm] = useState<AppSettings>({ ...settings })
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null)
+  const [llmTesting, setLlmTesting] = useState(false)
+  const [llmTest, setLlmTest] = useState<LlmProbeResult | null>(null)
   const [showTokenHelp, setShowTokenHelp] = useState(false)
   const [authing, setAuthing] = useState(false)
   const [authResult, setAuthResult] = useState<{ ok: boolean; msg: string } | null>(null)
@@ -196,6 +199,31 @@ export default function Settings({ settings, accent, onAccentChange, onSave, onC
     }))
   }
 
+  // A result only describes the config it was run against — drop it once that config changes,
+  // including a probe still in flight (bumping the sequence makes its late result a no-op).
+  const llmTestSeq = useRef(0)
+  useEffect(() => {
+    llmTestSeq.current++
+    setLlmTest(null)
+  }, [form.openaiBaseUrl, form.openaiApiKey, form.openaiModel, form.llmSource])
+
+  // 「测试模型连接」: probes the config as currently in the form (unsaved edits included); in
+  // managed mode resolveLlmConfig fetches the company config like a real call would.
+  async function testLlm() {
+    const seq = ++llmTestSeq.current
+    setLlmTesting(true)
+    setLlmTest(null)
+    let result: LlmProbeResult
+    try {
+      result = await probeLlm(await resolveLlmConfig(form))
+    } catch (err) {
+      result = { ok: false, msg: err instanceof Error ? err.message : String(err) }
+    } finally {
+      setLlmTesting(false)
+    }
+    if (seq === llmTestSeq.current) setLlmTest(result)
+  }
+
   async function testFeishu() {
     setTesting(true)
     setTestResult(null)
@@ -361,10 +389,21 @@ export default function Settings({ settings, accent, onAccentChange, onSave, onC
           </label>
 
           <p className="field-hint">
-            默认国内大模型（DeepSeek）。模型 ID 可**直接输入**最新型号（预设仅作建议）；
+            默认国内大模型（DeepSeek）。模型 ID 可<b>直接输入</b>最新型号（预设仅作建议）；
             海外模型仍可在「供应商」中选择。
           </p>
           </>)}
+
+          <div className="test-row">
+            <button className="btn-test" onClick={() => void testLlm()} disabled={llmTesting}>
+              {llmTesting ? '测试中…' : '测试模型连接'}
+            </button>
+            {llmTest && (
+              <span className={`test-result test-result--block ${llmTest.ok ? 'test-result--ok' : 'test-result--err'}`}>
+                {llmTest.msg}
+              </span>
+            )}
+          </div>
         </section>
 
         {/* ── Feishu Auth ── */}

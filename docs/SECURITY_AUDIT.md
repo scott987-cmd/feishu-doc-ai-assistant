@@ -284,11 +284,12 @@
 - **风险**：base_url 指向任意主机，整段对话/表格内容可被外发（数据外泄）。
 - **修复**：在 **runAgent 真正发请求前**校验 base URL —— 篡改/错填会**响亮报错**而非静默外泄：
   - 拒绝空/不可解析 URL；
-  - **强制 https://**（仅 localhost 允许 http，供本地代理/harness）；
-  - **企业可选硬锁**：构建时 `VITE_OPENAI_ALLOWED_HOSTS` 设了则只准发到这些 host（含子域），
+  - **强制 https://**（localhost 的 http 仅在开发/测试构建放行，供 harness/本地调试；正式构建与 CSP 一致只放行 https，
+    否则地址过了校验、请求却被 CSP 拦成一句无从排查的 `Connection error`）；
+  - **企业可选硬锁**：构建时 `VITE_OPENAI_ALLOWED_HOSTS` 设了则只准发到这些 host（含子域、任意端口；CSP 同步放行同样范围，见 M7），
     10 万人管理员可钉死端点；不设则任意 https host 放行，保留"自定义 OpenAI 兼容端点"功能。
   - Settings 内对非内置厂商 host 给软提醒（对话内容将发往此地址）。
-- **测试**：`providers.test.ts` 5 例（https 强制、localhost 例外、归一化、有/无企业白名单）。
+- **测试**：`providers.test.ts`（https 强制、localhost 例外仅限开发/测试、归一化、有/无企业白名单）。
 
 ### M3 ✅ 模板 registry URL 生产仍允许 localhost / 无 schema 校验 — 已修
 - **位置**：`src/shared/templates/registry.ts`
@@ -351,6 +352,7 @@
 - **出站锁定（双重）**：助手只访问两类端点——飞书 + 大模型。
   - 代码层：`isFeishuOutboundAllowed` 只放行基础域名的子域(+代理)，`feishuReq`/`req` 强制；大模型由 `assertSafeBaseUrl` 把关。
   - CSP 层：`vite.config` 按 env 把 `connect-src`/`host_permissions`/`content_scripts` 锁成 `*.<域名>` + 钉死的大模型 host；设了 `VITE_OPENAI_ALLOWED_HOSTS` 时**去掉 `https:` 通配 → 纯内网**。
+    钉死的 host 写成 `https://<host>:*` + `https://*.<host>:*`（`scripts/csp.mjs`），与 `assertSafeBaseUrl` 的「含子域、任意端口」逐一对应——两层不一致时，过了校验的地址会在 fetch 里被 CSP 静默拦下。
 - **测试**：`config.test.ts`（子域放行/后缀仿冒拒绝/端点派生），并实测私有化构建 `connect-src` 仅含内网 host。
 
 ### M8 ✅ 网页剪藏（Web Clipper）— 手势门控、不破坏出站锁定

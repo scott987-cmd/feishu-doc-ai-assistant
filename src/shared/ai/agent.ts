@@ -16,6 +16,8 @@ import { resolveToken, invalidateToken, isPermissionError, isTokenExpiredError, 
 import { HAS_BUILTIN_CREDS, BUILD_CONFIG } from '../config'
 import { assertSafeBaseUrl } from '../providers'
 import { resolveLlmConfig } from './llmConfig'
+import { createLlmClient } from './llmClient'
+import { explainLlmError } from './llmError'
 import { redactSensitive } from './redact'
 import { loadRecipes, recordRecipe, relevantRecipes, formatRecipes, type Recipe } from './recipes'
 import { matchSkills, formatSkills, preloadSkills, type Skill } from './skills'
@@ -276,11 +278,7 @@ export async function runAgent(
   // Enterprise managed mode resolves the company LLM config from the proxy; else user settings.
   const llmCfg = await resolveLlmConfig(settings)
   const baseURL = assertSafeBaseUrl(llmCfg.baseUrl, BUILD_CONFIG.openaiAllowedHosts)
-  const client = new OpenAI({
-    baseURL,
-    apiKey: llmCfg.apiKey,
-    dangerouslyAllowBrowser: true,
-  })
+  const client = createLlmClient(baseURL, llmCfg.apiKey)
 
   let systemPrompt = buildSystemPrompt(context, settings, baseCtx)
 
@@ -345,39 +343,44 @@ export async function runAgent(
     let textAccum = ''
     const rawToolCalls: OpenAI.Chat.ChatCompletionMessageToolCall[] = []
 
-    const stream = await client.chat.completions.create({
-      model: llmCfg.model,
-      messages: msgs,
-      tools: toolsForContext(context.feishu?.kind), // only the current resource's tools (+ core)
-      tool_choice: 'auto',
-      temperature: AGENT_TEMPERATURE,
-      stream: true,
-    }, { signal })
+    try {
+      const stream = await client.chat.completions.create({
+        model: llmCfg.model,
+        messages: msgs,
+        tools: toolsForContext(context.feishu?.kind), // only the current resource's tools (+ core)
+        tool_choice: 'auto',
+        temperature: AGENT_TEMPERATURE,
+        stream: true,
+      }, { signal })
 
-    for await (const chunk of stream) {
-      const delta = chunk.choices[0]?.delta
-      if (!delta) continue
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta
+        if (!delta) continue
 
-      if (delta.content) {
-        textAccum += delta.content
-        callbacks.onChunk(delta.content)
-      }
+        if (delta.content) {
+          textAccum += delta.content
+          callbacks.onChunk(delta.content)
+        }
 
-      if (delta.tool_calls) {
-        for (const tc of delta.tool_calls) {
-          const idx = tc.index ?? 0
-          if (!rawToolCalls[idx]) {
-            rawToolCalls[idx] = {
-              id: tc.id ?? '',
-              type: 'function',
-              function: { name: tc.function?.name ?? '', arguments: '' },
+        if (delta.tool_calls) {
+          for (const tc of delta.tool_calls) {
+            const idx = tc.index ?? 0
+            if (!rawToolCalls[idx]) {
+              rawToolCalls[idx] = {
+                id: tc.id ?? '',
+                type: 'function',
+                function: { name: tc.function?.name ?? '', arguments: '' },
+              }
             }
+            if (tc.id) rawToolCalls[idx].id = tc.id
+            if (tc.function?.name) rawToolCalls[idx].function.name = tc.function.name
+            if (tc.function?.arguments) rawToolCalls[idx].function.arguments += tc.function.arguments
           }
-          if (tc.id) rawToolCalls[idx].id = tc.id
-          if (tc.function?.name) rawToolCalls[idx].function.name = tc.function.name
-          if (tc.function?.arguments) rawToolCalls[idx].function.arguments += tc.function.arguments
         }
       }
+    } catch (e) {
+      // A bare SDK "Connection error." tells the user nothing — name the host + likely causes.
+      throw explainLlmError(e, baseURL)
     }
 
     const toolCallDefs: ToolCallDef[] = rawToolCalls.map((tc) => ({

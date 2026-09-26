@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { LLM_PROVIDERS, DEFAULT_PROVIDER, providerForBaseUrl, assertSafeBaseUrl } from './providers'
 
 describe('LLM providers', () => {
@@ -51,5 +51,25 @@ describe('assertSafeBaseUrl — endpoint exfil guard (M2)', () => {
     expect(assertSafeBaseUrl('https://api.deepseek.com/v1', allow)).toBe('https://api.deepseek.com/v1') // subdomain
     expect(assertSafeBaseUrl('https://api.openai.com/v1', allow)).toBe('https://api.openai.com/v1')     // exact
     expect(() => assertSafeBaseUrl('https://exfil.evil.com/v1', allow)).toThrow(/企业策略|不在允许/)
+  })
+})
+
+// A production build's CSP connect-src admits only https (or only the pinned hosts). Anything the
+// guard accepts beyond that would pass here and then fail in fetch() as a bare "Connection error."
+describe('assertSafeBaseUrl — production build matches the CSP', () => {
+  afterEach(() => { vi.unstubAllEnvs() })
+
+  it('rejects http://localhost with an explanation instead of letting the CSP silently block it', () => {
+    vi.stubEnv('PROD', true)
+    expect(() => assertSafeBaseUrl('http://localhost:11434/v1')).toThrow(/正式版[\s\S]*https/)
+    expect(() => assertSafeBaseUrl('http://127.0.0.1:1234')).toThrow(/localhost|127\.0\.0\.1/)
+    expect(assertSafeBaseUrl('https://localhost:8443/v1')).toBe('https://localhost:8443/v1') // https is fine
+  })
+
+  it('no longer exempts localhost from the enterprise pin', () => {
+    vi.stubEnv('PROD', true)
+    expect(() => assertSafeBaseUrl('https://localhost:8443/v1', ['llm.corp.example'])).toThrow(/企业策略/)
+    expect(assertSafeBaseUrl('https://api.llm.corp.example:8443/v1', ['llm.corp.example']))
+      .toBe('https://api.llm.corp.example:8443/v1') // subdomain + custom port stay allowed (CSP mirrors this)
   })
 })

@@ -35,6 +35,7 @@ Chrome **MV3** 扩展「飞书文档AI助手」：在飞书 多维表格/电子�
 - token 2h 失效 → OAuth 必须含 `offline_access`（`oauth.ts` 已强制）。
 - 环境变量没生效 → **Vite 只读 `.env` 文件的 `VITE_*`，不读 `process.env`**；用 `--mode` + `.env.<mode>.local`。
 - 私有化端点 404 → `feishuFetch` 自动 `/vN/`→`v(N-1)` 回退（仅 `IS_PRIVATE_DEPLOY`）。
+- 大模型 `Connection error` → 设置「测试模型连接」定位；SDK 客户端只用 `createLlmClient`（别直接 `new OpenAI`：`x-stainless-*` 头会被严格 CORS 拒）；`assertSafeBaseUrl` 与 CSP（`scripts/csp.mjs`）须一致。
 
 ## 约定
 - 配置：`config.ts BUILD_CONFIG`（读 `import.meta.env.VITE_*`），记录在 `.env.example`。
